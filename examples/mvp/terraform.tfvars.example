@@ -1,0 +1,32 @@
+# SageMaker Unified Studio MVP Example Configuration
+# Copy this file to terraform.tfvars and customize the values
+
+# AWS Configuration
+aws_region = "us-west-2"  # Change to your preferred region
+
+# Domain Configuration
+domain_name        = "my-unified-studio-mvp"
+domain_description = "Complete SageMaker Unified Studio MVP deployment with Terraform"
+enable_sso         = false  # Set to true if you have IAM Identity Center enabled
+
+# Project Configuration
+project_name        = "my-analytics-project"
+project_description = "MVP project for data science and ML workloads"
+
+# Blueprint Configuration - Essential blueprints for MVP
+enable_data_lake           = true   # Essential for data catalog and lake functionality
+enable_data_warehouse      = true   # Essential for analytics workloads
+enable_sagemaker           = true   # Essential for ML workloads
+enable_custom_aws_service  = false  # Optional for custom integrations
+
+# Environment and Tagging
+environment = "test"
+owner       = "data-team"
+
+# Additional Tags
+tags = {
+  Project     = "analytics-mvp"
+  Environment = "test"
+  CostCenter  = "engineering"
+  Owner       = "data-team"
+}

@@ -1,0 +1,54 @@
+# Example Terraform Variables for Multi-Account SageMaker Unified Studio Domain
+# Copy this file to terraform.tfvars and customize the values
+
+# AWS Configuration
+aws_region = "us-east-1"  # Change to your preferred region
+
+# Domain Configuration
+domain_name        = "enterprise-unified-studio"  # Must be unique and follow naming rules
+domain_description = "Enterprise SageMaker Unified Studio domain with multi-account access"
+
+# SSO Configuration
+enable_sso = true  # Set to false if you don't want SSO integration
+
+# Organization Configuration (REQUIRED for multi-account setup)
+organization_id = "o-1234567890"  # Replace with your AWS Organizations ID
+
+# Account Sharing Options
+exclude_management_account = true   # Exclude the management account from sharing
+enable_resource_sharing   = true   # Enable cross-account resource sharing
+exclude_current_account   = true   # Exclude current account from resource sharing
+allow_external_principals = false  # Only share within organization
+auto_accept_shares       = true   # Auto-accept shares within organization
+
+# Optional: Specific accounts (overrides organization discovery)
+# specific_account_ids = [
+#   "123456789012",
+#   "123456789013",
+#   "123456789014"
+# ]
+
+# Environment and Tagging
+environment = "prod"           # Options: dev, staging, prod, test
+owner       = "platform-team"  # Team or person responsible for this domain
+
+# Example configurations for different scenarios:
+
+# Development Environment with Limited Sharing
+# domain_name = "dev-unified-studio"
+# environment = "dev"
+# specific_account_ids = ["123456789012", "123456789013"]  # Only dev accounts
+# owner = "development-team"
+
+# Production Environment with Full Organization
+# domain_name = "prod-unified-studio"
+# environment = "prod"
+# exclude_management_account = true
+# enable_resource_sharing = true
+# owner = "platform-engineering"
+
+# Staging Environment with External Sharing
+# domain_name = "staging-unified-studio"
+# environment = "staging"
+# allow_external_principals = true  # Allow sharing outside organization
+# owner = "qa-team"

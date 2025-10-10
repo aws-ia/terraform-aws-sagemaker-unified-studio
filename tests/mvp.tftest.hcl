@@ -2,17 +2,17 @@
 # run at least one test using the ./examples directory as your module source
 # create additional *.tftest.hcl for your own unit / integration tests
 # use tests/*.auto.tfvars to add non-default variables
-
-run "mandatory_plan_basic" {
+run "mandatory_plan_mvp" {
   command = plan
   module {
-    source = "./examples/basic"
+    source = "./examples/mvp"
   }
 }
 
-run "mandatory_apply_basic" {
+run "mandatory_apply_mvp" {
   command = apply
   module {
-    source = "./examples/basic"
+    source = "./examples/mvp"
   }
 }
+
