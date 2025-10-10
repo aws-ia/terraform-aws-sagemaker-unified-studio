@@ -8,7 +8,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 6.15.0"
+      version = ">= 6.11.0"
     }
     awscc = {
       source  = "hashicorp/awscc"
@@ -130,34 +130,37 @@ resource "random_id" "project_suffix" {
   byte_length = 3  # 3 bytes = 6 hex digits
 }
 
-# Create S3 bucket for tooling environment
+# Create S3 bucket for tooling environment using community module
 resource "random_id" "bucket_suffix" {
   byte_length = 4
 }
 
-resource "aws_s3_bucket" "tooling" {
-  bucket = "${local.dynamic_project_name}-tooling-${random_id.bucket_suffix.hex}"
+module "s3_bucket_tooling" {
+  source = "git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v5.0.0"
+  
+  bucket                   = "${local.dynamic_project_name}-tooling-${random_id.bucket_suffix.hex}"
+  control_object_ownership = true
+  object_ownership         = "BucketOwnerEnforced"
+  block_public_acls        = true
+  block_public_policy      = true
+  ignore_public_acls       = true
+  restrict_public_buckets  = true
+
+  server_side_encryption_configuration = {
+    rule = {
+      apply_server_side_encryption_by_default = {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  versioning = {
+    enabled = true
+  }
 
   tags = merge(local.common_tags, {
     Purpose = "SageMaker Unified Studio Tooling Environment"
   })
-}
-
-resource "aws_s3_bucket_versioning" "tooling" {
-  bucket = aws_s3_bucket.tooling.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "tooling" {
-  bucket = aws_s3_bucket.tooling.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
 }
 
 # Enable Blueprint Configurations
@@ -167,7 +170,7 @@ module "blueprints" {
   domain_id              = module.domain.domain_id
   manage_access_role_arn = module.iam_roles.sagemaker_manage_access_role_arn
   provisioning_role_arn  = module.iam_roles.sagemaker_provisioning_role_arn
-  s3_bucket_name         = aws_s3_bucket.tooling.bucket
+  s3_bucket_name         = module.s3_bucket_tooling.s3_bucket_id
   vpc_id                 = data.aws_vpc.default.id
   subnet_ids             = data.aws_subnets.default.ids
 

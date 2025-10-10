@@ -82,7 +82,7 @@ output "project_url" {
 # Infrastructure Information
 output "s3_bucket_name" {
   description = "Name of the S3 bucket created for tooling environment"
-  value       = aws_s3_bucket.tooling.bucket
+  value       = module.s3_bucket_tooling.s3_bucket_id
 }
 
 output "vpc_id" {
