@@ -1,0 +1,64 @@
+{
+    "createdAt": "2025-08-18T20:17:34.992253+00:00",
+    "description": "Auto-generated project profile for my-analytics-project",
+    "domainId": "dzd_3p9j9gtirzu6a8",
+    "domainUnitId": "dmmnltht1xq8wg",
+    "environmentConfigurations": [
+        {
+            "awsAccount": {
+                "awsAccountId": "593793055018"
+            },
+            "awsRegion": {
+                "regionName": "us-west-2"
+            },
+            "deploymentMode": "ON_CREATE",
+            "deploymentOrder": 1,
+            "environmentBlueprintId": "4k186sfh08eqxc",
+            "id": "c137079e-f060-43bf-ace2-c2e43646e5dd",
+            "name": "Tooling"
+        },
+        {
+            "awsAccount": {
+                "awsAccountId": "593793055018"
+            },
+            "awsRegion": {
+                "regionName": "us-west-2"
+            },
+            "deploymentMode": "ON_CREATE",
+            "deploymentOrder": 2,
+            "environmentBlueprintId": "ciw5fxhc6v6rio",
+            "id": "70225a53-13ac-446a-a018-0c85fdd34a1a",
+            "name": "DataLake"
+        },
+        {
+            "awsAccount": {
+                "awsAccountId": "593793055018"
+            },
+            "awsRegion": {
+                "regionName": "us-west-2"
+            },
+            "deploymentMode": "ON_CREATE",
+            "deploymentOrder": 3,
+            "environmentBlueprintId": "dlyaabb17hano0",
+            "id": "6edf4555-7d3a-4d3a-a5b1-4e52a175fe84",
+            "name": "RedshiftServerless"
+        },
+        {
+            "awsAccount": {
+                "awsAccountId": "593793055018"
+            },
+            "awsRegion": {
+                "regionName": "us-west-2"
+            },
+            "deploymentMode": "ON_CREATE",
+            "deploymentOrder": 4,
+            "environmentBlueprintId": "c9gx7j7bemrv0w",
+            "id": "ead8e591-4d85-4112-adc6-f5f2b2d14594",
+            "name": "SageMaker"
+        }
+    ],
+    "id": "6nlqyy7l5r9afk",
+    "lastUpdatedAt": "2025-08-18T20:17:34.992253+00:00",
+    "name": "my-analytics-project-profile",
+    "status": "DISABLED"
+}

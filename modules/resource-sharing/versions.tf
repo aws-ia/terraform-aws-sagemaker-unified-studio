@@ -1,13 +1,12 @@
+# Terraform and Provider Version Constraints for Resource Sharing Module
+
 terraform {
   required_version = ">= 1.5"
+  
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.70.0"
-    }
-    awscc = {
-      source  = "hashicorp/awscc"
-      version = ">= 1.50.0"
+      version = ">= 5.0"
     }
   }
 }
