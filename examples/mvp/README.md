@@ -98,6 +98,38 @@ terraform apply
 ./validate.sh
 ```
 
+### 4. Configure Authorization:
+
+#### SSO
+
+Using the console:
+- Navigate and select your newly created domain: terraform-mvp-domain
+- Click Configure (right hand side, beside Configure SSO user access)
+- Select IAM Identity Center
+   - If you are using an AWS Organization, select either Connect to organization of IAM Identity CEnter (recommended), or Connect to an account instance of IAM Center
+- Select Require assignments
+- Click 'Next'
+- Click 'Save'
+- Select the users/groups you'd like to grant access to
+   - Keep note of the groups/users selected, as if you want to regain access to the sample project created as part of this MVP project, you'll need them for section 5 to pass into the command
+- Click "Add users and groups"
+- Done
+
+### 5. Grant SSO User Access (Optional: Post-Deployment)
+
+Note, the sample project is used to test your SMUS domain configuration and project creation. The project can be deleted once it is successfully provisioned without negatively impacting the deployment. If you'd like to keep the sample project and gain access to it, run the following to grant access to your SSO user/group once SSO has been configured:
+
+```bash
+# Grant PROJECT_OWNER access to an SSO user
+./grant-sso-access.sh username
+
+# Grant PROJECT_CONTRIBUTOR access to an SSO user  
+./grant-sso-access.sh user PROJECT_CONTRIBUTOR
+
+# Grant access to an SSO group
+./grant-sso-access.sh DataScientists PROJECT_CONTRIBUTOR
+```
+
 ## Example Output
 
 After successful deployment, you'll see output similar to:
