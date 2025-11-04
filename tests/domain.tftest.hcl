@@ -5,13 +5,13 @@
 run "mandatory_plan_domain" {
   command = plan
   module {
-    source = "./modules/domain"
+    source = "./"
   }
 }
 
 run "mandatory_apply_domain" {
   command = apply
   module {
-    source = "./modules/domain"
+    source = "./"
   }
 }

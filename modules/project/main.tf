@@ -8,7 +8,7 @@ data "aws_region" "current" {}
 
 # Local values
 locals {
-  aws_region = var.aws_region != null ? var.aws_region : data.aws_region.current.name
+  aws_region = var.aws_region != null ? var.aws_region : data.aws_region.current.id
 }
 
 # Main Project Resource using awscc provider

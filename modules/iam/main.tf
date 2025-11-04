@@ -75,30 +75,7 @@ resource "aws_iam_role" "domain_execution" {
     ]
   })
   
-  # Add inline policy with additional permissions required for domain execution
-  inline_policy {
-    name = "domain_execution_policy"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Action = [
-            "datazone:*",
-            "ram:*",
-            "sso:*",
-            "kms:*",
-            "codeconnections:ListConnections",
-            "codeconnections:GetConnection",
-            "codeconnections:ListTagsForResource",
-            "codeconnections:TagResource",
-            "codeconnections:UntagResource"
-          ]
-          Effect   = "Allow"
-          Resource = "*"
-        }
-      ]
-    })
-  }
+
   
   tags = local.common_tags
 }
@@ -180,169 +157,204 @@ resource "aws_iam_role" "sagemaker_provisioning" {
     ]
   })
   
-  # Add inline policy with additional permissions required for SageMaker provisioning
-  inline_policy {
-    name = "smus_provisioning_policy"
-    policy = jsonencode({
-      Version = "2012-10-17"
-      Statement = [
-        {
-          Action = [
-            "cloudformation:CreateStack",
-            "cloudformation:UpdateStack",
-            "cloudformation:DeleteStack",
-            "cloudformation:DescribeStacks",
-            "cloudformation:DescribeStackEvents",
-            "cloudformation:DescribeStackResources",
-            "cloudformation:GetTemplate",
-            "cloudformation:ValidateTemplate"
-          ]
-          Effect = "Allow"
-          Resource = [
-            "arn:aws:cloudformation:${local.region}:${local.account_id}:stack/sagemaker-*/*",
-            "arn:aws:cloudformation:${local.region}:${local.account_id}:stack/${var.domain_name}-*/*"
-          ]
-        },
-        {
-          Action = [
-            "sagemaker:CreateNotebookInstance",
-            "sagemaker:UpdateNotebookInstance",
-            "sagemaker:DeleteNotebookInstance",
-            "sagemaker:DescribeNotebookInstance",
-            "sagemaker:StartNotebookInstance",
-            "sagemaker:StopNotebookInstance",
-            "sagemaker:CreateEndpoint",
-            "sagemaker:UpdateEndpoint",
-            "sagemaker:DeleteEndpoint",
-            "sagemaker:DescribeEndpoint",
-            "sagemaker:CreateModel",
-            "sagemaker:DeleteModel",
-            "sagemaker:DescribeModel"
-          ]
-          Effect = "Allow"
-          Resource = [
-            "arn:aws:sagemaker:${local.region}:${local.account_id}:notebook-instance/*",
-            "arn:aws:sagemaker:${local.region}:${local.account_id}:endpoint/*",
-            "arn:aws:sagemaker:${local.region}:${local.account_id}:model/*"
-          ]
-        },
-        {
-          Action = [
-            "ec2:CreateSecurityGroup",
-            "ec2:DeleteSecurityGroup",
-            "ec2:DescribeSecurityGroups",
-            "ec2:AuthorizeSecurityGroupIngress",
-            "ec2:AuthorizeSecurityGroupEgress",
-            "ec2:RevokeSecurityGroupIngress",
-            "ec2:RevokeSecurityGroupEgress",
-            "ec2:RunInstances",
-            "ec2:TerminateInstances",
-            "ec2:DescribeInstances",
-            "ec2:DescribeInstanceTypes",
-            "ec2:DescribeImages",
-            "ec2:DescribeKeyPairs",
-            "ec2:DescribeVpcs",
-            "ec2:DescribeSubnets"
-          ]
-          Effect   = "Allow"
-          Resource = "*"
-        },
-        {
-          Action = [
-            "s3:CreateBucket",
-            "s3:DeleteBucket",
-            "s3:GetObject",
-            "s3:PutObject",
-            "s3:DeleteObject",
-            "s3:ListBucket",
-            "s3:GetBucketLocation"
-          ]
-          Effect = "Allow"
-          Resource = [
-            "arn:aws:s3:::sagemaker-*",
-            "arn:aws:s3:::sagemaker-*/*",
-            "arn:aws:s3:::${var.domain_name}-*",
-            "arn:aws:s3:::${var.domain_name}-*/*"
-          ]
-        },
-        {
-          Action = [
-            "iam:CreateRole",
-            "iam:DeleteRole",
-            "iam:GetRole",
-            "iam:PassRole",
-            "iam:AttachRolePolicy",
-            "iam:DetachRolePolicy",
-            "iam:PutRolePolicy",
-            "iam:DeleteRolePolicy",
-            "iam:GetRolePolicy",
-            "iam:ListRolePolicies",
-            "iam:ListAttachedRolePolicies",
-            "iam:TagRole",
-            "iam:UntagRole",
-            "iam:CreateInstanceProfile",
-            "iam:DeleteInstanceProfile",
-            "iam:GetInstanceProfile",
-            "iam:AddRoleToInstanceProfile",
-            "iam:RemoveRoleFromInstanceProfile"
-          ]
-          Effect = "Allow"
-          Resource = [
-            "arn:aws:iam::${local.account_id}:role/sagemaker-*",
-            "arn:aws:iam::${local.account_id}:role/${var.domain_name}-*",
-            "arn:aws:iam::${local.account_id}:role/SageMakerStudio*",
-            "arn:aws:iam::${local.account_id}:role/AmazonSageMaker*",
-            "arn:aws:iam::${local.account_id}:role/sm-provisioning/datazone_usr*",
-            "arn:aws:iam::${local.account_id}:instance-profile/sagemaker-*",
-            "arn:aws:iam::${local.account_id}:instance-profile/SageMakerStudio*"
-          ]
-        },
-        {
-          Action = [
-            "iam:CreateRole",
-            "iam:DeleteRole",
-            "iam:GetRole",
-            "iam:PassRole",
-            "iam:AttachRolePolicy",
-            "iam:DetachRolePolicy",
-            "iam:PutRolePolicy",
-            "iam:DeleteRolePolicy",
-            "iam:GetRolePolicy",
-            "iam:ListRolePolicies",
-            "iam:ListAttachedRolePolicies",
-            "iam:TagRole",
-            "iam:UntagRole"
-          ]
-          Effect = "Allow"
-          Resource = [
-            "arn:aws:iam::${local.account_id}:role/SageMakerStudioQueryExecutionRole*",
-            "arn:aws:iam::${local.account_id}:role/SageMakerStudioExecutionRole*",
-            "arn:aws:iam::${local.account_id}:role/SageMakerStudioUserRole*"
-          ]
-        },
-        {
-          Action = [
-            "lakeformation:GetDataLakeSettings",
-            "lakeformation:PutDataLakeSettings",
-            "lakeformation:DescribeResource",
-            "lakeformation:ListResources",
-            "lakeformation:GrantPermissions",
-            "lakeformation:RevokePermissions",
-            "lakeformation:ListPermissions",
-            "lakeformation:BatchGrantPermissions",
-            "lakeformation:BatchRevokePermissions"
-          ]
-          Effect = "Allow"
-          Resource = "*"
-        }
-      ]
-    })
-  }
+
   
   tags = local.common_tags
 }
 
-# Add inline policy for SageMaker manage access role
+# Domain execution role inline policy as separate resource
+resource "aws_iam_role_policy" "domain_execution_inline" {
+  count = var.create_domain_execution_role ? 1 : 0
+  
+  name = "domain_execution_policy"
+  role = aws_iam_role.domain_execution[0].id
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "datazone:*",
+          "ram:*",
+          "sso:*",
+          "kms:*",
+          "codeconnections:ListConnections",
+          "codeconnections:GetConnection",
+          "codeconnections:ListTagsForResource",
+          "codeconnections:TagResource",
+          "codeconnections:UntagResource"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# SageMaker provisioning role inline policy as separate resource
+resource "aws_iam_role_policy" "sagemaker_provisioning_inline" {
+  count = var.create_sagemaker_roles ? 1 : 0
+  
+  name = "smus_provisioning_policy"
+  role = aws_iam_role.sagemaker_provisioning[0].id
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "cloudformation:CreateStack",
+          "cloudformation:UpdateStack",
+          "cloudformation:DeleteStack",
+          "cloudformation:DescribeStacks",
+          "cloudformation:DescribeStackEvents",
+          "cloudformation:DescribeStackResources",
+          "cloudformation:GetTemplate",
+          "cloudformation:ValidateTemplate"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:cloudformation:${local.region}:${local.account_id}:stack/sagemaker-*/*",
+          "arn:aws:cloudformation:${local.region}:${local.account_id}:stack/${var.domain_name}-*/*"
+        ]
+      },
+      {
+        Action = [
+          "sagemaker:CreateNotebookInstance",
+          "sagemaker:UpdateNotebookInstance",
+          "sagemaker:DeleteNotebookInstance",
+          "sagemaker:DescribeNotebookInstance",
+          "sagemaker:StartNotebookInstance",
+          "sagemaker:StopNotebookInstance",
+          "sagemaker:CreateEndpoint",
+          "sagemaker:UpdateEndpoint",
+          "sagemaker:DeleteEndpoint",
+          "sagemaker:DescribeEndpoint",
+          "sagemaker:CreateModel",
+          "sagemaker:DeleteModel",
+          "sagemaker:DescribeModel"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:sagemaker:${local.region}:${local.account_id}:notebook-instance/*",
+          "arn:aws:sagemaker:${local.region}:${local.account_id}:endpoint/*",
+          "arn:aws:sagemaker:${local.region}:${local.account_id}:model/*"
+        ]
+      },
+      {
+        Action = [
+          "ec2:CreateSecurityGroup",
+          "ec2:DeleteSecurityGroup",
+          "ec2:DescribeSecurityGroups",
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupEgress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupEgress",
+          "ec2:RunInstances",
+          "ec2:TerminateInstances",
+          "ec2:DescribeInstances",
+          "ec2:DescribeInstanceTypes",
+          "ec2:DescribeImages",
+          "ec2:DescribeKeyPairs",
+          "ec2:DescribeVpcs",
+          "ec2:DescribeSubnets"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+      {
+        Action = [
+          "s3:CreateBucket",
+          "s3:DeleteBucket",
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+          "s3:ListBucket",
+          "s3:GetBucketLocation"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:s3:::sagemaker-*",
+          "arn:aws:s3:::sagemaker-*/*",
+          "arn:aws:s3:::${var.domain_name}-*",
+          "arn:aws:s3:::${var.domain_name}-*/*"
+        ]
+      },
+      {
+        Action = [
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:GetRole",
+          "iam:PassRole",
+          "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:GetRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
+          "iam:TagRole",
+          "iam:UntagRole",
+          "iam:CreateInstanceProfile",
+          "iam:DeleteInstanceProfile",
+          "iam:GetInstanceProfile",
+          "iam:AddRoleToInstanceProfile",
+          "iam:RemoveRoleFromInstanceProfile"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:iam::${local.account_id}:role/sagemaker-*",
+          "arn:aws:iam::${local.account_id}:role/${var.domain_name}-*",
+          "arn:aws:iam::${local.account_id}:role/SageMakerStudio*",
+          "arn:aws:iam::${local.account_id}:role/AmazonSageMaker*",
+          "arn:aws:iam::${local.account_id}:role/sm-provisioning/datazone_usr*",
+          "arn:aws:iam::${local.account_id}:instance-profile/sagemaker-*",
+          "arn:aws:iam::${local.account_id}:instance-profile/SageMakerStudio*"
+        ]
+      },
+      {
+        Action = [
+          "iam:CreateRole",
+          "iam:DeleteRole",
+          "iam:GetRole",
+          "iam:PassRole",
+          "iam:AttachRolePolicy",
+          "iam:DetachRolePolicy",
+          "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy",
+          "iam:GetRolePolicy",
+          "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies",
+          "iam:TagRole",
+          "iam:UntagRole"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:iam::${local.account_id}:role/SageMakerStudioQueryExecutionRole*",
+          "arn:aws:iam::${local.account_id}:role/SageMakerStudioExecutionRole*",
+          "arn:aws:iam::${local.account_id}:role/SageMakerStudioUserRole*"
+        ]
+      },
+      {
+        Action = [
+          "lakeformation:GetDataLakeSettings",
+          "lakeformation:PutDataLakeSettings",
+          "lakeformation:DescribeResource",
+          "lakeformation:ListResources",
+          "lakeformation:GrantPermissions",
+          "lakeformation:RevokePermissions",
+          "lakeformation:ListPermissions",
+          "lakeformation:BatchGrantPermissions",
+          "lakeformation:BatchRevokePermissions"
+        ]
+        Effect = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# SageMaker manage access role inline policy as separate resource
 resource "aws_iam_role_policy" "sagemaker_manage_access_inline" {
   count = var.create_sagemaker_roles ? 1 : 0
   
