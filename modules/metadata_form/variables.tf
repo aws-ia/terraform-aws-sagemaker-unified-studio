@@ -100,6 +100,12 @@ variable "fields" {
   }
   validation {
     condition = alltrue([
+      for param in var.fields : param.field_type != "Glossary" || param.glossary_id != ""
+    ])
+    error_message = "glossary_id must be set if field_type is set to Glossary"
+  }
+  validation {
+    condition = alltrue([
       for param in var.fields : param.field_type != "Glossary" || param.min == null
     ])
     error_message = "Cannot set min when field_type is set to Glossary"
