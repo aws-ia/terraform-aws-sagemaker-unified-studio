@@ -24,14 +24,14 @@ variable "owning_project_identifier" {
 variable "display_name" {
   description = "The display name of the metadata form"
   type        = string
-  default = ""
+  default     = ""
 }
 
 variable "technical_name" {
   description = "This name will be used when working with APIs."
   type        = string
   validation {
-    condition     = can(regex("[a-zA-Z0-9_]+", var.technical_name))
+    condition     = can(regex("[a-zA-Z0-9_]+", var.technical_name)) # TODO : Refine
     error_message = "Name must contain at least one number or letter, and may not contain special characters other than underscores"
   }
 }
@@ -39,30 +39,29 @@ variable "technical_name" {
 variable "description" {
   description = "The description of this Amazon DataZone metadata form type."
   type        = string
-  default = ""
+  default     = ""
 }
 
 variable "fields" {
   description = "fields of the metadata form"
   type = list(object({
-    display_name                      = optional(string, "")
-    technical_name                    = string
-    description                       = optional(string, "")
-    field_type                        = string
-    searchable                        = optional(bool, false) // only enable if field_type is string or glossary
-    min                               = optional(number, null)   // only enable if not date
-    max                               = optional(number, null)   // only enable if not date or glossary
-    glossary_id                          = optional(string, "")  // only enable if field type set to glossary
-    requirement                       = optional(list(string), [])
+    display_name   = optional(string, "")
+    technical_name = string
+    description    = optional(string, "")
+    field_type     = string
+    searchable     = optional(bool, false)  // only enable if field_type is string or glossary
+    min            = optional(number, null) // only enable if not date
+    max            = optional(number, null) // only enable if not date or glossary
+    glossary_id    = optional(string, "")   // only enable if field type set to glossary
+    requirement    = optional(list(string), [])
   }))
 
   validation {
     condition = alltrue([
-      for param in var.fields : can(regex("[a-zA-Z0-9_]+", param.technical_name))
+      for param in var.fields : can(regex("[a-zA-Z0-9_]+", param.technical_name)) # TODO : Refine
     ])
     error_message = "Field technical name must contain at least one number or letter, and may not contain special characters other than underscores"
   }
-
   validation {
     condition = alltrue([
       for param in var.fields : contains(["Timestamp", "String", "Boolean", "Glossary", "Integer", "Long", "Double", "Float"], param.field_type)
@@ -75,20 +74,45 @@ variable "fields" {
     ])
     error_message = "Values inside parameter requirement must be one of: Always, Publishing, Subscription."
   }
-
-  // TODO: validate requirements list to be [], [ALWAYS], [PUBLISH and/or SUBSCRIBE]. Enforce uniqueness
-
-  // TODO: restrict field forms for date (disallow searchable, min, max, glossary_id)
-
-  // TODO: retrict searchable to only field_type or glossary
-
-  // TODO: restruct field forms for glossary (disallow glossary_id if not glossary)
-
-  // TODO: for glossary type only - allow max to be specified but disallow min
-
+  validation {
+    condition = alltrue([
+      for param in var.fields : length(param.requirement) == 0 || !(anytrue([for req in param.requirement : contains(["ALWAYS"], req)]) && length(param.requirement) > 1)
+    ])
+    error_message = "Cannot specify ALWAYS if PUBLISHING or SUBSCRIPTION are also specified as requirement"
+  }
+  validation {
+    condition = alltrue([
+      for param in var.fields : param.field_type != "Timestamp" || (param.min == null && param.max == null)
+    ])
+    error_message = "Cannot specify min or max when field type is set to Timestamp"
+  }
+  validation {
+    condition = alltrue([
+      for param in var.fields : param.field_type == "Glossary" || param.field_type == "String" || param.searchable == false
+    ])
+    error_message = "searchable cannot be set to true for a field unless type is Glossary or String"
+  }
+  validation {
+    condition = alltrue([
+      for param in var.fields : param.field_type == "Glossary" || param.glossary_id == ""
+    ])
+    error_message = "glossary_id can only be set if field_type is set to Glossary"
+  }
+  validation {
+    condition = alltrue([
+      for param in var.fields : param.field_type != "Glossary" || param.min == null
+    ])
+    error_message = "Cannot set min when field_type is set to Glossary"
+  }
+  validation {
+    condition = alltrue([
+      for param in var.fields : param.min == null || param.max == null || (param.min != null && param.max != null && param.max >= param.min)
+    ])
+    error_message = "Maximum value must be greater than or equal to minimum value"
+  }
 }
 
 variable "enabled" {
-  type = bool
+  type    = bool
   default = false
 }
