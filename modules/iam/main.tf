@@ -174,18 +174,99 @@ resource "aws_iam_role_policy" "domain_execution_inline" {
     Statement = [
       {
         Action = [
-          "datazone:*",
-          "ram:*",
-          "sso:*",
-          "kms:*",
+          "datazone:CreateDomain",
+          "datazone:UpdateDomain",
+          "datazone:DeleteDomain",
+          "datazone:GetDomain",
+          "datazone:ListDomains",
+          "datazone:CreateProject",
+          "datazone:UpdateProject",
+          "datazone:DeleteProject",
+          "datazone:GetProject",
+          "datazone:ListProjects",
+          "datazone:CreateEnvironment",
+          "datazone:UpdateEnvironment",
+          "datazone:DeleteEnvironment",
+          "datazone:GetEnvironment",
+          "datazone:ListEnvironments"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:datazone:${local.region}:${local.account_id}:domain/*",
+          "arn:aws:datazone:${local.region}:${local.account_id}:project/*",
+          "arn:aws:datazone:${local.region}:${local.account_id}:environment/*"
+        ]
+      },
+      {
+        Action = [
+          "ram:CreateResourceShare",
+          "ram:UpdateResourceShare",
+          "ram:DeleteResourceShare",
+          "ram:GetResourceShares",
+          "ram:AssociateResourceShare",
+          "ram:DisassociateResourceShare",
+          "ram:AcceptResourceShareInvitation",
+          "ram:RejectResourceShareInvitation"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:ram:${local.region}:${local.account_id}:resource-share/*",
+          "arn:aws:ram:${local.region}:${local.account_id}:invitation/*"
+        ]
+      },
+      {
+        Action = [
+          "sso:CreateApplication",
+          "sso:UpdateApplication",
+          "sso:DeleteApplication",
+          "sso:DescribeApplication",
+          "sso:ListApplications",
+          "sso:CreatePermissionSet",
+          "sso:UpdatePermissionSet",
+          "sso:DeletePermissionSet",
+          "sso:DescribePermissionSet",
+          "sso:ListPermissionSets"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:sso:::instance/*",
+          "arn:aws:sso:::account/*",
+          "arn:aws:sso:::permission-set/*"
+        ]
+      },
+      {
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey",
+          "kms:Encrypt",
+          "kms:GenerateDataKey",
+          "kms:ReEncrypt*"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:kms:${local.region}:${local.account_id}:key/*"
+        ]
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = [
+              "datazone.${local.region}.amazonaws.com",
+              "sagemaker.${local.region}.amazonaws.com"
+            ]
+          }
+        }
+      },
+      {
+        Action = [
           "codeconnections:ListConnections",
           "codeconnections:GetConnection",
           "codeconnections:ListTagsForResource",
           "codeconnections:TagResource",
           "codeconnections:UntagResource"
         ]
-        Effect   = "Allow"
-        Resource = "*"
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:codeconnections:${local.region}:${local.account_id}:connection/*"
+        ]
       }
     ]
   })
@@ -243,15 +324,7 @@ resource "aws_iam_role_policy" "sagemaker_provisioning_inline" {
       },
       {
         Action = [
-          "ec2:CreateSecurityGroup",
-          "ec2:DeleteSecurityGroup",
           "ec2:DescribeSecurityGroups",
-          "ec2:AuthorizeSecurityGroupIngress",
-          "ec2:AuthorizeSecurityGroupEgress",
-          "ec2:RevokeSecurityGroupIngress",
-          "ec2:RevokeSecurityGroupEgress",
-          "ec2:RunInstances",
-          "ec2:TerminateInstances",
           "ec2:DescribeInstances",
           "ec2:DescribeInstanceTypes",
           "ec2:DescribeImages",
@@ -261,6 +334,44 @@ resource "aws_iam_role_policy" "sagemaker_provisioning_inline" {
         ]
         Effect   = "Allow"
         Resource = "*"
+      },
+      {
+        Action = [
+          "ec2:CreateSecurityGroup",
+          "ec2:DeleteSecurityGroup",
+          "ec2:AuthorizeSecurityGroupIngress",
+          "ec2:AuthorizeSecurityGroupEgress",
+          "ec2:RevokeSecurityGroupIngress",
+          "ec2:RevokeSecurityGroupEgress"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:ec2:${local.region}:${local.account_id}:security-group/*"
+        ]
+        Condition = {
+          StringLike = {
+            "aws:RequestedRegion" = local.region
+          }
+        }
+      },
+      {
+        Action = [
+          "ec2:RunInstances",
+          "ec2:TerminateInstances"
+        ]
+        Effect = "Allow"
+        Resource = [
+          "arn:aws:ec2:${local.region}:${local.account_id}:instance/*",
+          "arn:aws:ec2:${local.region}:${local.account_id}:volume/*",
+          "arn:aws:ec2:${local.region}:${local.account_id}:network-interface/*",
+          "arn:aws:ec2:${local.region}:${local.account_id}:subnet/*",
+          "arn:aws:ec2:${local.region}:${local.account_id}:security-group/*"
+        ]
+        Condition = {
+          StringLike = {
+            "aws:RequestedRegion" = local.region
+          }
+        }
       },
       {
         Action = [
@@ -338,7 +449,18 @@ resource "aws_iam_role_policy" "sagemaker_provisioning_inline" {
       {
         Action = [
           "lakeformation:GetDataLakeSettings",
-          "lakeformation:PutDataLakeSettings",
+          "lakeformation:PutDataLakeSettings"
+        ]
+        Effect = "Allow"
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "aws:RequestedRegion" = local.region
+          }
+        }
+      },
+      {
+        Action = [
           "lakeformation:DescribeResource",
           "lakeformation:ListResources",
           "lakeformation:GrantPermissions",
@@ -348,7 +470,11 @@ resource "aws_iam_role_policy" "sagemaker_provisioning_inline" {
           "lakeformation:BatchRevokePermissions"
         ]
         Effect = "Allow"
-        Resource = "*"
+        Resource = [
+          "arn:aws:lakeformation:${local.region}:${local.account_id}:catalog:${local.account_id}",
+          "arn:aws:lakeformation:${local.region}:${local.account_id}:table/*/*",
+          "arn:aws:lakeformation:${local.region}:${local.account_id}:database/*"
+        ]
       }
     ]
   })
