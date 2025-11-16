@@ -89,7 +89,6 @@ module "domain" {
   domain_name               = var.domain_name
   description               = var.domain_description
   domain_execution_role_arn = module.iam_roles.domain_execution_role_arn
-  enable_sso                = var.enable_sso
 
   tags = local.common_tags
 
