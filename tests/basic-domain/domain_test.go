@@ -31,7 +31,6 @@ func TestBasicDomainCreation(t *testing.T) {
 			"environment":        "test",
 			"owner":             "terratest",
 			"domain_description": "Test domain created by Terratest",
-			"enable_sso":        true,
 		},
 
 		// Environment variables to set when running Terraform
@@ -164,7 +163,6 @@ func TestDomainWithCustomConfiguration(t *testing.T) {
 			"environment":        "staging",
 			"owner":             "test-team",
 			"domain_description": "Custom test domain with specific configuration",
-			"enable_sso":        false, // Test without SSO
 		},
 		EnvVars: map[string]string{
 			"AWS_DEFAULT_REGION": "us-west-2",

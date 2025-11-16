@@ -32,12 +32,6 @@ variable "domain_execution_role_arn" {
   }
 }
 
-variable "enable_sso" {
-  description = "Enable AWS IAM Identity Center (SSO) integration (matches CloudFormation SingleSignOn configuration)"
-  type        = bool
-  default     = true
-}
-
 variable "tags" {
   description = "Tags to apply to the domain and related resources"
   type        = map(string)
