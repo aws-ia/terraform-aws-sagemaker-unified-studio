@@ -40,12 +40,6 @@ variable "domain_description" {
   default     = "MVP SageMaker Unified Studio domain with complete project setup"
 }
 
-variable "enable_sso" {
-  description = "Enable AWS IAM Identity Center (SSO) integration"
-  type        = bool
-  default     = false
-}
-
 # Project Configuration
 variable "project_name" {
   description = "Name of the project to create"

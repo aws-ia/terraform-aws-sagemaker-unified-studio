@@ -106,7 +106,6 @@ output "deployment_summary" {
     organization_enabled    = module.organization.organization_enabled
     resource_sharing_enabled = module.resource_sharing.sharing_enabled
     accounts_shared_with    = module.organization.accounts_for_sharing_count
-    sso_enabled            = var.enable_sso
     environment            = var.environment
   }
 }
@@ -117,7 +116,6 @@ output "next_steps" {
   value = {
     access_url = "Visit ${module.domain.domain_url} to access your SageMaker Unified Studio domain"
     domain_id  = "Use domain ID '${module.domain.domain_id}' for further configuration"
-    sso_setup  = var.enable_sso ? "SSO is enabled - configure users in AWS IAM Identity Center" : "SSO is disabled - configure IAM users/roles as needed"
     shared_accounts = "Domain is shared with ${module.organization.accounts_for_sharing_count} accounts in your organization"
     resource_share = module.resource_sharing.sharing_enabled ? "Resource share '${module.resource_sharing.resource_share_name}' created successfully" : "Resource sharing is disabled"
   }

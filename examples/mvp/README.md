@@ -49,7 +49,6 @@ aws_region = "us-west-2"  # Your preferred region
 
 # Domain Configuration  
 domain_name = "my-unified-studio-mvp"
-enable_sso  = true  # Enable SSO integration
 
 # Project Configuration
 project_name = "my-analytics-project"

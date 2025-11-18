@@ -8,9 +8,6 @@ aws_region = "us-east-1"  # Change to your preferred region
 domain_name        = "enterprise-unified-studio"  # Must be unique and follow naming rules
 domain_description = "Enterprise SageMaker Unified Studio domain with multi-account access"
 
-# SSO Configuration
-enable_sso = true  # Set to false if you don't want SSO integration
-
 # Organization Configuration (REQUIRED for multi-account setup)
 organization_id = "o-1234567890"  # Replace with your AWS Organizations ID
 

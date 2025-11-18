@@ -2,29 +2,6 @@
 # This example combines domain creation and project setup in a single configuration
 # Equivalent to deploying both basic-domain and single-account-project examples together
 
-terraform {
-  required_version = ">= 1.5"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 6.11.0"
-    }
-    awscc = {
-      source  = "hashicorp/awscc"
-      version = ">= 1.50.0"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = ">= 3.1"
-    }
-    time = {
-      source  = "hashicorp/time"
-      version = ">= 0.9"
-    }
-  }
-}
-
 # Configure the AWS Provider
 provider "aws" {
   region = var.aws_region
@@ -107,12 +84,11 @@ resource "time_sleep" "wait_for_iam_propagation" {
 
 # Create the SageMaker Unified Studio domain
 module "domain" {
-  source = "../../modules/domain"
+  source = "../.."
 
   domain_name               = var.domain_name
   description               = var.domain_description
   domain_execution_role_arn = module.iam_roles.domain_execution_role_arn
-  enable_sso                = var.enable_sso
 
   tags = local.common_tags
 
