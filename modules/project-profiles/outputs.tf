@@ -18,7 +18,7 @@ output "all_capabilities_profile_id" {
 
 output "dynamic_profile_id" {
   description = "ID of the dynamic project profile"
-  value       = local.dynamic_project_profile_id
+  value       = (length(awscc_datazone_project_profile.dynamic_project_profile) > 0) ? awscc_datazone_project_profile.dynamic_project_profile[0].project_profile_id : null
 }
 
 # Profile Names - Only return values for resources that actually exist
@@ -62,7 +62,7 @@ output "available_profile_ids" {
     basic_analytics   = null  # Not supported via Terraform resources
     ml_focused       = null  # Not supported via Terraform resources
     all_capabilities = null  # Not supported via Terraform resources
-    dynamic          = local.dynamic_project_profile_id
+    dynamic          = (length(awscc_datazone_project_profile.dynamic_project_profile) > 0) ? awscc_datazone_project_profile.dynamic_project_profile[0].project_profile_id : null
   }
 }
 
