@@ -10,6 +10,11 @@ variable "domain_id" {
   }
 }
 
+variable "domain_root_unit_id" {
+  description = "The root domain unit ID for policy grants"
+  type        = string
+}
+
 variable "manage_access_role_arn" {
   description = "ARN of the IAM role to manage access to SageMaker environments"
   type        = string
