@@ -24,7 +24,7 @@ output "domain_url" {
 
 output "root_domain_unit_id" {
   description = "ID of the root domain unit"
-  value       = aws_datazone_domain.main.id
+  value       = data.awscc_datazone_domain.main.root_domain_unit_id
 }
 
 output "account_id" {
