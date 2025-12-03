@@ -36,15 +36,17 @@ data "aws_datazone_environment_blueprint" "MLExperiments" {
   managed   = true
 }
 
-# Array of blueprint IDs for iteration
+# Blueprint policy grants - create directly without local map
 locals {
-  blueprint_ids = [
-    data.aws_datazone_environment_blueprint.Tooling.id,
-    data.aws_datazone_environment_blueprint.LakehouseCatalog.id,
-    data.aws_datazone_environment_blueprint.RedshiftServerless.id,
-    data.aws_datazone_environment_blueprint.MLExperiments.id,
-    "afiyksudw9nzv4" # CustomAwsService
-  ]
+  # Only create policy grants for enabled blueprints
+  enabled_blueprints = {
+    for k, v in {
+      "tooling"        = var.enable_tooling ? aws_datazone_environment_blueprint_configuration.tooling[0].environment_blueprint_id : null
+      "data_lake"      = var.enable_data_lake ? aws_datazone_environment_blueprint_configuration.data_lake[0].environment_blueprint_id : null
+      "data_warehouse" = var.enable_redshift_serverless ? aws_datazone_environment_blueprint_configuration.redshift_serverless[0].environment_blueprint_id : null
+      "sagemaker"      = var.enable_sagemaker ? aws_datazone_environment_blueprint_configuration.sagemaker[0].environment_blueprint_id : null
+    } : k => v if v != null
+  }
 }
 
 # Tooling Blueprint (Required - provides shared infrastructure for other environments)
@@ -144,23 +146,30 @@ resource "aws_datazone_environment_blueprint_configuration" "custom_aws_service"
 }
 
 resource "awscc_datazone_policy_grant" "blueprint_policy_grants" {
-  for_each = locals.blueprint_ids
+  for_each          = local.enabled_blueprints
   domain_identifier = var.domain_id
-  entity_type = "ENVIRONMENT_BLUEPRINT_CONFIGURATION"
+  entity_type       = "ENVIRONMENT_BLUEPRINT_CONFIGURATION"
   entity_identifier = "${data.aws_caller_identity.current.account_id}:${each.value}"
-  policy_type  = "CREATE_ENVIRONMENT_FROM_BLUEPRINT"
+  policy_type       = "CREATE_ENVIRONMENT_FROM_BLUEPRINT"
   detail = {
-     create_environment_from_blueprint = jsonencode({})
-   }
+    create_environment_from_blueprint = jsonencode({})
+  }
   principal = {
     project = {
       project_designation = "CONTRIBUTOR"
       project_grant_filter = {
         domain_unit_filter = {
-          domain_unit  = var.domain_id
-          include_child_domain_units  = true
-         }
-       }
-     }
-   }
+          domain_unit                = var.domain_root_unit_id
+          include_child_domain_units = true
+        }
+      }
+    }
+  }
+
+  depends_on = [
+    aws_datazone_environment_blueprint_configuration.tooling,
+    aws_datazone_environment_blueprint_configuration.data_lake,
+    aws_datazone_environment_blueprint_configuration.redshift_serverless,
+    aws_datazone_environment_blueprint_configuration.sagemaker
+  ]
 }

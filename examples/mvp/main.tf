@@ -144,6 +144,7 @@ module "blueprints" {
   source = "../../modules/blueprints"
 
   domain_id              = module.domain.domain_id
+  domain_root_unit_id    = module.domain.domain_root_unit_id
   manage_access_role_arn = module.iam_roles.sagemaker_manage_access_role_arn
   provisioning_role_arn  = module.iam_roles.sagemaker_provisioning_role_arn
   s3_bucket_name         = module.s3_bucket_tooling.s3_bucket_id
