@@ -91,3 +91,24 @@ output "policy_grants_enabled" {
   description = "Whether policy grants have been configured for domain unit access"
   value       = var.domain_id != null
 }
+
+# SageMaker Role Outputs
+output "sagemaker_manage_access_role_arn" {
+  description = "ARN of the SageMaker manage access role (created or existing)"
+  value       = var.create_sagemaker_roles ? aws_iam_role.sagemaker_manage_access[0].arn : var.manage_access_role_arn
+}
+
+output "sagemaker_manage_access_role_name" {
+  description = "Name of the SageMaker manage access role"
+  value       = var.create_sagemaker_roles ? aws_iam_role.sagemaker_manage_access[0].name : null
+}
+
+output "sagemaker_provisioning_role_arn" {
+  description = "ARN of the SageMaker provisioning role (created or existing)"
+  value       = var.create_sagemaker_roles ? aws_iam_role.sagemaker_provisioning[0].arn : var.provisioning_role_arn
+}
+
+output "sagemaker_provisioning_role_name" {
+  description = "Name of the SageMaker provisioning role"
+  value       = var.create_sagemaker_roles ? aws_iam_role.sagemaker_provisioning[0].name : null
+}

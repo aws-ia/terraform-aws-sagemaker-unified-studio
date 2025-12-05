@@ -1,1 +1,64 @@
-{"id":"buo692sjw0svtc","status":"ENABLED"}
+{
+    "createdAt": "2025-11-27T18:58:38.582705+00:00",
+    "description": "Auto-generated project profile for my-unified-studio-mvp-mvp-profile",
+    "domainId": "dzd-bl7xuek78lqevk",
+    "domainUnitId": "4px91ax5do2scw",
+    "environmentConfigurations": [
+        {
+            "awsAccount": {
+                "awsAccountId": "593793055018"
+            },
+            "awsRegion": {
+                "regionName": "us-west-2"
+            },
+            "deploymentMode": "ON_CREATE",
+            "deploymentOrder": 1,
+            "environmentBlueprintId": "4k186sfh08eqxc",
+            "id": "83100e23-a517-4dd0-a427-d85781a8ae4e",
+            "name": "Tooling"
+        },
+        {
+            "awsAccount": {
+                "awsAccountId": "593793055018"
+            },
+            "awsRegion": {
+                "regionName": "us-west-2"
+            },
+            "deploymentMode": "ON_CREATE",
+            "deploymentOrder": 2,
+            "environmentBlueprintId": "ciw5fxhc6v6rio",
+            "id": "fc0871cc-9a01-4b65-91b7-16f6c226405b",
+            "name": "DataLake"
+        },
+        {
+            "awsAccount": {
+                "awsAccountId": "593793055018"
+            },
+            "awsRegion": {
+                "regionName": "us-west-2"
+            },
+            "deploymentMode": "ON_CREATE",
+            "deploymentOrder": 3,
+            "environmentBlueprintId": "dlyaabb17hano0",
+            "id": "e3f22e7e-d3df-4bca-ad4b-d8a56f66b186",
+            "name": "RedshiftServerless"
+        },
+        {
+            "awsAccount": {
+                "awsAccountId": "593793055018"
+            },
+            "awsRegion": {
+                "regionName": "us-west-2"
+            },
+            "deploymentMode": "ON_CREATE",
+            "deploymentOrder": 4,
+            "environmentBlueprintId": "c9gx7j7bemrv0w",
+            "id": "8b93404b-587b-46f1-9059-eb1fdfae1081",
+            "name": "SageMaker"
+        }
+    ],
+    "id": "bilsbm5ayrc1ao",
+    "lastUpdatedAt": "2025-11-27T18:58:38.582705+00:00",
+    "name": "my-unified-studio-mvp-mvp-profile",
+    "status": "DISABLED"
+}

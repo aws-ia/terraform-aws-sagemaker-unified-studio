@@ -22,12 +22,26 @@ variable "description" {
   default     = "SageMaker Unified Studio domain managed by Terraform"
 }
 
-variable "domain_execution_role_arn" {
-  description = "ARN of the IAM role for domain execution (matches CloudFormation DomainExecutionRole parameter)"
+# Domain Execution Role Configuration
+variable "create_domain_execution_role" {
+  description = "Whether to create the domain execution role (set to false if using existing role)"
+  type        = bool
+  default     = true
+}
+
+variable "domain_execution_role_name" {
+  description = "Custom name for the domain execution role (if null, will use domain_name-domain-execution-role)"
   type        = string
+  default     = null
+}
+
+variable "domain_execution_role_arn" {
+  description = "ARN of existing domain execution role (used when create_domain_execution_role is false)"
+  type        = string
+  default     = null
   
   validation {
-    condition     = can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.domain_execution_role_arn))
+    condition = var.domain_execution_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.domain_execution_role_arn))
     error_message = "Domain execution role ARN must be a valid IAM role ARN."
   }
 }
