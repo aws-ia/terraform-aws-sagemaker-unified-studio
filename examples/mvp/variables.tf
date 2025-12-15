@@ -5,8 +5,8 @@
 variable "aws_region" {
   description = "AWS region where the domain will be created"
   type        = string
-  default     = "us-west-2"
-  
+  default     = "us-east-1"
+
   validation {
     condition = contains([
       "us-east-1", "us-east-2", "us-west-1", "us-west-2",
@@ -21,13 +21,13 @@ variable "aws_region" {
 variable "domain_name" {
   description = "Name of the SageMaker Unified Studio domain"
   type        = string
-  default     = "terraform-mvp-domain"
-  
+  default     = "terraform-mvp-domain-1"
+
   validation {
     condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$", var.domain_name))
     error_message = "Domain name must contain only alphanumeric characters and hyphens, and cannot start or end with a hyphen."
   }
-  
+
   validation {
     condition     = length(var.domain_name) >= 1 && length(var.domain_name) <= 64
     error_message = "Domain name must be between 1 and 64 characters long."
@@ -45,7 +45,7 @@ variable "project_name" {
   description = "Name of the project to create"
   type        = string
   default     = "terraform-mvp-project"
-  
+
   validation {
     condition     = length(var.project_name) > 0 && length(var.project_name) <= 64
     error_message = "Project name must be between 1 and 64 characters."
@@ -88,7 +88,7 @@ variable "environment" {
   description = "Environment name (e.g., dev, staging, prod)"
   type        = string
   default     = "test"
-  
+
   validation {
     condition     = contains(["dev", "staging", "prod", "test"], var.environment)
     error_message = "Environment must be one of: dev, staging, prod, test."

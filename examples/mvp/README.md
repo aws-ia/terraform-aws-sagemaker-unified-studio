@@ -278,14 +278,29 @@ The base infrastructure has minimal ongoing costs, with primary charges occurrin
 
 ## Cleanup
 
-To destroy all resources:
+The MVP example includes **automatic cleanup** that handles environments and Lake Formation permissions during destroy.
 
-Empty & delete the S3 bucket (must be empty to delete): my-analytics-project-tooling-<alphanumerics>
+### Quick Cleanup
 
 ```bash
-# Use standard terraform destroy (no wrapper script needed)
-terraform destroy
+# 1. Empty the S3 bucket
+aws s3 rm s3://$(terraform output -raw s3_bucket_name) --recursive
+
+# 2. Run terraform destroy
+terraform destroy -auto-approve
 ```
+
+The cleanup provisioners will automatically:
+- ✅ Delete all environments before the project
+- ✅ Revoke Lake Formation permissions before IAM roles
+- ✅ Handle proper dependency ordering
+
+### Troubleshooting Cleanup
+
+If you encounter issues during destroy, see:
+- **[DESTROY_GUIDE.md](./DESTROY_GUIDE.md)** - Quick reference for common issues
+- **[CLEANUP.md](./CLEANUP.md)** - Comprehensive cleanup documentation
+- **[SOLUTION_SUMMARY.md](./SOLUTION_SUMMARY.md)** - Technical implementation details
 
 ⚠️ **Warning**: This will delete all resources including the domain and any data stored in S3 buckets.
 

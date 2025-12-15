@@ -41,13 +41,13 @@ data "aws_subnets" "default" {
 locals {
   # Generate dynamic project name using pet + 6-digit suffix
   dynamic_project_name = "${random_pet.project_name.id}-${random_id.project_suffix.hex}"
-  
+
   # Project name with account suffix for uniqueness
   project_name_with_account = "${local.dynamic_project_name}-${substr(data.aws_caller_identity.current.account_id, -4, 4)}"
-  
+
   # Get project profile ID from the project profiles module (using dynamic profile)
   project_profile_id = module.project_profiles.dynamic_profile_id
-  
+
   common_tags = {
     DomainName  = var.domain_name
     Environment = var.environment
@@ -69,12 +69,12 @@ module "domain" {
 
 # Create random pet name for project with 6-digit suffix
 resource "random_pet" "project_name" {
-  length = 2
+  length    = 2
   separator = "-"
 }
 
 resource "random_id" "project_suffix" {
-  byte_length = 3  # 3 bytes = 6 hex digits
+  byte_length = 3 # 3 bytes = 6 hex digits
 }
 
 # Create S3 bucket for tooling environment using community module
@@ -83,8 +83,8 @@ resource "random_id" "bucket_suffix" {
 }
 
 module "s3_bucket_tooling" {
-  source = "git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v5.0.0"
-  
+  source = "git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v4.2.2"
+
   bucket                   = "${local.dynamic_project_name}-tooling-${random_id.bucket_suffix.hex}"
   control_object_ownership = true
   object_ownership         = "BucketOwnerEnforced"
@@ -114,22 +114,48 @@ module "s3_bucket_tooling" {
 module "blueprints" {
   source = "../../modules/blueprints"
 
-  domain_id               = module.domain.domain_id
-  domain_name             = var.domain_name
-  create_sagemaker_roles  = true
-  s3_bucket_name          = module.s3_bucket_tooling.s3_bucket_id
-  vpc_id                  = data.aws_vpc.default.id
-  subnet_ids              = data.aws_subnets.default.ids
+  domain_id              = module.domain.domain_id
+  domain_name            = var.domain_name
+  create_sagemaker_roles = true
+  s3_bucket_name         = module.s3_bucket_tooling.s3_bucket_id
+  vpc_id                 = data.aws_vpc.default.id
+  subnet_ids             = data.aws_subnets.default.ids
 
   # Enable available blueprints for testing
-  enable_data_lake                = var.enable_data_lake
-  enable_redshift_serverless      = var.enable_redshift_serverless
-  enable_sagemaker                = var.enable_sagemaker
-  enable_custom_aws_service       = var.enable_custom_aws_service
+  enable_tooling             = true  # Required for other environments
+  enable_data_lake           = var.enable_data_lake
+  enable_redshift_serverless = var.enable_redshift_serverless
+  enable_sagemaker           = var.enable_sagemaker
+  enable_custom_aws_service  = var.enable_custom_aws_service
 
   tags = local.common_tags
 
   depends_on = [module.domain]
+}
+
+# Lake Formation configuration for SageMaker Unified Studio
+# MOVED EARLIER: Grant Lake Formation admin permissions BEFORE project creation
+# This ensures roles have proper permissions when environments are auto-created
+resource "aws_lakeformation_data_lake_settings" "main" {
+  admins = [
+    module.domain.domain_execution_role_arn,
+    module.blueprints.sagemaker_manage_access_role_arn,
+    module.blueprints.sagemaker_provisioning_role_arn
+  ]
+
+  # Ensure this is created after the domain and roles exist, but before project creation
+  depends_on = [
+    module.domain,
+    module.blueprints
+  ]
+}
+
+# Wait for Lake Formation settings to propagate before proceeding
+# This ensures permissions are fully active before environments are created
+resource "time_sleep" "lakeformation_propagation" {
+  depends_on = [aws_lakeformation_data_lake_settings.main]
+
+  create_duration = "30s"
 }
 
 # Create project profiles
@@ -147,39 +173,45 @@ module "project_profiles" {
   enable_redshift_serverless = var.enable_redshift_serverless
   enable_sagemaker           = var.enable_sagemaker
 
-  # Pass blueprint IDs from the blueprints module
-  tooling_id             = "4k186sfh08eqxc"  # Tooling blueprint ID
-  data_lake_id           = "ciw5fxhc6v6rio" # Data Lake blueprint ID
-  redshift_serverless_id = "dlyaabb17hano0" # Redshift Serverless blueprint ID
-  ml_experiments_id      = "c9gx7j7bemrv0w" # SageMaker blueprint ID
+  # Pass blueprint IDs from the blueprints module (dynamic IDs)
+  tooling_id             = module.blueprints.tooling_id
+  data_lake_id           = module.blueprints.data_lake_id
+  redshift_serverless_id = module.blueprints.redshift_serverless_id
+  ml_experiments_id      = module.blueprints.sagemaker_id
 
   tags = local.common_tags
 
-  depends_on = [module.blueprints]
+  # UPDATED: Now depends on Lake Formation settings being configured first
+  depends_on = [
+    module.blueprints,
+    aws_lakeformation_data_lake_settings.main,
+    time_sleep.lakeformation_propagation
+  ]
 }
 
 
 # Create project using the project module
 module "project" {
   source = "../../modules/project"
-  
-  domain_id            = module.domain.domain_id
-  project_name         = local.project_name_with_account
-  project_description  = var.project_description
+
+  domain_id           = module.domain.domain_id
+  project_name        = local.project_name_with_account
+  project_description = var.project_description
   # Only pass project_profile_id if it's available and valid
-  project_profile_id   = module.project_profiles.dynamic_profile_id != null && module.project_profiles.dynamic_profile_id != "" ? module.project_profiles.dynamic_profile_id : null
-  
+  project_profile_id = module.project_profiles.dynamic_profile_id != null && module.project_profiles.dynamic_profile_id != "" ? module.project_profiles.dynamic_profile_id : null
+
+  # UPDATED: Ensure Lake Formation permissions are set before project creation
   depends_on = [
     module.blueprints,
-    module.project_profiles
+    module.project_profiles,
+    aws_lakeformation_data_lake_settings.main,
+    time_sleep.lakeformation_propagation
   ]
 }
 
-# Lake Formation configuration for SageMaker Unified Studio
-resource "aws_lakeformation_data_lake_settings" "main" {
-  admins = [
-    module.domain.domain_execution_role_arn,
-    module.blueprints.sagemaker_manage_access_role_arn,
-    module.blueprints.sagemaker_provisioning_role_arn
-  ]
+# Add explicit timeouts for destroy operations
+resource "time_sleep" "destroy_wait" {
+  depends_on = [module.project]
+  
+  destroy_duration = "30m" # 30 minute timeout for destroy operations
 }
