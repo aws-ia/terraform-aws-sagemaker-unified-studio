@@ -10,7 +10,6 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-
 locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
@@ -228,3 +227,9 @@ resource "aws_datazone_domain" "main" {
     Purpose = "SageMaker-Unified-Studio"
   })
 }
+
+# Data source to get the root domain unit ID
+data "awscc_datazone_domain" "main" {
+  id = aws_datazone_domain.main.id
+}
+

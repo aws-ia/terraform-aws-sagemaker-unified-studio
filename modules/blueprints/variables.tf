@@ -15,6 +15,12 @@ variable "domain_name" {
   type        = string
 }
 
+
+variable "domain_root_unit_id" {
+  description = "The root domain unit ID for policy grants"
+  type        = string
+}
+
 # SageMaker Roles Configuration
 variable "create_sagemaker_roles" {
   description = "Whether to create SageMaker-specific roles (manage access and provisioning)"

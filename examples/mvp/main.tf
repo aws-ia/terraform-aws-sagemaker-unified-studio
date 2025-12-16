@@ -116,6 +116,7 @@ module "blueprints" {
 
   domain_id               = module.domain.domain_id
   domain_name             = var.domain_name
+  domain_root_unit_id    = module.domain.domain_root_unit_id
   create_sagemaker_roles  = true
   s3_bucket_name          = module.s3_bucket_tooling.s3_bucket_id
   vpc_id                  = data.aws_vpc.default.id
