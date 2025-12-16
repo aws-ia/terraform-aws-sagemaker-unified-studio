@@ -22,20 +22,6 @@ output "domain_url" {
   value       = module.domain.domain_url
 }
 
-
-
-# IAM Role Information
-output "iam_roles" {
-  description = "ARNs of all created IAM roles"
-  value       = module.iam_roles.all_role_arns
-  sensitive   = true
-}
-
-output "created_iam_roles" {
-  description = "Names of IAM roles created by this deployment"
-  value       = module.iam_roles.created_roles
-}
-
 # Blueprint Information
 output "enabled_blueprints" {
   description = "List of enabled blueprint identifiers"
@@ -93,6 +79,37 @@ output "vpc_id" {
 output "subnet_ids" {
   description = "Subnet IDs used for SageMaker environments"
   value       = data.aws_subnets.default.ids
+}
+
+# IAM Role Information
+output "domain_execution_role_arn" {
+  description = "ARN of the domain execution role"
+  value       = module.domain.domain_execution_role_arn
+}
+
+output "domain_execution_role_name" {
+  description = "Name of the domain execution role"
+  value       = module.domain.domain_execution_role_name
+}
+
+output "sagemaker_manage_access_role_arn" {
+  description = "ARN of the SageMaker manage access role"
+  value       = module.blueprints.sagemaker_manage_access_role_arn
+}
+
+output "sagemaker_manage_access_role_name" {
+  description = "Name of the SageMaker manage access role"
+  value       = module.blueprints.sagemaker_manage_access_role_name
+}
+
+output "sagemaker_provisioning_role_arn" {
+  description = "ARN of the SageMaker provisioning role"
+  value       = module.blueprints.sagemaker_provisioning_role_arn
+}
+
+output "sagemaker_provisioning_role_name" {
+  description = "Name of the SageMaker provisioning role"
+  value       = module.blueprints.sagemaker_provisioning_role_name
 }
 
 # Account and Region Information

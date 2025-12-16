@@ -10,27 +10,54 @@ variable "domain_id" {
   }
 }
 
+variable "domain_name" {
+  description = "Name of the SageMaker Unified Studio domain (used for role naming)"
+  type        = string
+}
+
+
 variable "domain_root_unit_id" {
   description = "The root domain unit ID for policy grants"
   type        = string
 }
 
-variable "manage_access_role_arn" {
-  description = "ARN of the IAM role to manage access to SageMaker environments"
+# SageMaker Roles Configuration
+variable "create_sagemaker_roles" {
+  description = "Whether to create SageMaker-specific roles (manage access and provisioning)"
+  type        = bool
+  default     = true
+}
+
+variable "sagemaker_manage_access_role_name" {
+  description = "Custom name for the SageMaker manage access role (if null, will use domain_name-sagemaker-manage-access-role)"
   type        = string
+  default     = null
+}
+
+variable "manage_access_role_arn" {
+  description = "ARN of existing SageMaker manage access role (used when create_sagemaker_roles is false)"
+  type        = string
+  default     = null
   
   validation {
-    condition     = can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.manage_access_role_arn))
+    condition = var.manage_access_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.manage_access_role_arn))
     error_message = "Manage access role ARN must be a valid IAM role ARN."
   }
 }
 
-variable "provisioning_role_arn" {
-  description = "ARN of the IAM role to provision SageMaker environments"
+variable "sagemaker_provisioning_role_name" {
+  description = "Custom name for the SageMaker provisioning role (if null, will use domain_name-sagemaker-provisioning-role)"
   type        = string
+  default     = null
+}
+
+variable "provisioning_role_arn" {
+  description = "ARN of existing SageMaker provisioning role (used when create_sagemaker_roles is false)"
+  type        = string
+  default     = null
   
   validation {
-    condition     = can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.provisioning_role_arn))
+    condition = var.provisioning_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.provisioning_role_arn))
     error_message = "Provisioning role ARN must be a valid IAM role ARN."
   }
 }
