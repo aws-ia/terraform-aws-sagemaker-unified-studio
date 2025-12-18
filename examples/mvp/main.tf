@@ -56,44 +56,15 @@ locals {
   }
 }
 
-# Create IAM roles required for the domain
-module "iam_roles" {
-  source = "../../modules/iam"
-
-  domain_name = var.domain_name
-
-  # Create required roles (matches CloudFormation behavior)
-  create_domain_execution_role = true
-  create_sagemaker_roles       = true
-
-  tags = local.common_tags
-}
-
-# Wait for IAM role propagation before creating domain
-# IAM roles need time to propagate globally before they can be assumed by AWS services
-resource "time_sleep" "wait_for_iam_propagation" {
-  create_duration = "30s"
-  
-  # This resource will be created after the IAM role ARN is available
-  triggers = {
-    domain_execution_role_arn = module.iam_roles.domain_execution_role_arn
-  }
-  
-  depends_on = [module.iam_roles]
-}
-
-# Create the SageMaker Unified Studio domain
+# Create the SageMaker Unified Studio domain with integrated IAM role
 module "domain" {
   source = "../.."
 
-  domain_name               = var.domain_name
-  description               = var.domain_description
-  domain_execution_role_arn = module.iam_roles.domain_execution_role_arn
+  domain_name                  = var.domain_name
+  description                  = var.domain_description
+  create_domain_execution_role = true
 
   tags = local.common_tags
-
-  # Ensure IAM roles are created and propagated before domain
-  depends_on = [time_sleep.wait_for_iam_propagation]
 }
 
 # Create random pet name for project with 6-digit suffix
@@ -139,16 +110,17 @@ module "s3_bucket_tooling" {
   })
 }
 
-# Enable Blueprint Configurations
+# Enable Blueprint Configurations with integrated SageMaker roles
 module "blueprints" {
   source = "../../modules/blueprints"
 
-  domain_id              = module.domain.domain_id
-  manage_access_role_arn = module.iam_roles.sagemaker_manage_access_role_arn
-  provisioning_role_arn  = module.iam_roles.sagemaker_provisioning_role_arn
-  s3_bucket_name         = module.s3_bucket_tooling.s3_bucket_id
-  vpc_id                 = data.aws_vpc.default.id
-  subnet_ids             = data.aws_subnets.default.ids
+  domain_id               = module.domain.domain_id
+  domain_name             = var.domain_name
+  domain_root_unit_id    = module.domain.domain_root_unit_id
+  create_sagemaker_roles  = true
+  s3_bucket_name          = module.s3_bucket_tooling.s3_bucket_id
+  vpc_id                  = data.aws_vpc.default.id
+  subnet_ids              = data.aws_subnets.default.ids
 
   # Enable available blueprints for testing
   enable_data_lake                = var.enable_data_lake
@@ -207,8 +179,8 @@ module "project" {
 # Lake Formation configuration for SageMaker Unified Studio
 resource "aws_lakeformation_data_lake_settings" "main" {
   admins = [
-    module.iam_roles.domain_execution_role_arn,
-    module.iam_roles.sagemaker_manage_access_role_arn,
-    module.iam_roles.sagemaker_provisioning_role_arn
+    module.domain.domain_execution_role_arn,
+    module.blueprints.sagemaker_manage_access_role_arn,
+    module.blueprints.sagemaker_provisioning_role_arn
   ]
 }
