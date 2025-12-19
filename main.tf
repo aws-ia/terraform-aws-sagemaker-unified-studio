@@ -228,10 +228,6 @@ resource "aws_datazone_domain" "main" {
   })
 }
 
-# Data source to get current AWS account ID and region
-data "aws_caller_identity" "current" {}
-data "aws_region" "current" {}
-
 # Data source needed to get root domain unit
 data "awscc_datazone_domain" "main" {
   id = aws_datazone_domain.main.id
