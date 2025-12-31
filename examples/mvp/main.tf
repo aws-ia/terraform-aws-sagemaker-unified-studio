@@ -62,7 +62,6 @@ module "domain" {
 
   domain_name                  = var.domain_name
   description                  = var.domain_description
-  create_domain_execution_role = true
 
   tags = local.common_tags
   enable_sso = var.enable_sso
