@@ -95,22 +95,12 @@ output "policy_grants_enabled" {
 # SageMaker Role Outputs
 output "sagemaker_manage_access_role_arn" {
   description = "ARN of the SageMaker manage access role (created or existing)"
-  value       = var.create_sagemaker_roles ? aws_iam_role.sagemaker_manage_access[0].arn : var.manage_access_role_arn
-}
-
-output "sagemaker_manage_access_role_name" {
-  description = "Name of the SageMaker manage access role"
-  value       = var.create_sagemaker_roles ? aws_iam_role.sagemaker_manage_access[0].name : null
+  value       = local.manage_access_role_arn
 }
 
 output "sagemaker_provisioning_role_arn" {
   description = "ARN of the SageMaker provisioning role (created or existing)"
-  value       = var.create_sagemaker_roles ? aws_iam_role.sagemaker_provisioning[0].arn : var.provisioning_role_arn
-}
-
-output "sagemaker_provisioning_role_name" {
-  description = "Name of the SageMaker provisioning role"
-  value       = var.create_sagemaker_roles ? aws_iam_role.sagemaker_provisioning[0].name : null
+  value       = local.provisioning_role_arn
 }
 
 # Lake Formation Configuration Outputs

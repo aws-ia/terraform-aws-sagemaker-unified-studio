@@ -97,19 +97,9 @@ output "sagemaker_manage_access_role_arn" {
   value       = module.blueprints.sagemaker_manage_access_role_arn
 }
 
-output "sagemaker_manage_access_role_name" {
-  description = "Name of the SageMaker manage access role"
-  value       = module.blueprints.sagemaker_manage_access_role_name
-}
-
 output "sagemaker_provisioning_role_arn" {
   description = "ARN of the SageMaker provisioning role"
   value       = module.blueprints.sagemaker_provisioning_role_arn
-}
-
-output "sagemaker_provisioning_role_name" {
-  description = "Name of the SageMaker provisioning role"
-  value       = module.blueprints.sagemaker_provisioning_role_name
 }
 
 # Account and Region Information

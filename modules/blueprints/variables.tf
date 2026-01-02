@@ -24,13 +24,6 @@ variable "domain_root_unit_id" {
   type        = string
 }
 
-# SageMaker Roles Configuration
-variable "create_sagemaker_roles" {
-  description = "Whether to create SageMaker-specific roles (manage access and provisioning)"
-  type        = bool
-  default     = true
-}
-
 variable "sagemaker_manage_access_role_name" {
   description = "Custom name for the SageMaker manage access role (if null, will use domain_name-sagemaker-manage-access-role)"
   type        = string
@@ -38,7 +31,7 @@ variable "sagemaker_manage_access_role_name" {
 }
 
 variable "manage_access_role_arn" {
-  description = "ARN of existing SageMaker manage access role (used when create_sagemaker_roles is false)"
+  description = "ARN of existing SageMaker manage access role"
   type        = string
   default     = null
 
@@ -55,7 +48,7 @@ variable "sagemaker_provisioning_role_name" {
 }
 
 variable "provisioning_role_arn" {
-  description = "ARN of existing SageMaker provisioning role (used when create_sagemaker_roles is false)"
+  description = "ARN of existing SageMaker provisioning role"
   type        = string
   default     = null
 
