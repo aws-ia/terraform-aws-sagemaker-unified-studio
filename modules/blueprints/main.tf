@@ -17,7 +17,7 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
 
-  provisioning_role_arn    = var.provisioning_role_arn != null ? var.provisioning_role_arn : "arn:aws:iam::${local.account_id}:role/service-role/AmazonSageMakerProvisiong-${local.account_id}"
+  provisioning_role_arn    = var.provisioning_role_arn != null ? var.provisioning_role_arn : "arn:aws:iam::${local.account_id}:role/service-role/AmazonSageMakerProvisioning-${local.account_id}"
   manage_access_role_arn   = var.manage_access_role_arn != null ? var.manage_access_role_arn : aws_iam_role.sagemaker_manage_access[0].arn
   
   # Common tags for all IAM resources
@@ -33,7 +33,7 @@ locals {
 
 # SageMaker Manage Access Role (matches console-created role)
 resource "aws_iam_role" "sagemaker_manage_access" {
-  count = var.manage_access_role_arn != null ? 1 : 0
+  count = var.manage_access_role_arn == null ? 1 : 0
   
   name = var.sagemaker_manage_access_role_name != null ? var.sagemaker_manage_access_role_name : "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
   description = "This role grants Amazon SageMaker Unified Studio permissions to publish, grant access, and revoke access to Amazon SageMaker Lakehouse, AWS Glue Data Catalog and Amazon Redshift data. It also grants Amazon SageMaker Unified Studio to publish and manage subscriptions on Amazon SageMaker Catalog data and AI assets."
@@ -64,7 +64,7 @@ resource "aws_iam_role" "sagemaker_manage_access" {
 
 # Inline policy for Redshift secret access (matches console-created role)
 resource "aws_iam_role_policy" "sagemaker_manage_access_inline" {
-  count = var.manage_access_role_arn != null ? 1 : 0
+  count = var.manage_access_role_arn == null ? 1 : 0
   
   name = "RedshiftSecretStatement"
   role = aws_iam_role.sagemaker_manage_access[0].id
@@ -160,16 +160,22 @@ data "aws_datazone_environment_blueprint" "MLExperiments" {
   managed   = true
 }
 
-# Blueprint policy grants - create directly without local map
+# Static blueprint map for policy grants
 locals {
-  # Only create policy grants for enabled blueprints
+  blueprint_map = {
+    "tooling"        = data.aws_datazone_environment_blueprint.Tooling.id
+    "data_lake"      = data.aws_datazone_environment_blueprint.LakehouseCatalog.id
+    "data_warehouse" = data.aws_datazone_environment_blueprint.RedshiftServerless.id
+    "sagemaker"      = data.aws_datazone_environment_blueprint.MLExperiments.id
+  }
+  
   enabled_blueprints = {
-    for k, v in {
-      "tooling"        = var.enable_tooling ? aws_datazone_environment_blueprint_configuration.tooling[0].environment_blueprint_id : null
-      "data_lake"      = var.enable_data_lake ? aws_datazone_environment_blueprint_configuration.data_lake[0].environment_blueprint_id : null
-      "data_warehouse" = var.enable_redshift_serverless ? aws_datazone_environment_blueprint_configuration.redshift_serverless[0].environment_blueprint_id : null
-      "sagemaker"      = var.enable_sagemaker ? aws_datazone_environment_blueprint_configuration.sagemaker[0].environment_blueprint_id : null
-    } : k => v if v != null
+    for k, v in local.blueprint_map : k => v if (
+      (k == "tooling" && var.enable_tooling) ||
+      (k == "data_lake" && var.enable_data_lake) ||
+      (k == "data_warehouse" && var.enable_redshift_serverless) ||
+      (k == "sagemaker" && var.enable_sagemaker)
+    )
   }
 }
 
