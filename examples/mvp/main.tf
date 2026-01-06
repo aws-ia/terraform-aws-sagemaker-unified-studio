@@ -209,9 +209,140 @@ module "project" {
   ]
 }
 
+# S3 Bucket Cleanup Resource
+# This resource empties ALL S3 buckets related to this SageMaker Unified Studio deployment
+# Includes both Terraform-managed buckets and service-created buckets
+resource "null_resource" "s3_cleanup" {
+  triggers = {
+    terraform_bucket = module.s3_bucket_tooling.s3_bucket_id
+    aws_region       = data.aws_region.current.name
+    domain_id        = module.domain.domain_id
+    project_id       = module.project.project_id
+    domain_name      = var.domain_name
+  }
+
+  # Cleanup script that runs on destroy
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      #!/bin/bash
+      set -e
+      
+      echo "=== S3 Bucket Cleanup for SageMaker Unified Studio ==="
+      echo "Domain ID: ${self.triggers.domain_id}"
+      echo "Project ID: ${self.triggers.project_id}"
+      echo "Domain Name: ${self.triggers.domain_name}"
+      echo "Region: ${self.triggers.aws_region}"
+      echo ""
+      
+      # Function to empty S3 bucket completely
+      empty_s3_bucket() {
+        local bucket_name="$1"
+        local bucket_region="$2"
+        
+        echo "Processing bucket: $bucket_name"
+        
+        # Check if bucket exists
+        if ! aws s3api head-bucket --bucket "$bucket_name" --region "$bucket_region" 2>/dev/null; then
+          echo "  Bucket does not exist or is not accessible, skipping..."
+          return 0
+        fi
+        
+        # Step 1: Delete all current objects
+        echo "  Deleting current objects..."
+        local object_count=$(aws s3 ls s3://"$bucket_name" --recursive --region "$bucket_region" | wc -l)
+        if [ "$object_count" -gt 0 ]; then
+          echo "    Found $object_count objects to delete"
+          aws s3 rm s3://"$bucket_name" --recursive --region "$bucket_region" || echo "    Warning: Some objects may not have been deleted"
+        else
+          echo "    No current objects found"
+        fi
+        
+        # Step 2: Handle versioned objects and delete markers
+        echo "  Cleaning up object versions and delete markers..."
+        local versions_json=$(aws s3api list-object-versions --bucket "$bucket_name" --region "$bucket_region" --max-items 1000 2>/dev/null || echo '{"Versions":[],"DeleteMarkers":[]}')
+        
+        # Delete object versions
+        local version_count=$(echo "$versions_json" | jq -r '.Versions | length' 2>/dev/null || echo "0")
+        if [ "$version_count" -gt 0 ]; then
+          echo "    Deleting $version_count object versions..."
+          echo "$versions_json" | jq '{Objects: .Versions | map({Key: .Key, VersionId: .VersionId})}' | \
+            aws s3api delete-objects --bucket "$bucket_name" --region "$bucket_region" --delete file:///dev/stdin >/dev/null 2>&1 || \
+            echo "    Warning: Some object versions may not have been deleted"
+        fi
+        
+        # Delete delete markers
+        local marker_count=$(echo "$versions_json" | jq -r '.DeleteMarkers | length' 2>/dev/null || echo "0")
+        if [ "$marker_count" -gt 0 ]; then
+          echo "    Deleting $marker_count delete markers..."
+          echo "$versions_json" | jq '{Objects: .DeleteMarkers | map({Key: .Key, VersionId: .VersionId})}' | \
+            aws s3api delete-objects --bucket "$bucket_name" --region "$bucket_region" --delete file:///dev/stdin >/dev/null 2>&1 || \
+            echo "    Warning: Some delete markers may not have been removed"
+        fi
+        
+        # Step 3: Verify bucket is empty
+        local remaining_objects=$(aws s3 ls s3://"$bucket_name" --recursive --region "$bucket_region" | wc -l)
+        if [ "$remaining_objects" -eq 0 ]; then
+          echo "  ✅ Bucket $bucket_name is now empty and ready for deletion"
+        else
+          echo "  ⚠️  Warning: Bucket $bucket_name may still contain $remaining_objects objects"
+        fi
+      }
+      
+      # Collect all S3 buckets to clean up
+      declare -a buckets_to_clean
+      
+      # 1. Add Terraform-managed bucket
+      echo "1. Adding Terraform-managed bucket:"
+      echo "  - ${self.triggers.terraform_bucket}"
+      buckets_to_clean+=("${self.triggers.terraform_bucket}")
+      
+      # 2. Find service-created buckets using blueprint patterns
+      echo ""
+      echo "2. Discovering service-created S3 buckets..."
+      
+      # Search for common SageMaker/DataZone patterns
+      echo "  Searching for SageMaker/DataZone pattern buckets..."
+      pattern_buckets=$(aws s3api list-buckets --region "${self.triggers.aws_region}" --query "Buckets[?contains(Name, 'sagemaker') || contains(Name, 'datazone') || contains(Name, 'mlflow') || contains(Name, 'studio') || contains(Name, 'redshift')].Name" --output text 2>/dev/null | tr '\t' '\n' || echo "")
+      
+      # Add discovered buckets to cleanup list (avoiding duplicates)
+      for bucket in $pattern_buckets; do
+        if [ -n "$bucket" ] && [[ ! " $${buckets_to_clean[@]} " =~ " $bucket " ]]; then
+          echo "    Found: $bucket"
+          buckets_to_clean+=("$bucket")
+        fi
+      done
+      
+      # 3. Clean up all discovered buckets
+      echo ""
+      echo "3. Cleaning up $${#buckets_to_clean[@]} S3 bucket(s):"
+      
+      if [ $${#buckets_to_clean[@]} -eq 0 ]; then
+        echo "  No buckets found to clean up"
+      else
+        for bucket in "$${buckets_to_clean[@]}"; do
+          empty_s3_bucket "$bucket" "${self.triggers.aws_region}"
+          echo ""
+        done
+      fi
+      
+      echo "=== S3 cleanup completed successfully! ==="
+    EOT
+  }
+  
+  depends_on = [
+    module.s3_bucket_tooling,
+    module.project
+  ]
+}
+
 # Add explicit timeouts for destroy operations
 resource "time_sleep" "destroy_wait" {
-  depends_on = [module.project]
+  depends_on = [
+    module.project,
+    null_resource.s3_cleanup
+  ]
   
-  destroy_duration = "30m" # 30 minute timeout for destroy operations
+  destroy_duration = "15m" # 15 minute timeout for destroy operations
 }
+

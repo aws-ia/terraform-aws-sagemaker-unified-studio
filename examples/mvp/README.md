@@ -12,6 +12,7 @@ This MVP example creates all the resources from both the `basic-domain` and `sin
 - **Environment Blueprint Configurations** - Essential blueprints for data lake, data warehouse, and ML workloads
 - **DataZone Project** - A working project ready for use
 - **S3 Bucket** - Secure storage for tooling environments with versioning and encryption
+- **Integrated S3 Cleanup** - Automatic cleanup of all related S3 buckets during destroy
 
 ### Blueprints Enabled by Default
 - **Default Data Lake** - For data catalog and lake functionality
@@ -204,11 +205,13 @@ aws datazone create-project-membership \
 
 ```
 mvp/
-├── main.tf                   # Main configuration combining both examples
+├── main.tf                   # Main configuration with integrated S3 cleanup
 ├── variables.tf              # All variables from both examples  
 ├── outputs.tf                # Combined outputs
 ├── terraform.tfvars.example  # Example configuration
 ├── validate.sh              # Validation script
+├── terraform-apply.sh       # Deployment wrapper script
+├── grant-sso-access.sh      # SSO user access script
 └── README.md                # This file
 ```
 
@@ -278,31 +281,46 @@ The base infrastructure has minimal ongoing costs, with primary charges occurrin
 
 ## Cleanup
 
-The MVP example includes **automatic cleanup** that handles environments and Lake Formation permissions during destroy.
+The MVP example includes **integrated automatic S3 cleanup** that runs during `terraform destroy` to handle both Terraform-managed and service-created S3 buckets.
+
+### Automatic S3 Cleanup Features
+
+The integrated cleanup automatically:
+- ✅ **Empties Terraform-managed buckets** - Removes all objects and versions
+- ✅ **Discovers service-created buckets** - Uses blueprint patterns (`sagemaker`, `datazone`, `mlflow`, `studio`, `redshift`)
+- ✅ **Handles versioned objects** - Removes object versions and delete markers
+- ✅ **Runs during destroy** - No separate manual step required
 
 ### Quick Cleanup
 
 ```bash
-# 1. Empty the S3 bucket
-aws s3 rm s3://$(terraform output -raw s3_bucket_name) --recursive
-
-# 2. Run terraform destroy
+# Simply run terraform destroy - S3 cleanup is automatic
 terraform destroy -auto-approve
 ```
 
-The cleanup provisioners will automatically:
+The destroy process will automatically:
+- ✅ Empty all related S3 buckets (Terraform-managed and service-created)
 - ✅ Delete all environments before the project
-- ✅ Revoke Lake Formation permissions before IAM roles
+- ✅ Clean up Lake Formation permissions before IAM roles
 - ✅ Handle proper dependency ordering
+- ✅ Remove the domain and all associated resources
 
-### Troubleshooting Cleanup
+### What Gets Cleaned Up Automatically
 
-If you encounter issues during destroy, see:
-- **[DESTROY_GUIDE.md](./DESTROY_GUIDE.md)** - Quick reference for common issues
-- **[CLEANUP.md](./CLEANUP.md)** - Comprehensive cleanup documentation
-- **[SOLUTION_SUMMARY.md](./SOLUTION_SUMMARY.md)** - Technical implementation details
+**S3 Buckets:**
+- Terraform-managed tooling bucket
+- Service-created buckets matching patterns: `sagemaker`, `datazone`, `mlflow`, `studio`, `redshift`
+- All object versions and delete markers
 
-⚠️ **Warning**: This will delete all resources including the domain and any data stored in S3 buckets.
+**DataZone Resources:**
+- Project environments (with 30-minute timeout for complex environments)
+- Project and project profiles
+- Domain and blueprint configurations
+
+**IAM Resources:**
+- Domain execution role
+- SageMaker manage access role  
+- SageMaker provisioning role
 
 ---
 
