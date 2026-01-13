@@ -213,7 +213,12 @@ resource "aws_datazone_domain" "main" {
   name                  = var.domain_name
   description           = var.description
   domain_execution_role = var.create_domain_execution_role ? aws_iam_role.domain_execution[0].arn : var.domain_execution_role_arn
-  
+  # Optionally enable SSO on the instance and use the default IDC instance for the region
+  single_sign_on {
+    type            = (var.enable_sso) ? "IAM_IDC" : "DISABLED"
+    user_assignment = (var.enable_sso) ? "AUTOMATIC" : null
+  }
+
   # Hardcoded to V2 for SageMaker Unified Studio (this project only supports SMUS)
   domain_version = "V2"
   
@@ -231,6 +236,14 @@ resource "aws_datazone_domain" "main" {
 # Data source needed to get root domain unit
 data "awscc_datazone_domain" "main" {
   id = aws_datazone_domain.main.id
+}
+
+// add SSO users to domain
+resource "aws_datazone_user_profile" "sso_users" {
+  for_each = toset(var.sso_users)
+  domain_identifier = aws_datazone_domain.main.domain_id
+  user_identifier = each.key
+  user_type = "SSO_USER"
 }
 
 # Deploy hidden project and project profile used to govern/enable bedrock models
