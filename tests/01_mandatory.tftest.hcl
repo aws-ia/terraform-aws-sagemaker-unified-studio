@@ -3,6 +3,7 @@
 # create additional *.tftest.hcl for your own unit / integration tests
 # use tests/*.auto.tfvars to add non-default variables
 
+
 run "mandatory_plan_basic" {
   command = plan
   module {
