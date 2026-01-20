@@ -21,7 +21,7 @@ variable "aws_region" {
 variable "domain_name" {
   description = "Name of the SageMaker Unified Studio domain"
   type        = string
-  default     = "terraform-mvp-domain-1"
+  default     = "terraform-mvp-domain"
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$", var.domain_name))

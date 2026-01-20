@@ -83,7 +83,7 @@ resource "random_id" "bucket_suffix" {
 }
 
 module "s3_bucket_tooling" {
-  source = "git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v4.2.2"
+  source = "git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v5.10.0"
 
   bucket                   = "${local.dynamic_project_name}-tooling-${random_id.bucket_suffix.hex}"
   control_object_ownership = true
@@ -114,15 +114,19 @@ module "s3_bucket_tooling" {
 module "blueprints" {
   source = "../../modules/blueprints"
 
-  domain_id              = module.domain.domain_id
-  domain_name            = var.domain_name
-  create_sagemaker_roles = true
-  s3_bucket_name         = module.s3_bucket_tooling.s3_bucket_id
-  vpc_id                 = data.aws_vpc.default.id
-  subnet_ids             = data.aws_subnets.default.ids
+  domain_id                 = module.domain.domain_id
+  domain_name               = var.domain_name
+  create_sagemaker_roles    = true
+  s3_bucket_name            = module.s3_bucket_tooling.s3_bucket_id
+  vpc_id                    = data.aws_vpc.default.id
+  subnet_ids                = data.aws_subnets.default.ids
+  domain_execution_role_arn = module.domain.domain_execution_role_arn
+
+  # Lake Formation configuration (enabled by default)
+  configure_lake_formation = true
 
   # Enable available blueprints for testing
-  enable_tooling             = true  # Required for other environments
+  enable_tooling             = true # Required for other environments
   enable_data_lake           = var.enable_data_lake
   enable_redshift_serverless = var.enable_redshift_serverless
   enable_sagemaker           = var.enable_sagemaker
@@ -131,31 +135,6 @@ module "blueprints" {
   tags = local.common_tags
 
   depends_on = [module.domain]
-}
-
-# Lake Formation configuration for SageMaker Unified Studio
-# MOVED EARLIER: Grant Lake Formation admin permissions BEFORE project creation
-# This ensures roles have proper permissions when environments are auto-created
-resource "aws_lakeformation_data_lake_settings" "main" {
-  admins = [
-    module.domain.domain_execution_role_arn,
-    module.blueprints.sagemaker_manage_access_role_arn,
-    module.blueprints.sagemaker_provisioning_role_arn
-  ]
-
-  # Ensure this is created after the domain and roles exist, but before project creation
-  depends_on = [
-    module.domain,
-    module.blueprints
-  ]
-}
-
-# Wait for Lake Formation settings to propagate before proceeding
-# This ensures permissions are fully active before environments are created
-resource "time_sleep" "lakeformation_propagation" {
-  depends_on = [aws_lakeformation_data_lake_settings.main]
-
-  create_duration = "30s"
 }
 
 # Create project profiles
@@ -181,11 +160,9 @@ module "project_profiles" {
 
   tags = local.common_tags
 
-  # UPDATED: Now depends on Lake Formation settings being configured first
+  # Lake Formation permissions are now configured in the blueprints module
   depends_on = [
-    module.blueprints,
-    aws_lakeformation_data_lake_settings.main,
-    time_sleep.lakeformation_propagation
+    module.blueprints
   ]
 }
 
@@ -200,12 +177,10 @@ module "project" {
   # Only pass project_profile_id if it's available and valid
   project_profile_id = module.project_profiles.dynamic_profile_id != null && module.project_profiles.dynamic_profile_id != "" ? module.project_profiles.dynamic_profile_id : null
 
-  # UPDATED: Ensure Lake Formation permissions are set before project creation
+  # Lake Formation permissions are now configured in the blueprints module
   depends_on = [
     module.blueprints,
-    module.project_profiles,
-    aws_lakeformation_data_lake_settings.main,
-    time_sleep.lakeformation_propagation
+    module.project_profiles
   ]
 }
 
@@ -329,7 +304,7 @@ resource "null_resource" "s3_cleanup" {
       echo "=== S3 cleanup completed successfully! ==="
     EOT
   }
-  
+
   depends_on = [
     module.s3_bucket_tooling,
     module.project
@@ -342,7 +317,7 @@ resource "time_sleep" "destroy_wait" {
     module.project,
     null_resource.s3_cleanup
   ]
-  
+
   destroy_duration = "15m" # 15 minute timeout for destroy operations
 }
 
