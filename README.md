@@ -20,8 +20,8 @@ This file will contain any instructional information about this module.
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.28.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | 1.68.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.28.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.68.0 |
 
 ## Modules
 
