@@ -203,5 +203,4 @@ resource "awscc_datazone_project_membership" "project_membership" {
     user_identifier = each.key
   }
   designation = "PROJECT_OWNER"
-  depends_on = [ awscc_datazone_project.project ]
 }
