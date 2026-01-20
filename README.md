@@ -12,16 +12,16 @@ This file will contain any instructional information about this module.
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.11.0 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.60.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.28.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.68.0 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.9 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.11.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.60.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.28.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | 1.68.0 |
 
 ## Modules
 
@@ -50,6 +50,7 @@ No modules.
 | <a name="input_description"></a> [description](#input\_description) | Description of the domain | `string` | `"SageMaker Unified Studio domain managed by Terraform"` | no |
 | <a name="input_domain_execution_role_arn"></a> [domain\_execution\_role\_arn](#input\_domain\_execution\_role\_arn) | ARN of existing domain execution role (used when create\_domain\_execution\_role is false) | `string` | `null` | no |
 | <a name="input_domain_execution_role_name"></a> [domain\_execution\_role\_name](#input\_domain\_execution\_role\_name) | Custom name for the domain execution role (if null, will use domain\_name-domain-execution-role) | `string` | `null` | no |
+| <a name="input_enable_sso"></a> [enable\_sso](#input\_enable\_sso) | Choose to enable single sign on (SSO) and use an existing AWS IAM Identity Center Instance. When set to true, this will use the default IAM IDC instance that is enabled for the account within the same region as the domain. | `bool` | `false` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to the domain and related resources | `map(string)` | `{}` | no |
 
 ## Outputs

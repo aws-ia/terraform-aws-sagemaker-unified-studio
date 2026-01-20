@@ -238,14 +238,6 @@ data "awscc_datazone_domain" "main" {
   id = aws_datazone_domain.main.id
 }
 
-// add SSO users to domain
-resource "aws_datazone_user_profile" "sso_users" {
-  for_each = toset(var.sso_users)
-  domain_identifier = aws_datazone_domain.main.domain_id
-  user_identifier = each.key
-  user_type = "SSO_USER"
-}
-
 # Deploy hidden project and project profile used to govern/enable bedrock models
 resource "awscc_datazone_project_profile" "model_governance_project_profile" {
   name                   = "Generative AI model governance"

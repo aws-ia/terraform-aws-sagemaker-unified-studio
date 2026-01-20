@@ -60,4 +60,5 @@ variable "tags" {
 variable enable_sso {
   description = "Choose to enable single sign on (SSO) and use an existing AWS IAM Identity Center Instance. When set to true, this will use the default IAM IDC instance that is enabled for the account within the same region as the domain."
   type = bool
+  default = false
 }
