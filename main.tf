@@ -20,12 +20,6 @@ locals {
   # Default to AWS managed service role for SageMaker Unified Studio
   domain_execution_role_arn = var.domain_execution_role_arn != null ? var.domain_execution_role_arn : "arn:aws:iam::${local.account_id}:role/service-role/AmazonSageMakerDomainExecution"
   domain_service_role_arn   = var.domain_service_role_arn != null ? var.domain_service_role_arn : "arn:aws:iam::${local.account_id}:role/service-role/AmazonSageMakerDomainService"
-  
-  # Common tags for all resources
-  common_tags = merge(var.tags, {
-    ManagedBy = "Terraform"
-    Module    = "sagemaker-unified-studio"
-  })
 }
 
 #####################################################################################
