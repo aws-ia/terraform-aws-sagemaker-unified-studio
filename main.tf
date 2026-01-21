@@ -12,7 +12,6 @@ data "aws_region" "current" {}
 
 locals {
   account_id = data.aws_caller_identity.current.account_id
-  region     = data.aws_region.current.id
   
   # Generate dynamic domain name if not provided
   domain_name = var.domain_name != null ? var.domain_name : "domain-${formatdate("MM-DD-YYYY-HHMMSS", timestamp())}"
