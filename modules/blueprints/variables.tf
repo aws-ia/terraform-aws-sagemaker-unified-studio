@@ -3,7 +3,8 @@
 variable "domain_id" {
   description = "The ID of the SageMaker Unified Studio domain"
   type        = string
-  
+  default     = null
+
   validation {
     condition     = can(regex("^dzd[-_][a-zA-Z0-9_-]{1,36}$", var.domain_id))
     error_message = "Domain ID must be in the format 'dzd_' or 'dzd-' followed by 1-36 alphanumeric characters, underscores, and hyphens."
@@ -12,12 +13,14 @@ variable "domain_id" {
 
 variable "domain_name" {
   description = "Name of the SageMaker Unified Studio domain (used for role naming)"
+  default     = "dzd_sagemaker-unified-studio-domain-terraform"
   type        = string
 }
 
 
 variable "domain_root_unit_id" {
   description = "The root domain unit ID for policy grants"
+  default     = null
   type        = string
 }
 
@@ -64,6 +67,7 @@ variable "provisioning_role_arn" {
 
 variable "s3_bucket_name" {
   description = "S3 bucket name for tooling environment storage"
+  default     = null
   type        = string
   
   validation {
@@ -75,6 +79,7 @@ variable "s3_bucket_name" {
 variable "vpc_id" {
   description = "VPC ID for SageMaker environments"
   type        = string
+  default     = null
   
   validation {
     condition     = can(regex("^vpc-[a-z0-9]+$", var.vpc_id))
@@ -85,6 +90,7 @@ variable "vpc_id" {
 variable "subnet_ids" {
   description = "List of subnet IDs for SageMaker environments"
   type        = list(string)
+  default     = null
   
   validation {
     condition     = length(var.subnet_ids) > 0
