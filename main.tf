@@ -213,7 +213,12 @@ resource "aws_datazone_domain" "main" {
   name                  = var.domain_name
   description           = var.description
   domain_execution_role = var.create_domain_execution_role ? aws_iam_role.domain_execution[0].arn : var.domain_execution_role_arn
-  
+  # Optionally enable SSO on the instance and use the default IDC instance for the region
+  single_sign_on {
+    type            = (var.enable_sso) ? "IAM_IDC" : "DISABLED"
+    user_assignment = (var.enable_sso) ? "AUTOMATIC" : null
+  }
+
   # Hardcoded to V2 for SageMaker Unified Studio (this project only supports SMUS)
   domain_version = "V2"
   
