@@ -198,9 +198,9 @@ resource "null_resource" "s3_cleanup" {
 
   # Cleanup script that runs on destroy
   provisioner "local-exec" {
-    when    = destroy
-    command = <<-EOT
-      #!/bin/bash
+    when        = destroy
+    interpreter = ["/bin/bash", "-c"]
+    command     = <<-EOT
       set -e
       
       echo "=== S3 Bucket Cleanup for SageMaker Unified Studio ==="
