@@ -36,11 +36,11 @@ output "blueprint_count" {
 output "blueprint_ids" {
   description = "Map of blueprint identifiers"
   value = {
-    tooling             = module.blueprints.tooling_id
-    data_lake           = module.blueprints.data_lake_id
-    data_warehouse      = module.blueprints.redshift_serverless_id
-    sagemaker           = module.blueprints.sagemaker_id
-    custom_aws_service  = module.blueprints.custom_aws_service_id
+    tooling            = module.blueprints.tooling_id
+    data_lake          = module.blueprints.data_lake_id
+    data_warehouse     = module.blueprints.redshift_serverless_id
+    sagemaker          = module.blueprints.sagemaker_id
+    custom_aws_service = module.blueprints.custom_aws_service_id
   }
 }
 
@@ -57,7 +57,7 @@ output "project_name" {
 
 output "project_status" {
   description = "Status of the created project"
-  value       = "ACTIVE"  # awscc provider doesn't expose status, assume active if created
+  value       = "ACTIVE" # awscc provider doesn't expose status, assume active if created
 }
 
 output "project_url" {
@@ -127,10 +127,10 @@ output "region" {
 output "next_steps" {
   description = "Information about next steps after deployment"
   value = {
-    domain_access = "Visit ${module.domain.domain_url} to access your SageMaker Unified Studio domain"
-    project_access = "Navigate to Projects section and find '${module.project.project_name}' (ID: ${module.project.project_id})"
+    domain_access      = "Visit ${module.domain.domain_url} to access your SageMaker Unified Studio domain"
+    project_access     = "Navigate to Projects section and find '${module.project.project_name}' (ID: ${module.project.project_id})"
     blueprints_enabled = "Enabled ${module.blueprints.blueprint_count} blueprints: ${join(", ", module.blueprints.enabled_blueprints)}"
-    manual_steps = "Project profiles and user memberships must be configured manually via AWS Console or CLI (not yet available in Terraform)"
+    manual_steps       = "Project profiles and user memberships must be configured manually via AWS Console or CLI (not yet available in Terraform)"
   }
 }
 
@@ -138,10 +138,10 @@ output "next_steps" {
 output "validation_commands" {
   description = "AWS CLI commands to validate the deployment"
   value = {
-    check_domain = "aws datazone get-domain --identifier ${module.domain.domain_id}"
+    check_domain    = "aws datazone get-domain --identifier ${module.domain.domain_id}"
     list_blueprints = "aws datazone list-environment-blueprint-configurations --domain-identifier ${module.domain.domain_id}"
-    get_project = "aws datazone get-project --identifier ${module.project.project_id} --domain-identifier ${module.domain.domain_id}"
-    list_projects = "aws datazone list-projects --domain-identifier ${module.domain.domain_id}"
+    get_project     = "aws datazone get-project --identifier ${module.project.project_id} --domain-identifier ${module.domain.domain_id}"
+    list_projects   = "aws datazone list-projects --domain-identifier ${module.domain.domain_id}"
   }
 }
 
@@ -156,7 +156,7 @@ output "terraform_limitations" {
     workaround = "Use AWS CLI commands to complete project setup after Terraform deployment"
     cli_examples = {
       create_project_profile = "aws datazone create-project-profile --domain-identifier ${module.domain.domain_id} --name 'Basic Analytics' --environment-configurations file://profile-config.json"
-      add_project_member = "aws datazone create-project-membership --domain-identifier ${module.domain.domain_id} --project-identifier ${module.project.project_id} --member UserIdentifier=user@example.com --designation PROJECT_OWNER"
+      add_project_member     = "aws datazone create-project-membership --domain-identifier ${module.domain.domain_id} --project-identifier ${module.project.project_id} --member UserIdentifier=user@example.com --designation PROJECT_OWNER"
     }
   }
 }

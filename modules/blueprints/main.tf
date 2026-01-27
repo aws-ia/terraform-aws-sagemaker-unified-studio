@@ -31,9 +31,9 @@ locals {
 # SageMaker Manage Access Role (matches CloudFormation AmazonSageMakerManageAccessRole parameter)
 resource "aws_iam_role" "sagemaker_manage_access" {
   count = var.create_sagemaker_roles ? 1 : 0
-  
+
   name = var.sagemaker_manage_access_role_name != null ? var.sagemaker_manage_access_role_name : "${var.domain_name}-sagemaker-manage-access-role"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -54,17 +54,17 @@ resource "aws_iam_role" "sagemaker_manage_access" {
       }
     ]
   })
-  
+
   tags = local.common_tags
 }
 
 # SageMaker manage access role inline policy as separate resource
 resource "aws_iam_role_policy" "sagemaker_manage_access_inline" {
   count = var.create_sagemaker_roles ? 1 : 0
-  
+
   name = "smus_manage_access_policy"
   role = aws_iam_role.sagemaker_manage_access[0].id
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -100,7 +100,7 @@ resource "aws_iam_role_policy" "sagemaker_manage_access_inline" {
           "sagemaker:DescribeProject",
           "sagemaker:ListProjects"
         ]
-        Effect = "Allow"
+        Effect   = "Allow"
         Resource = "arn:aws:sagemaker:${local.region}:${local.account_id}:project/*"
       },
       {
@@ -139,7 +139,7 @@ resource "aws_iam_role_policy" "sagemaker_manage_access_inline" {
 # Attach policies for SageMaker manage access role
 resource "aws_iam_role_policy_attachment" "sagemaker_manage_access" {
   count = var.create_sagemaker_roles ? 1 : 0
-  
+
   role       = aws_iam_role.sagemaker_manage_access[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerManageAccessRolePolicy"
 }
@@ -147,10 +147,10 @@ resource "aws_iam_role_policy_attachment" "sagemaker_manage_access" {
 # SageMaker Provisioning Role (matches CloudFormation AmazonSageMakerProvisioningRole parameter)
 resource "aws_iam_role" "sagemaker_provisioning" {
   count = var.create_sagemaker_roles ? 1 : 0
-  
+
   name        = var.sagemaker_provisioning_role_name != null ? var.sagemaker_provisioning_role_name : "${var.domain_name}-sagemaker-provisioning-role"
   description = "IAM role to provision SageMaker environments"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -173,16 +173,48 @@ resource "aws_iam_role" "sagemaker_provisioning" {
       }
     ]
   })
-  
+
   tags = local.common_tags
 }
 
 # Attach policies for SageMaker provisioning role
 resource "aws_iam_role_policy_attachment" "sagemaker_provisioning" {
   count = var.create_sagemaker_roles ? 1 : 0
-  
+
   role       = aws_iam_role.sagemaker_provisioning[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioProjectProvisioningRolePolicy"
+}
+
+#####################################################################################
+# Lake Formation Configuration
+# Grant Lake Formation admin permissions BEFORE blueprint configurations
+# This ensures roles have proper permissions when environments are auto-created
+#####################################################################################
+
+resource "aws_lakeformation_data_lake_settings" "main" {
+  count = var.configure_lake_formation ? 1 : 0
+
+  admins = compact([
+    var.domain_execution_role_arn,
+    var.create_sagemaker_roles ? aws_iam_role.sagemaker_manage_access[0].arn : var.manage_access_role_arn,
+    var.create_sagemaker_roles ? aws_iam_role.sagemaker_provisioning[0].arn : var.provisioning_role_arn
+  ])
+
+  # Ensure this is created after the roles exist
+  depends_on = [
+    aws_iam_role.sagemaker_manage_access,
+    aws_iam_role.sagemaker_provisioning
+  ]
+}
+
+# Wait for Lake Formation settings to propagate before proceeding
+# This ensures permissions are fully active before environments are created
+resource "time_sleep" "lakeformation_propagation" {
+  count = var.configure_lake_formation ? 1 : 0
+
+  depends_on = [aws_lakeformation_data_lake_settings.main]
+
+  create_duration = "30s"
 }
 
 #####################################################################################
@@ -250,6 +282,11 @@ resource "aws_datazone_environment_blueprint_configuration" "tooling" {
       "VpcId"      = var.vpc_id
     }
   }
+
+  # Ensure Lake Formation permissions are set before creating blueprint configurations
+  depends_on = [
+    time_sleep.lakeformation_propagation
+  ]
 }
 
 # Lakehouse Catalog Blueprint (V2 - Essential for data catalog and lake functionality)
@@ -270,6 +307,11 @@ resource "aws_datazone_environment_blueprint_configuration" "data_lake" {
       "VpcId"      = var.vpc_id
     }
   }
+
+  # Ensure Lake Formation permissions are set before creating blueprint configurations
+  depends_on = [
+    time_sleep.lakeformation_propagation
+  ]
 }
 
 # Redshift Serverless Blueprint (V2 - Essential for analytics)
@@ -290,6 +332,11 @@ resource "aws_datazone_environment_blueprint_configuration" "redshift_serverless
       "VpcId"      = var.vpc_id
     }
   }
+
+  # Ensure Lake Formation permissions are set before creating blueprint configurations
+  depends_on = [
+    time_sleep.lakeformation_propagation
+  ]
 }
 
 # ML Experiments Blueprint (V2 - Essential for ML workloads)
@@ -310,6 +357,11 @@ resource "aws_datazone_environment_blueprint_configuration" "sagemaker" {
       "VpcId"      = var.vpc_id
     }
   }
+
+  # Ensure Lake Formation permissions are set before creating blueprint configurations
+  depends_on = [
+    time_sleep.lakeformation_propagation
+  ]
 }
 
 # Custom AWS Service Blueprint (Optional for custom integrations)
@@ -326,6 +378,11 @@ resource "aws_datazone_environment_blueprint_configuration" "custom_aws_service"
   regional_parameters = {
     (data.aws_region.current.id) = {}
   }
+
+  # Ensure Lake Formation permissions are set before creating blueprint configurations
+  depends_on = [
+    time_sleep.lakeformation_propagation
+  ]
 }
 
 resource "awscc_datazone_policy_grant" "blueprint_policy_grants" {

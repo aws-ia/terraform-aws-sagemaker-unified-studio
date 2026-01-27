@@ -1,17 +1,39 @@
-# terraform-docs
+# SageMaker Unified Studio MVP Example
 
-[![Build Status](https://github.com/terraform-docs/terraform-docs/workflows/ci/badge.svg)](https://github.com/terraform-docs/terraform-docs/actions) [![GoDoc](https://pkg.go.dev/badge/github.com/terraform-docs/terraform-docs)](https://pkg.go.dev/github.com/terraform-docs/terraform-docs) [![Go Report Card](https://goreportcard.com/badge/github.com/terraform-docs/terraform-docs)](https://goreportcard.com/report/github.com/terraform-docs/terraform-docs) [![Codecov Report](https://codecov.io/gh/terraform-docs/terraform-docs/branch/master/graph/badge.svg)](https://codecov.io/gh/terraform-docs/terraform-docs) [![License](https://img.shields.io/github/license/terraform-docs/terraform-docs)](https://github.com/terraform-docs/terraform-docs/blob/master/LICENSE) [![Latest release](https://img.shields.io/github/v/release/terraform-docs/terraform-docs)](https://github.com/terraform-docs/terraform-docs/releases)
+This example provides a complete **Minimum Viable Product (MVP)** deployment of Amazon SageMaker Unified Studio using Terraform. It combines domain creation, IAM role setup, blueprint configuration, and project creation in a single, unified configuration.
 
-![terraform-docs-teaser](./images/terraform-docs-teaser.png)
+## What This Example Creates
 
-## What is terraform-docs
+This MVP example creates all the resources from both the `basic-domain` and `single-account-project` examples:
 
-A utility to generate documentation from Terraform modules in various output formats.
+### Core Infrastructure
+- **SageMaker Unified Studio Domain** - The main domain for your data and ML platform
+- **IAM Roles** - All required roles (domain execution, SageMaker manage access, SageMaker provisioning)
+- **Environment Blueprint Configurations** - Essential blueprints for data lake, data warehouse, and ML workloads
+- **DataZone Project** - A working project ready for use
+- **S3 Bucket** - Secure storage for tooling environments with versioning and encryption
 
-## Installation
+### Blueprints Enabled by Default
+- **Default Data Lake** - For data catalog and lake functionality
+- **Default Data Warehouse** - For analytics workloads  
+- **Default SageMaker** - For ML workloads and experimentation
 
-macOS users can install using [Homebrew]:
+## Prerequisites
 
+1. **AWS CLI** configured with appropriate permissions
+2. **Terraform** >= 1.5 installed
+3. **AWS Account** with SageMaker Unified Studio available in your region
+
+### Required AWS Permissions
+Your AWS credentials need permissions for:
+- DataZone (domain, project, blueprint management)
+- IAM (role creation and policy attachment)
+- S3 (bucket creation and configuration)
+- EC2 (VPC and subnet access for default networking)
+
+## Quick Start
+
+### 1. Configure Variables
 ```bash
 brew install terraform-docs
 ```
@@ -77,356 +99,135 @@ $(go env GOPATH)/src/github.com/terraform-docs/terraform-docs/bin/$(uname | tr '
 To run and generate documentation into README within a directory:
 
 ```bash
-terraform-docs markdown table --output-file README.md --output-mode inject /path/to/module
+# Create project profile (example)
+aws datazone create-project-profile \
+  --domain-identifier dzd_abc123xyz \
+  --name 'Basic Analytics' \
+  --environment-configurations file://profile-config.json
+
+# Add project member (example)  
+aws datazone create-project-membership \
+  --domain-identifier dzd_abc123xyz \
+  --project-identifier p123abc456def \
+  --member UserIdentifier=user@example.com \
+  --designation PROJECT_OWNER
 ```
 
-Check [`output`] configuration for more details and examples.
+## Architecture
 
-### Using docker
+```
+┌─────────────────────────────────────────────────┐
+│                 MVP Architecture                │
+├─────────────────────────────────────────────────┤
+│  SageMaker Unified Studio Domain               │
+│  ├── IAM Roles (3)                            │
+│  │   ├── Domain Execution Role                │
+│  │   ├── SageMaker Manage Access Role         │
+│  │   └── SageMaker Provisioning Role          │
+│  │                                            │
+│  ├── Environment Blueprints (3)               │
+│  │   ├── Default Data Lake                    │
+│  │   ├── Default Data Warehouse               │
+│  │   └── Default SageMaker                    │
+│  │                                            │
+│  ├── Project                                  │
+│  │   └── Ready for environments               │
+│  │                                            │
+│  └── Supporting Infrastructure                │
+│      ├── S3 Bucket (versioned + encrypted)   │
+│      └── VPC/Subnet Integration               │
+└─────────────────────────────────────────────────┘
+```
 
-terraform-docs can be run as a container by mounting a directory with `.tf`
-files in it and run the following command:
+## File Structure
+
+```
+mvp/
+├── main.tf                   # Main configuration combining both examples
+├── variables.tf              # All variables from both examples  
+├── outputs.tf                # Combined outputs
+├── terraform.tfvars.example  # Example configuration
+├── validate.sh              # Validation script
+└── README.md                # This file
+```
+
+## Validation Script
+
+The `validate.sh` script performs comprehensive validation:
+
+- ✅ **AWS CLI Access** - Verifies authentication and account
+- ✅ **IAM Roles** - Confirms all roles are created
+- ✅ **Domain Status** - Checks domain is AVAILABLE
+- ✅ **Blueprint Configuration** - Validates enabled blueprints
+- ✅ **Project Status** - Confirms project is ACTIVE
+- ✅ **S3 Bucket** - Verifies bucket, versioning, and encryption
+- ✅ **Network Configuration** - Checks VPC and subnet access
+
+## Next Steps After MVP Deployment
+
+1. **Manual Configuration**:
+   - Create project profiles via AWS Console
+   - Add user memberships to projects
+   - Configure environment parameters
+
+2. **Create Environments**:
+   - Use the enabled blueprints to create environments
+   - Configure data lake, warehouse, or ML environments
+
+3. **Add Users**:
+   - Set up SSO users in IAM Identity Center (if enabled)
+   - Assign users to projects with appropriate roles
+
+4. **Explore Features**:
+   - Data catalog and discovery
+   - Environment management
+   - ML experiment tracking
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Domain Creation Fails**:
+   - Verify SageMaker Unified Studio is available in your region
+   - Check IAM permissions for DataZone service
+
+2. **Blueprint Configuration Fails**:
+   - Ensure S3 bucket creation succeeded
+   - Verify VPC and subnet accessibility
+
+3. **Project Creation Fails**:
+   - Confirm domain is in AVAILABLE status
+   - Check blueprint configurations are enabled
+
+### Getting Help
+
+- Run `./validate.sh` for detailed status information
+- Check AWS CloudFormation events for detailed error messages
+- Verify AWS CLI permissions with `aws sts get-caller-identity`
+
+## Cost Considerations
+
+This MVP creates:
+- SageMaker Unified Studio domain (pay-per-use)
+- IAM roles (no cost)
+- S3 bucket (minimal storage cost)
+- No running compute resources (cost only when environments are created)
+
+The base infrastructure has minimal ongoing costs, with primary charges occurring when you create and use environments.
+
+## Cleanup
+
+To destroy all resources:
+
+Empty & delete the S3 bucket (must be empty to delete): my-analytics-project-tooling-<alphanumerics>
 
 ```bash
-docker run --rm --volume "$(pwd):/terraform-docs" -u $(id -u) quay.io/terraform-docs/terraform-docs:0.20.0 markdown /terraform-docs
+# Use standard terraform destroy (no wrapper script needed)
+terraform destroy
 ```
 
-If `output.file` is not enabled for this module, generated output can be redirected
-back to a file:
+⚠️ **Warning**: This will delete all resources including the domain and any data stored in S3 buckets.
 
-```bash
-docker run --rm --volume "$(pwd):/terraform-docs" -u $(id -u) quay.io/terraform-docs/terraform-docs:0.20.0 markdown /terraform-docs > doc.md
-```
+---
 
-**NOTE:** Docker tag `latest` refers to _latest_ stable released version and `edge`
-refers to HEAD of `master` at any given point in time.
-
-### Using GitHub Actions
-
-To use terraform-docs GitHub Action, configure a YAML workflow file (e.g.
-`.github/workflows/documentation.yml`) with the following:
-
-```yaml
-name: Generate terraform docs
-on:
-  - pull_request
-
-jobs:
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.pull_request.head.ref }}
-
-    - name: Render terraform docs and push changes back to PR
-      uses: terraform-docs/gh-actions@main
-      with:
-        working-dir: .
-        output-file: README.md
-        output-method: inject
-        git-push: "true"
-```
-
-Read more about [terraform-docs GitHub Action] and its configuration and
-examples.
-
-### pre-commit hook
-
-With pre-commit, you can ensure your Terraform module documentation is kept
-up-to-date each time you make a commit.
-
-First [install pre-commit] and then create or update a `.pre-commit-config.yaml`
-in the root of your Git repo with at least the following content:
-
-```yaml
-repos:
-  - repo: https://github.com/terraform-docs/terraform-docs
-    rev: "v0.20.0"
-    hooks:
-      - id: terraform-docs-go
-        args: ["markdown", "table", "--output-file", "README.md", "./mymodule/path"]
-```
-
-Then run:
-
-```bash
-pre-commit install
-pre-commit install-hooks
-```
-
-Further changes to your module's `.tf` files will cause an update to documentation
-when you make a commit.
-
-## Configuration
-
-terraform-docs can be configured with a yaml file. The default name of this file is
-`.terraform-docs.yml` and the path order for locating it is:
-
-1. root of module directory
-1. `.config/` folder at root of module directory
-1. current directory
-1. `.config/` folder at current directory
-1. `$HOME/.tfdocs.d/`
-
-```yaml
-formatter: "" # this is required
-
-version: ""
-
-header-from: main.tf
-footer-from: ""
-
-recursive:
-  enabled: false
-  path: modules
-  include-main: true
-
-sections:
-  hide: []
-  show: []
-
-content: ""
-
-output:
-  file: ""
-  mode: inject
-  template: |-
-    <!-- BEGIN_TF_DOCS -->
-    {{ .Content }}
-    <!-- END_TF_DOCS -->
-
-output-values:
-  enabled: false
-  from: ""
-
-sort:
-  enabled: true
-  by: name
-
-settings:
-  anchor: true
-  color: true
-  default: true
-  description: false
-  escape: true
-  hide-empty: false
-  html: true
-  indent: 2
-  lockfile: true
-  read-comments: true
-  required: true
-  sensitive: true
-  type: true
-```
-
-## Content Template
-
-Generated content can be customized further away with `content` in configuration.
-If the `content` is empty the default order of sections is used.
-
-Compatible formatters for customized content are `asciidoc` and `markdown`. `content`
-will be ignored for other formatters.
-
-`content` is a Go template with following additional variables:
-
-- `{{ .Header }}`
-- `{{ .Footer }}`
-- `{{ .Inputs }}`
-- `{{ .Modules }}`
-- `{{ .Outputs }}`
-- `{{ .Providers }}`
-- `{{ .Requirements }}`
-- `{{ .Resources }}`
-
-and following functions:
-
-- `{{ include "relative/path/to/file" }}`
-
-These variables are the generated output of individual sections in the selected
-formatter. For example `{{ .Inputs }}` is Markdown Table representation of _inputs_
-when formatter is set to `markdown table`.
-
-Note that sections visibility (i.e. `sections.show` and `sections.hide`) takes
-precedence over the `content`.
-
-Additionally there's also one extra special variable avaialble to the `content`:
-
-- `{{ .Module }}`
-
-As opposed to the other variables mentioned above, which are generated sections
-based on a selected formatter, the `{{ .Module }}` variable is just a `struct`
-representing a [Terraform module].
-
-````yaml
-content: |-
-  Any arbitrary text can be placed anywhere in the content
-
-  {{ .Header }}
-
-  and even in between sections
-
-  {{ .Providers }}
-
-  and they don't even need to be in the default order
-
-  {{ .Outputs }}
-
-  include any relative files
-
-  {{ include "relative/path/to/file" }}
-
-  {{ .Inputs }}
-
-  # Examples
-
-  ```hcl
-  {{ include "examples/foo/main.tf" }}
-  ```
-
-  ## Resources
-
-  {{ range .Module.Resources }}
-  - {{ .GetMode }}.{{ .Spec }} ({{ .Position.Filename }}#{{ .Position.Line }})
-  {{- end }}
-````
-
-## Build on top of terraform-docs
-
-terraform-docs primary use-case is to be utilized as a standalone binary, but
-some parts of it is also available publicly and can be imported in your project
-as a library.
-
-```go
-import (
-    "github.com/terraform-docs/terraform-docs/format"
-    "github.com/terraform-docs/terraform-docs/print"
-    "github.com/terraform-docs/terraform-docs/terraform"
-)
-
-// buildTerraformDocs for module root `path` and provided content `tmpl`.
-func buildTerraformDocs(path string, tmpl string) (string, error) {
-    config := print.DefaultConfig()
-    config.ModuleRoot = path // module root path (can be relative or absolute)
-
-    module, err := terraform.LoadWithOptions(config)
-    if err != nil {
-        return "", err
-    }
-
-    // Generate in Markdown Table format
-    formatter := format.NewMarkdownTable(config)
-
-    if err := formatter.Generate(module); err != nil {
-        return "", err
-    }
-
-    // // Note: if you don't intend to provide additional template for the generated
-    // // content, or the target format doesn't provide templating (e.g. json, yaml,
-    // // xml, or toml) you can use `Content()` function instead of `Render()`.
-    // // `Content()` returns all the sections combined with predefined order.
-    // return formatter.Content(), nil
-
-    return formatter.Render(tmpl)
-}
-```
-
-## Plugin
-
-Generated output can be heavily customized with [`content`], but if using that
-is not enough for your use-case, you can write your own plugin.
-
-In order to install a plugin the following steps are needed:
-
-- download the plugin and place it in `~/.tfdocs.d/plugins` (or `./.tfdocs.d/plugins`)
-- make sure the plugin file name is `tfdocs-format-<NAME>`
-- modify [`formatter`] of `.terraform-docs.yml` file to be `<NAME>`
-
-**Important notes:**
-
-- if the plugin file name is different than the example above, terraform-docs won't
-be able to to pick it up nor register it properly
-- you can only use plugin thorough `.terraform-docs.yml` file and it cannot be used
-with CLI arguments
-
-To create a new plugin create a new repository called `tfdocs-format-<NAME>` with
-following `main.go`:
-
-```go
-package main
-
-import (
-    _ "embed" //nolint
-
-    "github.com/terraform-docs/terraform-docs/plugin"
-    "github.com/terraform-docs/terraform-docs/print"
-    "github.com/terraform-docs/terraform-docs/template"
-    "github.com/terraform-docs/terraform-docs/terraform"
-)
-
-func main() {
-    plugin.Serve(&plugin.ServeOpts{
-        Name:    "<NAME>",
-        Version: "0.1.0",
-        Printer: printerFunc,
-    })
-}
-
-//go:embed sections.tmpl
-var tplCustom []byte
-
-// printerFunc the function being executed by the plugin client.
-func printerFunc(config *print.Config, module *terraform.Module) (string, error) {
-    tpl := template.New(config,
-        &template.Item{Name: "custom", Text: string(tplCustom)},
-    )
-
-    rendered, err := tpl.Render("custom", module)
-    if err != nil {
-        return "", err
-    }
-
-    return rendered, nil
-}
-```
-
-Please refer to [tfdocs-format-template] for more details. You can create a new
-repository from it by clicking on `Use this template` button.
-
-## Documentation
-
-- **Users**
-  - Read the [User Guide] to learn how to use terraform-docs
-  - Read the [Formats Guide] to learn about different output formats of terraform-docs
-  - Refer to [Config File Reference] for all the available configuration options
-- **Developers**
-  - Read [Contributing Guide] before submitting a pull request
-
-Visit [our website] for all documentation.
-
-## Community
-
-- Discuss terraform-docs on [Slack]
-
-## License
-
-MIT License - Copyright (c) 2021 The terraform-docs Authors.
-
-[Chocolatey]: https://www.chocolatey.org
-[Config File Reference]: https://terraform-docs.io/user-guide/configuration/
-[`content`]: https://terraform-docs.io/user-guide/configuration/content/
-[Contributing Guide]: CONTRIBUTING.md
-[Formats Guide]: https://terraform-docs.io/reference/terraform-docs/
-[`formatter`]: https://terraform-docs.io/user-guide/configuration/formatter/
-[here]: https://golang.org/doc/code.html#GOPATH
-[Homebrew]: https://brew.sh
-[install pre-commit]: https://pre-commit.com/#install
-[`output`]: https://terraform-docs.io/user-guide/configuration/output/
-[releases]: https://github.com/terraform-docs/terraform-docs/releases
-[Scoop]: https://scoop.sh/
-[Slack]: https://slack.terraform-docs.io/
-[terraform-docs GitHub Action]: https://github.com/terraform-docs/gh-actions
-[Terraform module]: https://pkg.go.dev/github.com/terraform-docs/terraform-docs/terraform#Module
-[tfdocs-format-template]: https://github.com/terraform-docs/tfdocs-format-template
-[our website]: https://terraform-docs.io/
-[User Guide]: https://terraform-docs.io/user-guide/introduction/
+**Ready to get started?** Follow the Quick Start guide above to deploy your SageMaker Unified Studio MVP!

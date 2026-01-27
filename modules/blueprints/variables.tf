@@ -41,9 +41,9 @@ variable "manage_access_role_arn" {
   description = "ARN of existing SageMaker manage access role (used when create_sagemaker_roles is false)"
   type        = string
   default     = null
-  
+
   validation {
-    condition = var.manage_access_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.manage_access_role_arn))
+    condition     = var.manage_access_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.manage_access_role_arn))
     error_message = "Manage access role ARN must be a valid IAM role ARN."
   }
 }
@@ -58,9 +58,9 @@ variable "provisioning_role_arn" {
   description = "ARN of existing SageMaker provisioning role (used when create_sagemaker_roles is false)"
   type        = string
   default     = null
-  
+
   validation {
-    condition = var.provisioning_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.provisioning_role_arn))
+    condition     = var.provisioning_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.provisioning_role_arn))
     error_message = "Provisioning role ARN must be a valid IAM role ARN."
   }
 }
@@ -69,7 +69,7 @@ variable "s3_bucket_name" {
   description = "S3 bucket name for tooling environment storage"
   default     = null
   type        = string
-  
+
   validation {
     condition     = can(regex("^[a-z0-9][a-z0-9-]*[a-z0-9]$", var.s3_bucket_name))
     error_message = "S3 bucket name must be valid (lowercase letters, numbers, and hyphens only)."
@@ -96,7 +96,7 @@ variable "subnet_ids" {
     condition     = length(var.subnet_ids) > 0
     error_message = "At least one subnet ID must be provided."
   }
-  
+
   validation {
     condition = alltrue([
       for subnet_id in var.subnet_ids : can(regex("^subnet-[a-z0-9]+$", subnet_id))
@@ -140,4 +140,22 @@ variable "tags" {
   description = "Tags to apply to all blueprint configurations"
   type        = map(string)
   default     = {}
+}
+
+# Lake Formation Configuration
+variable "configure_lake_formation" {
+  description = "Whether to configure Lake Formation data lake settings with admin permissions for SageMaker roles"
+  type        = bool
+  default     = true
+}
+
+variable "domain_execution_role_arn" {
+  description = "ARN of the domain execution role to grant Lake Formation admin permissions"
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.domain_execution_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.domain_execution_role_arn))
+    error_message = "Domain execution role ARN must be a valid IAM role ARN."
+  }
 }
