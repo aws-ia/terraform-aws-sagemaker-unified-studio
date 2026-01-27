@@ -43,9 +43,11 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_description"></a> [description](#input\_description) | Description of the domain | `string` | `"SageMaker Unified Studio domain managed by Terraform"` | no |
-| <a name="input_domain_execution_role_arn"></a> [domain\_execution\_role\_arn](#input\_domain\_execution\_role\_arn) | ARN of existing domain execution role (used when create\_domain\_execution\_role is false) | `string` | `null` | no |
-| <a name="input_domain_execution_role_name"></a> [domain\_execution\_role\_name](#input\_domain\_execution\_role\_name) | Custom name for the domain execution role (if null, will use domain\_name-domain-execution-role) | `string` | `null` | no |
+| <a name="input_domain_execution_role_arn"></a> [domain\_execution\_role\_arn](#input\_domain\_execution\_role\_arn) | ARN of the domain execution role for SageMaker Unified Studio | `string` | `null` | no |
+| <a name="input_domain_name"></a> [domain\_name](#input\_domain\_name) | Name of the DataZone domain (matches CloudFormation DomainName parameter) | `string` | `null` | no |
+| <a name="input_domain_service_role_arn"></a> [domain\_service\_role\_arn](#input\_domain\_service\_role\_arn) | ARN of the domain service role for SageMaker Unified Studio | `string` | `null` | no |
 | <a name="input_enable_sso"></a> [enable\_sso](#input\_enable\_sso) | Choose to enable single sign on (SSO) and use an existing AWS IAM Identity Center Instance. When set to true, this will use the default IAM IDC instance that is enabled for the account within the same region as the domain. | `bool` | `false` | no |
+| <a name="input_kms_key_identifier"></a> [kms\_key\_identifier](#input\_kms\_key\_identifier) | ARN of the KMS key used to encrypt the Amazon DataZone domain, metadata and reporting data (if null, uses AWS managed key) | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to the domain and related resources | `map(string)` | `{}` | no |
 
 ## Outputs

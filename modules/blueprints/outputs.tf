@@ -113,7 +113,7 @@ output "lake_formation_admins" {
   description = "List of IAM role ARNs granted Lake Formation admin permissions"
   value = var.configure_lake_formation ? compact([
     var.domain_execution_role_arn,
-    var.create_sagemaker_roles ? aws_iam_role.sagemaker_manage_access[0].arn : var.manage_access_role_arn,
-    var.create_sagemaker_roles ? aws_iam_role.sagemaker_provisioning[0].arn : var.provisioning_role_arn
+    local.manage_access_role_arn,
+    local.provisioning_role_arn
   ]) : []
 }
