@@ -65,6 +65,7 @@ module "domain" {
   create_domain_execution_role = true
 
   tags = local.common_tags
+  enable_sso = var.enable_sso
 }
 
 # Create random pet name for project with 6-digit suffix
@@ -116,6 +117,7 @@ module "blueprints" {
 
   domain_id                 = module.domain.domain_id
   domain_name               = var.domain_name
+  domain_root_unit_id       = module.domain.domain_root_unit_id
   create_sagemaker_roles    = true
   s3_bucket_name            = module.s3_bucket_tooling.s3_bucket_id
   vpc_id                    = data.aws_vpc.default.id
@@ -321,3 +323,21 @@ resource "time_sleep" "destroy_wait" {
   destroy_duration = "15m" # 15 minute timeout for destroy operations
 }
 
+# Add SSO users to the created domain
+resource "aws_datazone_user_profile" "sso_users" {
+  for_each = toset(var.sso_users)
+  domain_identifier = module.domain.domain_id
+  user_identifier = each.key
+  user_type = "SSO_USER"
+}
+
+# Add users as owners of the created project
+resource "awscc_datazone_project_membership" "project_membership" {
+  for_each           = toset(var.sso_users)
+  domain_identifier  = module.domain.domain_id
+  project_identifier = module.project.project_id
+  member = {
+    user_identifier = each.key
+  }
+  designation = "PROJECT_OWNER"
+}

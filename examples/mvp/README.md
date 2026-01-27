@@ -12,7 +12,6 @@ This MVP example creates all the resources from both the `basic-domain` and `sin
 - **Environment Blueprint Configurations** - Essential blueprints for data lake, data warehouse, and ML workloads
 - **DataZone Project** - A working project ready for use
 - **S3 Bucket** - Secure storage for tooling environments with versioning and encryption
-- **Integrated S3 Cleanup** - Automatic cleanup of all related S3 buckets during destroy
 
 ### Blueprints Enabled by Default
 - **Default Data Lake** - For data catalog and lake functionality
@@ -36,129 +35,68 @@ Your AWS credentials need permissions for:
 
 ### 1. Configure Variables
 ```bash
-# Copy the example configuration
-cp terraform.tfvars.example terraform.tfvars
-
-# Edit the configuration
-vi terraform.tfvars
+brew install terraform-docs
 ```
 
-Key variables to customize:
-```hcl
-# AWS Configuration
-aws_region = "us-west-2"  # Your preferred region
-
-# Domain Configuration  
-domain_name = "my-unified-studio-mvp"
-
-# Project Configuration
-project_name = "my-analytics-project"
-
-# Blueprint Configuration (all recommended for MVP)
-enable_data_lake      = true
-enable_data_warehouse = true
-enable_sagemaker      = true
-```
-
-### 2. Deploy Infrastructure
-
-**Important**: Use the provided deployment script instead of running `terraform apply` directly. This script handles potential AWSCC provider issues and validates successful deployment.
+or
 
 ```bash
-# Initialize Terraform
-terraform init
-
-# Review the deployment plan (optional)
-terraform plan
-
-# Deploy using the wrapper script (recommended)
-./terraform-apply.sh
-
-# Or with auto-approve
-./terraform-apply.sh -auto-approve
+brew install terraform-docs/tap/terraform-docs
 ```
 
-**Why use the script?** The AWSCC provider sometimes fails to properly track resource creation completion, even when resources are created successfully. The script validates that all resources were created and provides a clear deployment summary.
-
-### 3. Alternative: Standard Terraform Apply
-
-If you prefer to use standard Terraform commands:
+Windows users can install using [Scoop]:
 
 ```bash
-# Deploy the infrastructure
-terraform apply
-
-# Note: You may see errors even if deployment succeeds
-# Check the AWS Console to verify resources were created
+scoop bucket add terraform-docs https://github.com/terraform-docs/scoop-bucket
+scoop install terraform-docs
 ```
 
-### 3. Validate Deployment
-```bash
-# Run the validation script
-./validate.sh
-```
-
-### 4. Configure Authorization:
-
-#### SSO
-
-Using the console:
-- Navigate and select your newly created domain: terraform-mvp-domain
-- Click Configure (right hand side, beside Configure SSO user access)
-- Select IAM Identity Center
-   - If you are using an AWS Organization, select either Connect to organization of IAM Identity CEnter (recommended), or Connect to an account instance of IAM Center
-- Select Require assignments
-- Click 'Next'
-- Click 'Save'
-- Select the users/groups you'd like to grant access to
-   - Keep note of the groups/users selected, as if you want to regain access to the sample project created as part of this MVP project, you'll need them for section 5 to pass into the command
-- Click "Add users and groups"
-- Done
-
-### 5. Grant SSO User Access (Optional: Post-Deployment)
-
-Note, the sample project is used to test your SMUS domain configuration and project creation. The project can be deleted once it is successfully provisioned without negatively impacting the deployment. If you'd like to keep the sample project and gain access to it, run the following to grant access to your SSO user/group once SSO has been configured:
+or [Chocolatey]:
 
 ```bash
-# Grant PROJECT_OWNER access to an SSO user
-./grant-sso-access.sh username
-
-# Grant PROJECT_CONTRIBUTOR access to an SSO user  
-./grant-sso-access.sh user PROJECT_CONTRIBUTOR
-
-# Grant access to an SSO group
-./grant-sso-access.sh DataScientists PROJECT_CONTRIBUTOR
+choco install terraform-docs
 ```
 
-## Example Output
+Stable binaries are also available on the [releases] page. To install, download the
+binary for your platform from "Assets" and place this into your `$PATH`:
 
-After successful deployment, you'll see output similar to:
-
-```
-domain_id = "dzd_abc123xyz"
-domain_url = "https://dzd_abc123xyz.datazone.us-west-2.on.aws/"
-project_id = "p123abc456def"
-project_name = "my-analytics-project"
-blueprint_count = 3
-enabled_blueprints = ["DefaultDataLake", "DefaultDataWarehouse", "DefaultSageMaker"]
+```bash
+curl -Lo ./terraform-docs.tar.gz https://github.com/terraform-docs/terraform-docs/releases/download/v0.20.0/terraform-docs-v0.20.0-$(uname)-amd64.tar.gz
+tar -xzf terraform-docs.tar.gz
+chmod +x terraform-docs
+mv terraform-docs /usr/local/bin/terraform-docs
 ```
 
-## Accessing Your MVP
+**NOTE:** Windows releases are in `ZIP` format.
 
-1. **Visit the Domain URL**: Use the `domain_url` output to access SageMaker Unified Studio
-2. **Find Your Project**: Navigate to Projects and find your project by name
-3. **Explore Blueprints**: See the enabled blueprints in the Environment section
+The latest version can be installed using `go install` or `go get`:
 
-## Current Limitations
+```bash
+# go1.17+
+go install github.com/terraform-docs/terraform-docs@v0.20.0
+```
 
-Due to Terraform AWS provider limitations, the following must be configured manually:
+```bash
+# go1.16
+GO111MODULE="on" go get github.com/terraform-docs/terraform-docs@v0.20.0
+```
 
-### ❌ Not Available in Terraform
-- **Project Profiles** - Must be created via AWS Console or CLI
-- **Project Memberships** - Must be managed via AWS Console or CLI
+**NOTE:** please use the latest Go to do this, minimum `go1.16` is required.
 
-### ✅ Workarounds Available
-The deployment outputs provide CLI commands for manual configuration:
+This will put `terraform-docs` in `$(go env GOPATH)/bin`. If you encounter the error
+`terraform-docs: command not found` after installation then you may need to either add
+that directory to your `$PATH` as shown [here] or do a manual installation by cloning
+the repo and run `make build` from the repository which will put `terraform-docs` in:
+
+```bash
+$(go env GOPATH)/src/github.com/terraform-docs/terraform-docs/bin/$(uname | tr '[:upper:]' '[:lower:]')-amd64/terraform-docs
+```
+
+## Usage
+
+### Running the binary directly
+
+To run and generate documentation into README within a directory:
 
 ```bash
 # Create project profile (example)
@@ -205,13 +143,11 @@ aws datazone create-project-membership \
 
 ```
 mvp/
-├── main.tf                   # Main configuration with integrated S3 cleanup
+├── main.tf                   # Main configuration combining both examples
 ├── variables.tf              # All variables from both examples  
 ├── outputs.tf                # Combined outputs
 ├── terraform.tfvars.example  # Example configuration
 ├── validate.sh              # Validation script
-├── terraform-apply.sh       # Deployment wrapper script
-├── grant-sso-access.sh      # SSO user access script
 └── README.md                # This file
 ```
 
@@ -281,46 +217,16 @@ The base infrastructure has minimal ongoing costs, with primary charges occurrin
 
 ## Cleanup
 
-The MVP example includes **integrated automatic S3 cleanup** that runs during `terraform destroy` to handle both Terraform-managed and service-created S3 buckets.
+To destroy all resources:
 
-### Automatic S3 Cleanup Features
-
-The integrated cleanup automatically:
-- ✅ **Empties Terraform-managed buckets** - Removes all objects and versions
-- ✅ **Discovers service-created buckets** - Uses blueprint patterns (`sagemaker`, `datazone`, `mlflow`, `studio`, `redshift`)
-- ✅ **Handles versioned objects** - Removes object versions and delete markers
-- ✅ **Runs during destroy** - No separate manual step required
-
-### Quick Cleanup
+Empty & delete the S3 bucket (must be empty to delete): my-analytics-project-tooling-<alphanumerics>
 
 ```bash
-# Simply run terraform destroy - S3 cleanup is automatic
-terraform destroy -auto-approve
+# Use standard terraform destroy (no wrapper script needed)
+terraform destroy
 ```
 
-The destroy process will automatically:
-- ✅ Empty all related S3 buckets (Terraform-managed and service-created)
-- ✅ Delete all environments before the project
-- ✅ Clean up Lake Formation permissions before IAM roles
-- ✅ Handle proper dependency ordering
-- ✅ Remove the domain and all associated resources
-
-### What Gets Cleaned Up Automatically
-
-**S3 Buckets:**
-- Terraform-managed tooling bucket
-- Service-created buckets matching patterns: `sagemaker`, `datazone`, `mlflow`, `studio`, `redshift`
-- All object versions and delete markers
-
-**DataZone Resources:**
-- Project environments (with 30-minute timeout for complex environments)
-- Project and project profiles
-- Domain and blueprint configurations
-
-**IAM Resources:**
-- Domain execution role
-- SageMaker manage access role  
-- SageMaker provisioning role
+⚠️ **Warning**: This will delete all resources including the domain and any data stored in S3 buckets.
 
 ---
 

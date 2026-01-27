@@ -12,15 +12,16 @@ This file will contain any instructional information about this module.
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.11.0 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.60.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.28.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.68.0 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.9 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.11.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.28.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.68.0 |
 
 ## Modules
 
@@ -34,8 +35,11 @@ No modules.
 | [aws_iam_role.domain_execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy.domain_execution_inline](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy_attachment.domain_execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [awscc_datazone_project.model_governance_project](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project) | resource |
+| [awscc_datazone_project_profile.model_governance_project_profile](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_profile) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
+| [awscc_datazone_domain.main](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/data-sources/datazone_domain) | data source |
 
 ## Inputs
 
@@ -46,6 +50,7 @@ No modules.
 | <a name="input_description"></a> [description](#input\_description) | Description of the domain | `string` | `"SageMaker Unified Studio domain managed by Terraform"` | no |
 | <a name="input_domain_execution_role_arn"></a> [domain\_execution\_role\_arn](#input\_domain\_execution\_role\_arn) | ARN of existing domain execution role (used when create\_domain\_execution\_role is false) | `string` | `null` | no |
 | <a name="input_domain_execution_role_name"></a> [domain\_execution\_role\_name](#input\_domain\_execution\_role\_name) | Custom name for the domain execution role (if null, will use domain\_name-domain-execution-role) | `string` | `null` | no |
+| <a name="input_enable_sso"></a> [enable\_sso](#input\_enable\_sso) | Choose to enable single sign on (SSO) and use an existing AWS IAM Identity Center Instance. When set to true, this will use the default IAM IDC instance that is enabled for the account within the same region as the domain. | `bool` | `false` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to the domain and related resources | `map(string)` | `{}` | no |
 
 ## Outputs
@@ -58,7 +63,7 @@ No modules.
 | <a name="output_domain_execution_role_name"></a> [domain\_execution\_role\_name](#output\_domain\_execution\_role\_name) | Name of the domain execution role |
 | <a name="output_domain_id"></a> [domain\_id](#output\_domain\_id) | ID of the SageMaker Unified Studio domain |
 | <a name="output_domain_name"></a> [domain\_name](#output\_domain\_name) | Name of the SageMaker Unified Studio domain |
+| <a name="output_domain_root_unit_id"></a> [domain\_root\_unit\_id](#output\_domain\_root\_unit\_id) | Actual root domain unit ID (not domain ID) |
 | <a name="output_domain_url"></a> [domain\_url](#output\_domain\_url) | Portal URL of the SageMaker Unified Studio domain |
 | <a name="output_region"></a> [region](#output\_region) | AWS Region where the domain is created |
-| <a name="output_root_domain_unit_id"></a> [root\_domain\_unit\_id](#output\_root\_domain\_unit\_id) | ID of the root domain unit |
 <!-- END_TF_DOCS -->

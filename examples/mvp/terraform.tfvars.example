@@ -29,3 +29,6 @@ tags = {
   CostCenter  = "engineering"
   Owner       = "data-team"
 }
+
+enable_sso = true
+sso_users = ["user@example.com", "datascientist@example.com"]
