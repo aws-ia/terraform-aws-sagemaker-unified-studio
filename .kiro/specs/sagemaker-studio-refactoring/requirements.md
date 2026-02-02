@@ -33,9 +33,9 @@ The current implementation uses a monolithic approach where the blueprints modul
 1. THE Blueprint_Module SHALL accept a single blueprint_id as the primary input parameter
 2. WHEN the Blueprint_Module is invoked, THE Blueprint_Module SHALL create exactly one aws_datazone_environment_blueprint_configuration resource
 3. THE Blueprint_Module SHALL accept all required configuration parameters including domain_id, manage_access_role_arn, provisioning_role_arn, vpc_id, subnet_ids, and s3_bucket_name
-4. WHEN the blueprint_id is "DefaultDataLake", THE Blueprint_Module SHALL use the awscc provider and configure global parameters
+4. WHEN the blueprint_id is "DefaultDataLake", THE Blueprint_Module SHALL use the awscc provider and configure global parameters *_*
 5. THE Blueprint_Module SHALL create a policy grant for CREATE_ENVIRONMENT_FROM_BLUEPRINT permission
-6. WHERE the manage_access_role_arn is not provided, THE Blueprint_Module SHALL create an IAM role with AmazonSageMakerManageAccess permissions
+6. WHERE the manage_access_role_arn is not provided, THE Blueprint_Module SHALL create an IAM role with AmazonSageMakerManageAccess permissions *_*
 7. WHERE Lake Formation configuration is enabled, THE Blueprint_Module SHALL configure data lake settings with admin permissions
 8. THE Blueprint_Module SHALL be reusable such that it can be invoked multiple times with different blueprint_id values
 
@@ -50,7 +50,7 @@ The current implementation uses a monolithic approach where the blueprints modul
 3. THE Project_Profile_Module SHALL automatically assign deployment_order values to non-Tooling blueprints in sequential order
 4. THE Project_Profile_Module SHALL create exactly one awscc_datazone_project_profile resource
 5. THE Project_Profile_Module SHALL accept custom profile name as an input parameter
-6. WHEN a blueprint_id in the list corresponds to the Tooling_Blueprint, THE Project_Profile_Module SHALL place it first in the environment_configurations array
+6. WHEN a blueprint_id in the list corresponds to the Tooling_Blueprint, THE Project_Profile_Module SHALL place it first in the environment_configurations array *_*
 7. THE Project_Profile_Module SHALL validate that all blueprint_ids in the input list are valid blueprint identifiers
 
 ### Requirement 3: Tooling Blueprint Integration
@@ -64,7 +64,7 @@ The current implementation uses a monolithic approach where the blueprints modul
 3. THE Domain_Module SHALL create the Tooling_Blueprint after the domain resource but before any other blueprints
 4. THE Domain_Module SHALL output the tooling_blueprint_id for use by other modules
 5. THE Domain_Module SHALL accept VPC, subnet, and S3 bucket parameters for Tooling_Blueprint configuration
-6. THE Domain_Module SHALL configure the Tooling_Blueprint with global parameters using the awscc provider
+6. THE Domain_Module SHALL configure the Tooling_Blueprint with the Query Execution role global parameters using the awscc provider
 
 ### Requirement 4: IAM Role Existence Validation and Creation
 
@@ -141,21 +141,7 @@ The current implementation uses a monolithic approach where the blueprints modul
 7. THE Quick_Setup_Example SHALL maintain S3 cleanup functionality on destroy
 8. THE Quick_Setup_Example SHALL maintain SSO user and project membership functionality
 
-### Requirement 10: Migration Documentation
-
-**User Story:** As an existing user of this module, I want clear migration documentation, so that I can upgrade from the old multi-resource approach to the new modular approach without breaking my existing infrastructure.
-
-#### Acceptance Criteria
-
-1. THE Module_Documentation SHALL include a MIGRATION.md document
-2. THE MIGRATION.md document SHALL list all breaking changes between the old and new module versions
-3. THE MIGRATION.md document SHALL provide step-by-step migration instructions
-4. THE MIGRATION.md document SHALL include before-and-after code examples for common use cases
-5. THE Module_Documentation SHALL document the new module structure and usage patterns in README.md
-6. THE Module_Documentation SHALL update all examples to use the new modular approach
-7. THE Module_Version SHALL be incremented to a new major version to indicate breaking changes
-
-### Requirement 11: Module Testing
+### Requirement 10: Module Testing
 
 **User Story:** As a module maintainer, I want comprehensive tests for the refactored modules, so that I can ensure the modules work correctly and catch regressions.
 
@@ -168,15 +154,3 @@ The current implementation uses a monolithic approach where the blueprints modul
 5. THE Module_Tests SHALL verify VPC and subnet configuration
 6. THE Module_Tests SHALL verify model provisioning and consumption role configuration
 7. THE Module_Tests SHALL verify the migration path from old to new module structure
-
-### Requirement 12: Provider Version Requirements
-
-**User Story:** As a Terraform user, I want clear provider version requirements, so that I know which provider versions are compatible with the refactored modules.
-
-#### Acceptance Criteria
-
-1. THE Module_Documentation SHALL specify Terraform version requirement of >= 1.5
-2. THE Module_Documentation SHALL specify AWS provider version requirement
-3. THE Module_Documentation SHALL specify AWSCC provider version requirement of >= 1.68.0
-4. THE Module_Documentation SHALL specify Time provider version requirement of >= 0.9
-5. THE Module_Documentation SHALL explain why specific provider versions are required
