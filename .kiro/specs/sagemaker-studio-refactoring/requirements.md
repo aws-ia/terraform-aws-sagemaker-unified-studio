@@ -33,11 +33,9 @@ The current implementation uses a monolithic approach where the blueprints modul
 1. THE Blueprint_Module SHALL accept a single blueprint_id as the primary input parameter
 2. WHEN the Blueprint_Module is invoked, THE Blueprint_Module SHALL create exactly one aws_datazone_environment_blueprint_configuration resource
 3. THE Blueprint_Module SHALL accept all required configuration parameters including domain_id, manage_access_role_arn, provisioning_role_arn, vpc_id, subnet_ids, and s3_bucket_name
-4. WHEN the blueprint_id is "DefaultDataLake", THE Blueprint_Module SHALL use the awscc provider and configure global parameters *_*
-5. THE Blueprint_Module SHALL create a policy grant for CREATE_ENVIRONMENT_FROM_BLUEPRINT permission
-6. WHERE the manage_access_role_arn is not provided, THE Blueprint_Module SHALL create an IAM role with AmazonSageMakerManageAccess permissions *_*
-7. WHERE Lake Formation configuration is enabled, THE Blueprint_Module SHALL configure data lake settings with admin permissions
-8. THE Blueprint_Module SHALL be reusable such that it can be invoked multiple times with different blueprint_id values
+4. THE Blueprint_Module SHALL create a policy grant for CREATE_ENVIRONMENT_FROM_BLUEPRINT permission
+5. WHERE the manage_access_role_arn is not provided, THE Blueprint_Module SHALL create an IAM role with AmazonSageMakerManageAccess permissions
+6. THE Blueprint_Module SHALL be reusable such that it can be invoked multiple times with different blueprint_id values
 
 ### Requirement 2: Project Profile Module Singularization
 
@@ -147,10 +145,5 @@ The current implementation uses a monolithic approach where the blueprints modul
 
 #### Acceptance Criteria
 
-1. THE Module_Tests SHALL include tests for IAM role creation and existence checking
-2. THE Module_Tests SHALL verify Blueprint_Module reusability by creating multiple blueprint instances
-3. THE Module_Tests SHALL verify Project_Profile_Module with different blueprint combinations
-4. THE Module_Tests SHALL verify Tooling_Blueprint integration in the Domain_Module
-5. THE Module_Tests SHALL verify VPC and subnet configuration
-6. THE Module_Tests SHALL verify model provisioning and consumption role configuration
-7. THE Module_Tests SHALL verify the migration path from old to new module structure
+1. THE Module_Tests SHALL include a Terraform plan test for each module
+2. THE Module_Tests SHALL include a Terraform apply test for each module
