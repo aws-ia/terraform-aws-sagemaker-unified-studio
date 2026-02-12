@@ -14,11 +14,28 @@ data "aws_region" "current" {}
 
 # Local values
 locals {
-  account_id = data.aws_caller_identity.current.account_id
-  region     = data.aws_region.current.id
+  account_id       = data.aws_caller_identity.current.account_id
+  region           = data.aws_region.current.id
+  domain_id_suffix = replace(var.domain_id, "/^dzd-/", "") # Strip dzd- prefix for resource naming (e.g., dzd-abc123example -> abc123example)
 
-  provisioning_role_arn    = var.provisioning_role_arn != null ? var.provisioning_role_arn : "arn:aws:iam::${local.account_id}:role/service-role/AmazonSageMakerProvisioning-${local.account_id}"
-  manage_access_role_arn   = var.manage_access_role_arn != null ? var.manage_access_role_arn : aws_iam_role.sagemaker_manage_access[0].arn
+  # Default provisioning role name (matches console-created role)
+  default_provisioning_role_name = "AmazonSageMakerProvisioning-${local.account_id}"
+
+  # Check if provisioning role already exists in the account
+  provisioning_role_exists = var.provisioning_role_arn != null ? true : length(data.aws_iam_roles.provisioning_role.arns) > 0
+
+  # Determine final role ARN: user-provided > existing > newly created
+  provisioning_role_arn = var.provisioning_role_arn != null ? var.provisioning_role_arn : (
+    local.provisioning_role_exists ? tolist(data.aws_iam_roles.provisioning_role.arns)[0] : aws_iam_role.sagemaker_provisioning[0].arn
+  )
+
+  # Manage access role: domain-scoped name, but shared across blueprints for the same domain
+  # Existence check needed so second blueprint call finds it and skips creation
+  default_manage_access_role_name = var.sagemaker_manage_access_role_name != null ? var.sagemaker_manage_access_role_name : "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
+  manage_access_role_exists = var.manage_access_role_arn != null ? true : length(data.aws_iam_roles.manage_access_role.arns) > 0
+  manage_access_role_arn    = var.manage_access_role_arn != null ? var.manage_access_role_arn : (
+    local.manage_access_role_exists ? tolist(data.aws_iam_roles.manage_access_role.arns)[0] : aws_iam_role.sagemaker_manage_access[0].arn
+  )
   
   # Common tags for all IAM resources
   common_tags = merge(var.tags, {
@@ -28,12 +45,63 @@ locals {
 }
 
 #####################################################################################
+# IAM Role Existence Check for Provisioning Role
+#####################################################################################
+
+# Check if AmazonSageMakerProvisioning role exists using aws_iam_roles data source
+# Returns empty list if no match - doesn't fail on fresh accounts
+data "aws_iam_roles" "provisioning_role" {
+  name_regex = "^AmazonSageMakerProvisioning-${local.account_id}$"
+}
+
+# Create AmazonSageMakerProvisioning role if it doesn't exist
+resource "aws_iam_role" "sagemaker_provisioning" {
+  count = var.provisioning_role_arn == null && !local.provisioning_role_exists ? 1 : 0
+
+  name = local.default_provisioning_role_name
+  path = "/service-role/"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "datazone.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.account_id
+          }
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+# Attach the managed policy to provisioning role
+resource "aws_iam_role_policy_attachment" "sagemaker_provisioning" {
+  count      = var.provisioning_role_arn == null && !local.provisioning_role_exists ? 1 : 0
+  role       = aws_iam_role.sagemaker_provisioning[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerProvisioningRolePolicy"
+}
+
+#####################################################################################
 # IAM roles and policies for SageMaker Unified Studio Blueprints
 #####################################################################################
 
 # SageMaker Manage Access Role (matches console-created role)
+# Name is domain-scoped (includes domain_id), but shared across blueprints for the same domain
+# Existence check prevents conflict when module is invoked multiple times for the same domain
+data "aws_iam_roles" "manage_access_role" {
+  name_regex = "^${local.default_manage_access_role_name}$"
+}
+
 resource "aws_iam_role" "sagemaker_manage_access" {
-  count = var.manage_access_role_arn == null ? 1 : 0
+  count = var.manage_access_role_arn == null && !local.manage_access_role_exists ? 1 : 0
   
   name = var.sagemaker_manage_access_role_name != null ? var.sagemaker_manage_access_role_name : "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
   description = "This role grants Amazon SageMaker Unified Studio permissions to publish, grant access, and revoke access to Amazon SageMaker Lakehouse, AWS Glue Data Catalog and Amazon Redshift data. It also grants Amazon SageMaker Unified Studio to publish and manage subscriptions on Amazon SageMaker Catalog data and AI assets."
@@ -62,18 +130,17 @@ resource "aws_iam_role" "sagemaker_manage_access" {
   tags = local.common_tags
 }
 
-# Inline policy for Redshift secret access (matches console-created role)
-resource "aws_iam_role_policy" "sagemaker_manage_access_inline" {
-  count = var.manage_access_role_arn == null ? 1 : 0
-  
-  name = "RedshiftSecretStatement"
-  role = aws_iam_role.sagemaker_manage_access[0].id
+# Customer managed policy for Redshift secret access (matches console-created policy)
+resource "aws_iam_policy" "sagemaker_manage_access_redshift" {
+  count = var.manage_access_role_arn == null && !local.manage_access_role_exists ? 1 : 0
+
+  name = "AmazonSageMakerManageAccessPolicy-${local.domain_id_suffix}"
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Sid = "RedshiftSecretStatement"
+        Sid    = "RedshiftSecretStatement"
         Effect = "Allow"
         Action = "secretsmanager:GetSecretValue"
         Resource = "*"
@@ -85,14 +152,36 @@ resource "aws_iam_role_policy" "sagemaker_manage_access_inline" {
       }
     ]
   })
+
+  tags = local.common_tags
 }
 
-# Attach policies for SageMaker manage access role
+resource "aws_iam_role_policy_attachment" "sagemaker_manage_access_custom" {
+  count      = var.manage_access_role_arn == null && !local.manage_access_role_exists ? 1 : 0
+  role       = aws_iam_role.sagemaker_manage_access[0].name
+  policy_arn = aws_iam_policy.sagemaker_manage_access_redshift[0].arn
+}
+
+# Attach AWS managed policies for SageMaker manage access role
 resource "aws_iam_role_policy_attachment" "sagemaker_manage_access" {
-  count = var.manage_access_role_arn == null ? 1 : 0
+  count = var.manage_access_role_arn == null && !local.manage_access_role_exists ? 1 : 0
   
   role       = aws_iam_role.sagemaker_manage_access[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerManageAccessRolePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "glue_manage_access" {
+  count = var.manage_access_role_arn == null && !local.manage_access_role_exists ? 1 : 0
+
+  role       = aws_iam_role.sagemaker_manage_access[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneGlueManageAccessRolePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "redshift_manage_access" {
+  count = var.manage_access_role_arn == null && !local.manage_access_role_exists ? 1 : 0
+
+  role       = aws_iam_role.sagemaker_manage_access[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneRedshiftManageAccessRolePolicy"
 }
 
 #####################################################################################
