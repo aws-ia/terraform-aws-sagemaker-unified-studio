@@ -32,9 +32,15 @@ No modules.
 | Name | Type |
 |------|------|
 | [aws_datazone_domain.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/datazone_domain) | resource |
+| [aws_iam_role.domain_execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role.domain_service](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role_policy_attachment.domain_execution_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_role_policy_attachment.domain_service_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [awscc_datazone_project.model_governance_project](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project) | resource |
 | [awscc_datazone_project_profile.model_governance_project_profile](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_profile) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
+| [aws_iam_roles.domain_execution_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_roles) | data source |
+| [aws_iam_roles.domain_service_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_roles) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
 | [awscc_datazone_domain.main](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/data-sources/datazone_domain) | data source |
 
@@ -57,10 +63,14 @@ No modules.
 | <a name="output_account_id"></a> [account\_id](#output\_account\_id) | AWS Account ID where the domain is created |
 | <a name="output_domain_arn"></a> [domain\_arn](#output\_domain\_arn) | ARN of the SageMaker Unified Studio domain |
 | <a name="output_domain_execution_role_arn"></a> [domain\_execution\_role\_arn](#output\_domain\_execution\_role\_arn) | ARN of the domain execution role (created or existing) |
+| <a name="output_domain_execution_role_created"></a> [domain\_execution\_role\_created](#output\_domain\_execution\_role\_created) | Whether the domain execution role was created by this module (false if it already existed) |
 | <a name="output_domain_execution_role_name"></a> [domain\_execution\_role\_name](#output\_domain\_execution\_role\_name) | Name of the domain execution role |
 | <a name="output_domain_id"></a> [domain\_id](#output\_domain\_id) | ID of the SageMaker Unified Studio domain |
 | <a name="output_domain_name"></a> [domain\_name](#output\_domain\_name) | Name of the SageMaker Unified Studio domain |
 | <a name="output_domain_root_unit_id"></a> [domain\_root\_unit\_id](#output\_domain\_root\_unit\_id) | Actual root domain unit ID (not domain ID) |
+| <a name="output_domain_service_role_arn"></a> [domain\_service\_role\_arn](#output\_domain\_service\_role\_arn) | ARN of the domain service role (created or existing) |
+| <a name="output_domain_service_role_created"></a> [domain\_service\_role\_created](#output\_domain\_service\_role\_created) | Whether the domain service role was created by this module (false if it already existed) |
+| <a name="output_domain_service_role_name"></a> [domain\_service\_role\_name](#output\_domain\_service\_role\_name) | Name of the domain service role |
 | <a name="output_domain_url"></a> [domain\_url](#output\_domain\_url) | Portal URL of the SageMaker Unified Studio domain |
 | <a name="output_region"></a> [region](#output\_region) | AWS Region where the domain is created |
 <!-- END_TF_DOCS -->

@@ -62,3 +62,10 @@ tf_security_scan.sh
 *.zip
 .idea
 .vscode
+
+# Python virtual environment
+.venv/
+venv/
+*.pyc
+__pycache__/
+requirements.txt
