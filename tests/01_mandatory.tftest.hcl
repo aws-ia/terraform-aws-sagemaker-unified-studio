@@ -7,13 +7,13 @@
 run "mandatory_plan_basic" {
   command = plan
   module {
-    source = "./examples/mvp"
+    source = "./examples/quick-setup"
   }
 }
 
 run "mandatory_apply_basic" {
   command = apply
   module {
-    source = "./examples/mvp"
+    source = "./examples/quick-setup"
   }
 }

@@ -38,10 +38,10 @@ output "region" {
 
 output "domain_execution_role_arn" {
   description = "ARN of the domain execution role (created or existing)"
-  value       = var.create_domain_execution_role ? aws_iam_role.domain_execution[0].arn : var.domain_execution_role_arn
+  value       = local.domain_execution_role_arn
 }
 
 output "domain_execution_role_name" {
   description = "Name of the domain execution role"
-  value       = var.create_domain_execution_role ? aws_iam_role.domain_execution[0].name : null
+  value       = split("/", local.domain_execution_role_arn)[1]
 }

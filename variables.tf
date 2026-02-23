@@ -4,14 +4,15 @@
 variable "domain_name" {
   description = "Name of the DataZone domain (matches CloudFormation DomainName parameter)"
   type        = string
+  default     = null
   
   validation {
-    condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$", var.domain_name))
+    condition     = var.domain_name == null || can(regex("^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$", var.domain_name))
     error_message = "Domain name must contain only alphanumeric characters and hyphens, and cannot start or end with a hyphen."
   }
   
   validation {
-    condition     = length(var.domain_name) >= 1 && length(var.domain_name) <= 64
+    condition     = var.domain_name == null || (length(var.domain_name) >= 1 && length(var.domain_name) <= 64)
     error_message = "Domain name must be between 1 and 64 characters long."
   }
 }
@@ -23,26 +24,26 @@ variable "description" {
 }
 
 # Domain Execution Role Configuration
-variable "create_domain_execution_role" {
-  description = "Whether to create the domain execution role (set to false if using existing role)"
-  type        = bool
-  default     = true
-}
-
-variable "domain_execution_role_name" {
-  description = "Custom name for the domain execution role (if null, will use domain_name-domain-execution-role)"
-  type        = string
-  default     = null
-}
-
 variable "domain_execution_role_arn" {
-  description = "ARN of existing domain execution role (used when create_domain_execution_role is false)"
+  description = "ARN of the domain execution role for SageMaker Unified Studio"
   type        = string
   default     = null
   
   validation {
     condition = var.domain_execution_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.domain_execution_role_arn))
     error_message = "Domain execution role ARN must be a valid IAM role ARN."
+  }
+}
+
+# Domain Service Role Configuration
+variable "domain_service_role_arn" {
+  description = "ARN of the domain service role for SageMaker Unified Studio"
+  type        = string
+  default     = null
+
+  validation {
+    condition = var.domain_service_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.domain_service_role_arn))
+    error_message = "Domain service role ARN must be a valid IAM role ARN."
   }
 }
 
@@ -61,4 +62,10 @@ variable "enable_sso" {
   description = "Choose to enable single sign on (SSO) and use an existing AWS IAM Identity Center Instance. When set to true, this will use the default IAM IDC instance that is enabled for the account within the same region as the domain."
   type = bool
   default = false
+}
+
+variable "kms_key_identifier" {
+  description = "ARN of the KMS key used to encrypt the Amazon DataZone domain, metadata and reporting data (if null, uses AWS managed key)"
+  type        = string
+  default     = null
 }

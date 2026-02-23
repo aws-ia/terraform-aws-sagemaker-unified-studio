@@ -62,7 +62,6 @@ module "domain" {
 
   domain_name                  = var.domain_name
   description                  = var.domain_description
-  create_domain_execution_role = true
 
   tags = local.common_tags
   enable_sso = var.enable_sso
@@ -115,13 +114,12 @@ module "s3_bucket_tooling" {
 module "blueprints" {
   source = "../../modules/blueprints"
 
-  domain_id                 = module.domain.domain_id
-  domain_name               = var.domain_name
-  domain_root_unit_id       = module.domain.domain_root_unit_id
-  create_sagemaker_roles    = true
-  s3_bucket_name            = module.s3_bucket_tooling.s3_bucket_id
-  vpc_id                    = data.aws_vpc.default.id
-  subnet_ids                = data.aws_subnets.default.ids
+  domain_id               = module.domain.domain_id
+  domain_name             = var.domain_name
+  domain_root_unit_id     = module.domain.domain_root_unit_id
+  s3_bucket_name          = module.s3_bucket_tooling.s3_bucket_id
+  vpc_id                  = data.aws_vpc.default.id
+  subnet_ids              = data.aws_subnets.default.ids
   domain_execution_role_arn = module.domain.domain_execution_role_arn
 
   # Lake Formation configuration (enabled by default)
