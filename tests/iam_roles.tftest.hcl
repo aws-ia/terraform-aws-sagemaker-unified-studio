@@ -142,8 +142,9 @@ run "domain_user_provides_both_roles" {
 
 #####################################################################################
 # Blueprint IAM role tests (Provisioning + ManageAccess)
-# Uses real domain dzd-example123456 in us-east-2
 # All tests use command = plan — nothing is created.
+# Environment blueprint data sources are mocked via override_data so tests
+# don't require DataZone domain membership (ListEnvironmentBlueprints permission).
 #####################################################################################
 
 provider "aws" {
@@ -168,7 +169,7 @@ run "blueprint_no_roles_provided" {
     source = "./modules/blueprints"
   }
 
-  # Mock data sources to return empty results (fresh account)
+  # Mock IAM data sources to return empty results (fresh account)
   override_data {
     target = data.aws_iam_roles.provisioning_role
     values = {
@@ -183,6 +184,32 @@ run "blueprint_no_roles_provided" {
       arns  = []
       names = []
     }
+  }
+
+  # Mock environment blueprint data sources to avoid ListEnvironmentBlueprints permission
+  override_data {
+    target = data.aws_datazone_environment_blueprint.default_data_lake
+    values = { id = "mock-datalake-bp-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.LakehouseCatalog
+    values = { id = "mock-lakehouse-bp-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.Tooling
+    values = { id = "mock-tooling-bp-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.RedshiftServerless
+    values = { id = "mock-redshift-bp-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.MLExperiments
+    values = { id = "mock-ml-bp-id" }
   }
 
   variables {
@@ -259,6 +286,32 @@ run "blueprint_user_provides_both_roles" {
 
   module {
     source = "./modules/blueprints"
+  }
+
+  # Mock environment blueprint data sources to avoid ListEnvironmentBlueprints permission
+  override_data {
+    target = data.aws_datazone_environment_blueprint.default_data_lake
+    values = { id = "mock-datalake-bp-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.LakehouseCatalog
+    values = { id = "mock-lakehouse-bp-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.Tooling
+    values = { id = "mock-tooling-bp-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.RedshiftServerless
+    values = { id = "mock-redshift-bp-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.MLExperiments
+    values = { id = "mock-ml-bp-id" }
   }
 
   variables {
