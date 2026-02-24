@@ -12,7 +12,7 @@ variable "domain_name" {
   }
   
   validation {
-    condition     = var.domain_name == null || try(length(var.domain_name) >= 1 && length(var.domain_name) <= 64, false)
+    condition     = var.domain_name == null || (length(var.domain_name) >= 1 && length(var.domain_name) <= 64)
     error_message = "Domain name must be between 1 and 64 characters long."
   }
 }

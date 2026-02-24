@@ -16,29 +16,10 @@ locals {
   # Generate dynamic domain name if not provided
   domain_name = var.domain_name != null ? var.domain_name : "domain-${formatdate("MM-DD-YYYY-HHmmss", timestamp())}"
 
-  # Default role names for SageMaker Unified Studio (hardcoded to avoid circular deps)
+  # Default role names for SageMaker Unified Studio
   default_domain_execution_role_name = "AmazonSageMakerDomainExecution"
   default_domain_service_role_name   = "AmazonSageMakerDomainService"
-}
 
-#####################################################################################
-# IAM Role Existence Check and Creation (R4)
-# Check if default IAM roles exist, create them if they don't
-#####################################################################################
-
-# Check if AmazonSageMakerDomainExecution role exists using aws_iam_roles data source
-# Returns empty list if no match - doesn't fail
-data "aws_iam_roles" "domain_execution_role" {
-  name_regex = "^AmazonSageMakerDomainExecution$"
-}
-
-# Check if AmazonSageMakerDomainService role exists using aws_iam_roles data source
-# Returns empty list if no match - doesn't fail
-data "aws_iam_roles" "domain_service_role" {
-  name_regex = "^AmazonSageMakerDomainService$"
-}
-
-locals {
   # Check if existing roles were found by checking if list is non-empty
   domain_execution_role_exists = var.domain_execution_role_arn != null ? true : length(data.aws_iam_roles.domain_execution_role.arns) > 0
   domain_service_role_exists   = var.domain_service_role_arn != null ? true : length(data.aws_iam_roles.domain_service_role.arns) > 0
@@ -53,9 +34,21 @@ locals {
   )
 }
 
+#####################################################################################
+# IAM Role Existence Check and Creation (R4)
+#####################################################################################
+
+data "aws_iam_roles" "domain_execution_role" {
+  name_regex = "^${local.default_domain_execution_role_name}$"
+}
+
+data "aws_iam_roles" "domain_service_role" {
+  name_regex = "^${local.default_domain_service_role_name}$"
+}
+
 # Create AmazonSageMakerDomainExecution role if it doesn't exist
 resource "aws_iam_role" "domain_execution" {
-  count = var.domain_execution_role_arn == null && !local.domain_execution_role_exists ? 1 : 0
+  count = !local.domain_execution_role_exists ? 1 : 0
 
   name = local.default_domain_execution_role_name
   path = "/service-role/"
@@ -89,14 +82,14 @@ resource "aws_iam_role" "domain_execution" {
 
 # Attach the managed policy to domain execution role
 resource "aws_iam_role_policy_attachment" "domain_execution_policy" {
-  count      = var.domain_execution_role_arn == null && !local.domain_execution_role_exists ? 1 : 0
+  count      = !local.domain_execution_role_exists ? 1 : 0
   role       = aws_iam_role.domain_execution[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioDomainExecutionRolePolicy"
 }
 
 # Create AmazonSageMakerDomainService role if it doesn't exist
 resource "aws_iam_role" "domain_service" {
-  count = var.domain_service_role_arn == null && !local.domain_service_role_exists ? 1 : 0
+  count = !local.domain_service_role_exists ? 1 : 0
 
   name = local.default_domain_service_role_name
   path = "/service-role/"
@@ -130,7 +123,7 @@ resource "aws_iam_role" "domain_service" {
 
 # Attach the managed policy to domain service role
 resource "aws_iam_role_policy_attachment" "domain_service_policy" {
-  count      = var.domain_service_role_arn == null && !local.domain_service_role_exists ? 1 : 0
+  count      = !local.domain_service_role_exists ? 1 : 0
   role       = aws_iam_role.domain_service[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioDomainServiceRolePolicy"
 }
