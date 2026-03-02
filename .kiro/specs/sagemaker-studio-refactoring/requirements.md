@@ -46,7 +46,7 @@ Similar to blueprints, the project profiles module creates profiles with multipl
 3. THE Blueprint_Module SHALL accept all required configuration parameters including domain_id, manage_access_role_arn, provisioning_role_arn, vpc_id, subnet_ids, and s3_bucket_name
 4. THE Blueprint_Module SHALL have a data source (`awscc_datazone_domain` or `data.aws_datazone_environment_blueprint`) for the domain_id specified, so it can look up additional details about the domain it is enabling the blueprint for
 5. THE Blueprint_Module SHALL create an `awscc_datazone_policy_grant` resource for CREATE_ENVIRONMENT_FROM_BLUEPRINT permission to the root domain unit of the domain, including child domain units by default
-6. THE Blueprint_Module SHALL accept a `create_roles` toggle parameter. IF `create_roles` is true, THE Blueprint_Module SHALL auto-create all required roles when the corresponding role ARN argument is empty. IF `create_roles` is false and a required role ARN is not provided, THEN THE Blueprint_Module SHALL fail validation. THE Blueprint_Module SHALL NOT auto-create roles when `create_roles` is false.
+6. THE Blueprint_Module SHALL auto-create all required roles when the corresponding role ARN argument is empty.
 7. THE Blueprint_Module SHALL be reusable such that it can be invoked multiple times with different blueprint_name values
 8. THE Blueprint_Module SHALL fail if the blueprint is already configured in the same account for the given domain unless an override flag (`allow_replace_existing`) is set to true. Blueprint configurations are an account-wide setting (like data catalog encryption or turning on Lake Formation); creating a new configuration for a blueprint ID for an existing account and domain replaces the existing configuration.
 9. THE Blueprint_Module SHALL perform validation on the format of the vpc_id input to match the pattern `vpc-xxx`
@@ -88,13 +88,10 @@ The Tooling blueprint is a special blueprint that is required to deploy the basi
 
 #### Acceptance Criteria
 
-1. THE Domain_Module SHALL accept a `create_roles` toggle parameter (default: true)
-2. WHEN `create_roles` is true and the AmazonSageMakerDomainExecution role does not exist, THE Domain_Module SHALL create it with the appropriate trust policy and attach the `SageMakerStudioDomainExecutionRolePolicy` managed policy
-3. WHEN `create_roles` is true and the AmazonSageMakerDomainService role does not exist, THE Domain_Module SHALL create it with the appropriate trust policy and attach the `SageMakerStudioDomainServiceRolePolicy` managed policy
-4. IF `create_roles` is false and required role ARNs are not provided, THEN THE Domain_Module SHALL fail validation
-5. THE Domain_Module SHALL create IAM roles before creating the domain resource
-6. THE Domain_Module SHALL output the domain_execution_role_arn and domain_service_role_arn for use by other modules
-7. WHEN `create_roles` is true and only one of the two default roles exists, THE Domain_Module SHALL create only the missing role
+1. WHEN the AmazonSageMakerDomainExecution role does not exist, THE Domain_Module SHALL create it with the appropriate trust policy and attach the `SageMakerStudioDomainExecutionRolePolicy` managed policy
+2. WHEN the AmazonSageMakerDomainService role does not exist, THE Domain_Module SHALL create it with the appropriate trust policy and attach the `SageMakerStudioDomainServiceRolePolicy` managed policy
+3. THE Domain_Module SHALL create IAM roles before creating the domain resource
+4. THE Domain_Module SHALL output the domain_execution_role_arn and domain_service_role_arn for use by other modules
 
 ### Requirement 5: VPC Configuration Parameters
 
@@ -118,10 +115,9 @@ The Tooling blueprint is a special blueprint that is required to deploy the basi
 #### Acceptance Criteria
 
 1. THE Domain_Module SHALL accept a `model_management_role_arn` parameter as optional input (corresponding to the `AmazonDataZoneBedrockModelManagementRole`)
-2. WHERE the `model_management_role_arn` is not provided and `create_roles` is true, THE Domain_Module SHALL create a default `AmazonDataZoneBedrockModelManagementRole` with permissions to create inference profiles with Amazon Bedrock
-3. IF `model_management_role_arn` is not provided and `create_roles` is false, THEN THE Domain_Module SHALL fail validation
-4. THE Domain_Module SHALL use the `model_management_role_arn` when configuring the hidden model governance project. The hidden model governance project is an empty project with no environment configurations (not even Tooling); it is simply a logical container of users that are allowed to edit which models are allowed for the domain.
-5. THE Domain_Module SHALL output the model_management_role_arn for reference
+2. WHERE the `model_management_role_arn` is not provided, THEN THE Domain_Module SHALL create a default `AmazonDataZoneBedrockModelManagementRole` with permissions to create inference profiles with Amazon Bedrock
+3. THE Domain_Module SHALL use the `model_management_role_arn` when configuring the hidden model governance project. The hidden model governance project is an empty project with no environment configurations (not even Tooling); it is simply a logical container of users that are allowed to edit which models are allowed for the domain.
+4. THE Domain_Module SHALL output the model_management_role_arn for reference
 
 ### Requirement 7: Model Consumption Role Configuration
 
@@ -130,9 +126,8 @@ The Tooling blueprint is a special blueprint that is required to deploy the basi
 #### Acceptance Criteria
 
 1. THE Domain_Module SHALL accept a `model_consumption_role_arn` parameter as optional input (corresponding to the `AmazonDataZoneBedrockFMConsumptionRole`)
-2. IF `model_consumption_role_arn` is not provided and `create_roles` is true, THEN THE Domain_Module SHALL auto-create the `AmazonDataZoneBedrockFMConsumptionRole`
-3. IF `model_consumption_role_arn` is not provided and `create_roles` is false, THEN THE Domain_Module SHALL fail validation
-4. WHEN `model_consumption_role_arn` is provided, THE Domain_Module SHALL use the provided role ARN for model consumption configuration
+2. IF `model_consumption_role_arn` is not provided, THEN THE Domain_Module SHALL auto-create the `AmazonDataZoneBedrockFMConsumptionRole`
+3. WHEN `model_consumption_role_arn` is provided, THE Domain_Module SHALL use the provided role ARN for model consumption configuration
 
 ### Requirement 8: User Role Policy Configuration
 

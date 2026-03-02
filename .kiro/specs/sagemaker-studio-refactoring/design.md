@@ -8,7 +8,7 @@ This design describes the refactoring of the SageMaker Unified Studio (DataZone 
 2. **Tooling Blueprint Integration** — Move the Tooling blueprint (a required, always-on blueprint) into the domain module so it is created alongside the domain itself.
 3. **Project Profile Module Singularization** — Replace the monolithic project profiles module with a singular module that accepts a dictionary of blueprints and creates one project profile per invocation.
 
-Additionally, the domain module gains IAM role creation capabilities (`create_roles` toggle), model governance role management, user role policy configuration, and optional S3 bucket creation.
+Additionally, the domain module gains IAM role creation capabilities (auto-created when no ARN is provided), model governance role management, user role policy configuration, and optional S3 bucket creation.
 
 ### Provider Strategy
 
@@ -59,9 +59,9 @@ graph TB
     IAM_DOMAIN --> DM
 
     QS --> DM
-    QS -->|"module.blueprint[\"LakehouseCatalog\"]"| BP_DATA
-    QS -->|"module.blueprint[\"MLExperiments\"]"| BP_DATA
-    QS -->|"module.blueprint[\"RedshiftServerless\"]"| BP_DATA
+    QS -->|module.blueprint - LakehouseCatalog| BP_DATA
+    QS -->|module.blueprint - MLExperiments| BP_DATA
+    QS -->|module.blueprint - RedshiftServerless| BP_DATA
     BP_DATA --> BP_RES --> BP_POLICY
     BP_IAM --> BP_RES
 
@@ -81,8 +81,8 @@ sequenceDiagram
     participant Blueprint as Blueprint Module (×N)
     participant Profile as Project Profile Module
 
-    User->>Domain: domain_name, create_roles, vpc_id, subnet_ids, s3_bucket_name
-    Domain->>Domain: Create IAM roles (if create_roles=true)
+    User->>Domain: domain_name, vpc_id, subnet_ids, s3_bucket_name
+    Domain->>Domain: Create IAM roles (if ARN not provided)
     Domain->>Domain: Create aws_datazone_domain
     Domain->>Domain: Lookup root_domain_unit_id via awscc data source
     Domain->>Domain: Create/use S3 bucket
@@ -90,10 +90,10 @@ sequenceDiagram
     Domain->>Domain: Create model governance profile + project
     Domain-->>User: domain_id, tooling_blueprint_id, role ARNs
 
-    User->>Blueprint: domain_id, blueprint_name, vpc_id, subnet_ids, create_roles
+    User->>Blueprint: domain_id, blueprint_name, vpc_id, subnet_ids
     Blueprint->>Blueprint: Lookup blueprint ID by name
     Blueprint->>Blueprint: Validate VPC/subnet membership
-    Blueprint->>Blueprint: Create IAM roles (if create_roles=true)
+    Blueprint->>Blueprint: Create IAM roles (if ARN not provided)
     Blueprint->>Blueprint: Create aws_datazone_environment_blueprint_configuration
     Blueprint->>Blueprint: Create awscc_datazone_policy_grant
     Blueprint-->>User: blueprint_id, entity_id, role ARNs
@@ -147,14 +147,8 @@ variable "tags" {
 }
 
 # --- IAM Role Configuration ---
-variable "create_roles" {
-  description = "Whether to auto-create required IAM roles. When false, all role ARNs must be provided."
-  type        = bool
-  default     = true
-}
-
 variable "domain_execution_role_arn" {
-  description = "ARN of existing AmazonSageMakerDomainExecution role. Required when create_roles=false."
+  description = "ARN of existing AmazonSageMakerDomainExecution role. If not provided, the role is auto-created."
   type        = string
   default     = null
   validation {
@@ -164,7 +158,7 @@ variable "domain_execution_role_arn" {
 }
 
 variable "domain_service_role_arn" {
-  description = "ARN of existing AmazonSageMakerDomainService role. Required when create_roles=false."
+  description = "ARN of existing AmazonSageMakerDomainService role. If not provided, the role is auto-created."
   type        = string
   default     = null
   validation {
@@ -174,13 +168,13 @@ variable "domain_service_role_arn" {
 }
 
 variable "model_management_role_arn" {
-  description = "ARN of existing AmazonDataZoneBedrockModelManagementRole. Required when create_roles=false."
+  description = "ARN of existing AmazonDataZoneBedrockModelManagementRole. If not provided, the role is auto-created."
   type        = string
   default     = null
 }
 
 variable "model_consumption_role_arn" {
-  description = "ARN of existing AmazonDataZoneBedrockFMConsumptionRole. Required when create_roles=false."
+  description = "ARN of existing AmazonDataZoneBedrockFMConsumptionRole. If not provided, the role is auto-created."
   type        = string
   default     = null
 }
@@ -233,43 +227,23 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
 
-  # Resolve role ARNs: use provided or construct default names
-  domain_execution_role_arn = var.domain_execution_role_arn != null ? var.domain_execution_role_arn : (
-    var.create_roles ? aws_iam_role.domain_execution[0].arn : null
-  )
-  domain_service_role_arn = var.domain_service_role_arn != null ? var.domain_service_role_arn : (
-    var.create_roles ? aws_iam_role.domain_service[0].arn : null
-  )
-  model_management_role_arn = var.model_management_role_arn != null ? var.model_management_role_arn : (
-    var.create_roles ? aws_iam_role.model_management[0].arn : null
-  )
-  model_consumption_role_arn = var.model_consumption_role_arn != null ? var.model_consumption_role_arn : (
-    var.create_roles ? aws_iam_role.model_consumption[0].arn : null
-  )
+  # Resolve role ARNs: use provided or auto-create
+  domain_execution_role_arn = var.domain_execution_role_arn != null ? var.domain_execution_role_arn : aws_iam_role.domain_execution[0].arn
+  domain_service_role_arn = var.domain_service_role_arn != null ? var.domain_service_role_arn : aws_iam_role.domain_service[0].arn
+  model_management_role_arn = var.model_management_role_arn != null ? var.model_management_role_arn : aws_iam_role.model_management[0].arn
+  model_consumption_role_arn = var.model_consumption_role_arn != null ? var.model_consumption_role_arn : aws_iam_role.model_consumption[0].arn
 
   # S3 bucket: use provided or create dedicated
   s3_bucket_name = var.s3_bucket_name != null ? var.s3_bucket_name : aws_s3_bucket.domain[0].id
 }
 ```
 
-**Validation preconditions** (Terraform 1.5+ `precondition` blocks):
-
-```hcl
-# In the domain resource or a check block:
-lifecycle {
-  precondition {
-    condition     = var.create_roles || (var.domain_execution_role_arn != null && var.domain_service_role_arn != null && var.model_management_role_arn != null && var.model_consumption_role_arn != null)
-    error_message = "When create_roles is false, all role ARNs must be provided."
-  }
-}
-```
-
 **IAM Role Creation Pattern** (conditional, one role per resource):
 
 ```hcl
-# Create DomainExecution role only if create_roles=true AND no ARN provided
+# Create DomainExecution role only if no ARN provided
 resource "aws_iam_role" "domain_execution" {
-  count = var.create_roles && var.domain_execution_role_arn == null ? 1 : 0
+  count = var.domain_execution_role_arn == null ? 1 : 0
   name  = "AmazonSageMakerDomainExecution"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -282,7 +256,7 @@ resource "aws_iam_role" "domain_execution" {
 }
 
 resource "aws_iam_role_policy_attachment" "domain_execution" {
-  count      = var.create_roles && var.domain_execution_role_arn == null ? 1 : 0
+  count      = var.domain_execution_role_arn == null ? 1 : 0
   role       = aws_iam_role.domain_execution[0].name
   policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioDomainExecutionRolePolicy"
 }
@@ -437,20 +411,14 @@ variable "domain_root_unit_id" {
   type        = string
 }
 
-variable "create_roles" {
-  description = "Whether to auto-create ManageAccess and Provisioning roles"
-  type        = bool
-  default     = true
-}
-
 variable "manage_access_role_arn" {
-  description = "ARN of existing ManageAccess role. Required when create_roles=false."
+  description = "ARN of existing ManageAccess role. If not provided, the role is auto-created."
   type        = string
   default     = null
 }
 
 variable "provisioning_role_arn" {
-  description = "ARN of existing Provisioning role. Required when create_roles=false."
+  description = "ARN of existing Provisioning role. If not provided, the role is auto-created."
   type        = string
   default     = null
 }
@@ -513,12 +481,8 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
 
-  manage_access_role_arn = var.manage_access_role_arn != null ? var.manage_access_role_arn : (
-    var.create_roles ? aws_iam_role.manage_access[0].arn : null
-  )
-  provisioning_role_arn = var.provisioning_role_arn != null ? var.provisioning_role_arn : (
-    var.create_roles ? "arn:aws:iam::${local.account_id}:role/service-role/AmazonSageMakerProvisioning-${local.account_id}" : null
-  )
+  manage_access_role_arn = var.manage_access_role_arn != null ? var.manage_access_role_arn : aws_iam_role.manage_access[0].arn
+  provisioning_role_arn = var.provisioning_role_arn != null ? var.provisioning_role_arn : "arn:aws:iam::${local.account_id}:role/service-role/AmazonSageMakerProvisioning-${local.account_id}"
 
   enabled_regions = var.enabled_regions != null ? var.enabled_regions : [local.region]
 
@@ -544,16 +508,6 @@ resource "terraform_data" "subnet_vpc_validation" {
   }
 }
 
-# Validate create_roles precondition
-resource "terraform_data" "role_validation" {
-  lifecycle {
-    precondition {
-      condition     = var.create_roles || (var.manage_access_role_arn != null && var.provisioning_role_arn != null)
-      error_message = "When create_roles is false, manage_access_role_arn and provisioning_role_arn must be provided."
-    }
-  }
-}
-
 # Single blueprint configuration (aws provider)
 resource "aws_datazone_environment_blueprint_configuration" "this" {
   domain_id                = var.domain_id
@@ -564,8 +518,7 @@ resource "aws_datazone_environment_blueprint_configuration" "this" {
   regional_parameters      = local.regional_parameters
 
   depends_on = [
-    terraform_data.subnet_vpc_validation,
-    terraform_data.role_validation
+    terraform_data.subnet_vpc_validation
   ]
 }
 
@@ -598,7 +551,7 @@ resource "awscc_datazone_policy_grant" "this" {
 
 ```hcl
 resource "aws_iam_role" "manage_access" {
-  count = var.create_roles && var.manage_access_role_arn == null ? 1 : 0
+  count = var.manage_access_role_arn == null ? 1 : 0
   name  = "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
 
   assume_role_policy = jsonencode({
@@ -617,19 +570,19 @@ resource "aws_iam_role" "manage_access" {
 }
 
 resource "aws_iam_role_policy_attachment" "manage_access_glue" {
-  count      = var.create_roles && var.manage_access_role_arn == null ? 1 : 0
+  count      = var.manage_access_role_arn == null ? 1 : 0
   role       = aws_iam_role.manage_access[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneGlueManageAccessRolePolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "manage_access_redshift" {
-  count      = var.create_roles && var.manage_access_role_arn == null ? 1 : 0
+  count      = var.manage_access_role_arn == null ? 1 : 0
   role       = aws_iam_role.manage_access[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneRedshiftManageAccessRolePolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "manage_access_sagemaker" {
-  count      = var.create_roles && var.manage_access_role_arn == null ? 1 : 0
+  count      = var.manage_access_role_arn == null ? 1 : 0
   role       = aws_iam_role.manage_access[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerAccess"
 }
@@ -912,12 +865,12 @@ Each entry in `environment_configurations` (in the `awscc_datazone_project_profi
 
 | Role Name | Created By | Condition | Attached Policy |
 |-----------|-----------|-----------|-----------------|
-| `AmazonSageMakerDomainExecution` | Domain Module | `create_roles && domain_execution_role_arn == null` | `SageMakerStudioDomainExecutionRolePolicy` |
-| `AmazonSageMakerDomainService` | Domain Module | `create_roles && domain_service_role_arn == null` | `SageMakerStudioDomainServiceRolePolicy` |
-| `AmazonDataZoneBedrockModelManagementRole` | Domain Module | `create_roles && model_management_role_arn == null` | `AmazonDataZoneBedrockModelManagementPolicy` |
-| `AmazonDataZoneBedrockFMConsumptionRole` | Domain Module | `create_roles && model_consumption_role_arn == null` | `AmazonDataZoneBedrockModelConsumptionPolicy` |
-| `AmazonSageMakerManageAccess-<region>-<domainId>` | Blueprint Module | `create_roles && manage_access_role_arn == null` | `AmazonDataZoneGlueManageAccessRolePolicy`, `AmazonDataZoneRedshiftManageAccessRolePolicy`, `AmazonDataZoneSageMakerAccess` |
-| `AmazonSageMakerProvisioning-<accountId>` | Blueprint Module | `create_roles && provisioning_role_arn == null` | `SageMakerStudioProjectProvisioningRolePolicy` |
+| `AmazonSageMakerDomainExecution` | Domain Module | `domain_execution_role_arn == null` | `SageMakerStudioDomainExecutionRolePolicy` |
+| `AmazonSageMakerDomainService` | Domain Module | `domain_service_role_arn == null` | `SageMakerStudioDomainServiceRolePolicy` |
+| `AmazonDataZoneBedrockModelManagementRole` | Domain Module | `model_management_role_arn == null` | `AmazonDataZoneBedrockModelManagementPolicy` |
+| `AmazonDataZoneBedrockFMConsumptionRole` | Domain Module | `model_consumption_role_arn == null` | `AmazonDataZoneBedrockModelConsumptionPolicy` |
+| `AmazonSageMakerManageAccess-<region>-<domainId>` | Blueprint Module | `manage_access_role_arn == null` | `AmazonDataZoneGlueManageAccessRolePolicy`, `AmazonDataZoneRedshiftManageAccessRolePolicy`, `AmazonDataZoneSageMakerAccess` |
+| `AmazonSageMakerProvisioning-<accountId>` | Blueprint Module | `provisioning_role_arn == null` | `SageMakerStudioProjectProvisioningRolePolicy` |
 
 
 ## Correctness Properties
@@ -938,47 +891,41 @@ Each entry in `environment_configurations` (in the `awscc_datazone_project_profi
 
 ### Property 3: Conditional IAM role creation
 
-*For any* role type (DomainExecution, DomainService, ModelManagement, ModelConsumption, ManageAccess, Provisioning) and any combination of `create_roles` (true/false) and role ARN (provided/null): when `create_roles` is true and the corresponding role ARN is null, exactly one IAM role resource of that type SHALL be present in the plan. When the role ARN is provided (regardless of `create_roles`), no IAM role resource of that type SHALL be created. When `create_roles` is true and only some role ARNs are provided, only the missing roles SHALL be created.
+*For any* role type (DomainExecution, DomainService, ModelManagement, ModelConsumption, ManageAccess, Provisioning) and any role ARN input (provided/null): when the corresponding role ARN is null, exactly one IAM role resource of that type SHALL be present in the plan. When the role ARN is provided, no IAM role resource of that type SHALL be created. When only some role ARNs are provided, only the missing roles SHALL be created.
 
 **Validates: Requirements 1.6, 4.2, 4.3, 4.7, 6.2, 7.2**
 
-### Property 4: Validation failure when create_roles is false and role ARNs missing
-
-*For any* module invocation where `create_roles` is false, if any required role ARN is not provided, the module SHALL fail validation with an appropriate error message. This applies to both the domain module (DomainExecution, DomainService, ModelManagement, ModelConsumption) and the blueprint module (ManageAccess, Provisioning).
-
-**Validates: Requirements 1.6, 4.4, 6.3, 7.3**
-
-### Property 5: Regional parameters include VPC and subnet configuration
+### Property 4: Regional parameters include VPC and subnet configuration
 
 *For any* valid `vpc_id` and `subnet_ids` input, the resulting `regional_parameters` of the blueprint configuration SHALL contain `VpcId` equal to the input `vpc_id` and `Subnets` equal to the comma-joined string of `subnet_ids`.
 
 **Validates: Requirements 5.3, 5.4**
 
-### Property 6: Tooling blueprint is always first in project profile
+### Property 5: Tooling blueprint is always first in project profile
 
 *For any* blueprint dictionary passed to the project profile module (including dictionaries that contain a "Tooling" key), the resulting `environment_configurations` SHALL have Tooling as the first entry with `deployment_order = 1` and `deployment_mode = "ON_CREATE"`, and the Tooling configuration SHALL use the blueprint ID from the data source lookup (not from user input).
 
 **Validates: Requirements 2.4, 2.6**
 
-### Property 7: S3 bucket conditional creation
+### Property 6: S3 bucket conditional creation
 
 *For any* domain module invocation, when `s3_bucket_name` is null, exactly one `aws_s3_bucket` resource SHALL be present in the plan. When `s3_bucket_name` is provided, no `aws_s3_bucket` resource SHALL be created, and the provided bucket name SHALL be used in the Tooling blueprint's regional parameters.
 
 **Validates: Requirements 3.7**
 
-### Property 8: User role policy applied to Tooling blueprint
+### Property 7: User role policy applied to Tooling blueprint
 
 *For any* valid `user_role_policy_arn` input, the Tooling blueprint's `global_parameters` SHALL contain a `UserRolePolicyArn` key with the provided ARN value. When `user_role_policy_arn` is null, the `global_parameters` SHALL NOT contain a `UserRolePolicyArn` key.
 
 **Validates: Requirements 8.2**
 
-### Property 9: User role policy ARN format validation
+### Property 8: User role policy ARN format validation
 
 *For any* non-null string input to `user_role_policy_arn`, the module SHALL accept it if and only if it matches the IAM policy ARN pattern `^arn:aws:iam::[0-9]{12}:policy/.+$`. All non-matching strings SHALL be rejected.
 
 **Validates: Requirements 8.4**
 
-### Property 10: Blueprint name validation
+### Property 9: Blueprint name validation
 
 *For any* string input to `blueprint_name`, the blueprint module SHALL accept it if and only if it is one of the supported blueprint names (AmazonBedrockGenerativeAI, AmazonBedrockChatAgent, AmazonBedrockEvaluation, AmazonBedrockFlow, AmazonBedrockFunction, AmazonBedrockGuardrail, AmazonBedrockKnowledgeBase, AmazonBedrockPrompt, DataLake, EMRonEC2, EMRServerless, LakehouseCatalog, MLExperiments, PartnerApps, RedshiftServerless, Workflows, Quicksight). All other strings SHALL be rejected.
 
@@ -993,7 +940,6 @@ Each entry in `environment_configurations` (in the `awscc_datazone_project_profi
 | Invalid `vpc_id` format | Blueprint, Domain | `variable` validation block | "VPC ID must match pattern vpc-xxx." |
 | Invalid `subnet_ids` format | Blueprint, Domain | `variable` validation block | "All subnet IDs must match pattern subnet-xxx." |
 | Subnet not in VPC | Blueprint | `terraform_data` precondition | "Subnet {id} belongs to VPC {actual}, not {expected}." |
-| `create_roles=false` with missing ARNs | Domain, Blueprint | `lifecycle` precondition | "When create_roles is false, all role ARNs must be provided." |
 | Invalid `blueprint_name` | Blueprint | `variable` validation block | "blueprint_name must be one of the supported blueprint names." |
 | Invalid `domain_id` format | Blueprint, Profile | `variable` validation block | "Domain ID must match format dzd-xxx or dzd_xxx." |
 | Invalid `user_role_policy_arn` format | Domain | `variable` validation block | "Must be a valid IAM policy ARN." |
@@ -1006,7 +952,7 @@ Each entry in `environment_configurations` (in the `awscc_datazone_project_profi
 | Error Condition | Handling Strategy |
 |----------------|-------------------|
 | Blueprint already configured for domain/account | Use `allow_replace_existing` flag; when false, Terraform will error on resource creation conflict |
-| IAM role already exists | Conditional creation (`count`) skips creation when ARN is provided; if `create_roles=true` and role exists externally, Terraform will error on name conflict |
+| IAM role already exists | Conditional creation (`count`) skips creation when ARN is provided; if ARN is null and role exists externally, Terraform will error on name conflict |
 | S3 bucket name already taken | User should provide a unique `s3_bucket_name` or let the module generate one |
 | AWS API rate limiting | Terraform's built-in retry logic handles transient API errors |
 | Lake Formation permission propagation | `time_sleep` resource provides a configurable delay after Lake Formation settings |
@@ -1114,15 +1060,14 @@ func TestSubnetIdValidation(t *testing.T) {
 // Feature: sagemaker-studio-refactoring, Property 3: Conditional IAM role creation
 func TestConditionalRoleCreation(t *testing.T) {
     rapid.Check(t, func(t *rapid.T) {
-        createRoles := rapid.Bool().Draw(t, "create_roles")
         arnProvided := rapid.Bool().Draw(t, "arn_provided")
 
-        if createRoles && !arnProvided {
+        if !arnProvided {
             // Role should be created (count=1)
-            assert.True(t, shouldCreateRole(createRoles, arnProvided))
-        } else if arnProvided {
+            assert.True(t, shouldCreateRole(arnProvided))
+        } else {
             // Role should NOT be created (count=0)
-            assert.False(t, shouldCreateRole(createRoles, arnProvided))
+            assert.False(t, shouldCreateRole(arnProvided))
         }
     })
 }
@@ -1156,10 +1101,9 @@ run "quick_setup_apply" {
 | P1: VPC ID format | ✅ `expect_failures` | ✅ rapid | — |
 | P2: Subnet ID format | ✅ `expect_failures` | ✅ rapid | — |
 | P3: Conditional role creation | ✅ plan assertions | ✅ rapid | ✅ apply |
-| P4: Validation failure (create_roles=false) | ✅ `expect_failures` | ✅ rapid | — |
-| P5: Regional parameters | ✅ plan assertions | ✅ rapid | ✅ apply |
-| P6: Tooling first in profile | ✅ plan assertions | ✅ rapid | ✅ apply |
-| P7: S3 conditional creation | ✅ plan assertions | — | ✅ apply |
-| P8: User role policy on Tooling | ✅ plan assertions | — | ✅ apply |
-| P9: Policy ARN format | ✅ `expect_failures` | ✅ rapid | — |
-| P10: Blueprint name validation | ✅ `expect_failures` | ✅ rapid | — |
+| P4: Regional parameters | ✅ plan assertions | ✅ rapid | ✅ apply |
+| P5: Tooling first in profile | ✅ plan assertions | ✅ rapid | ✅ apply |
+| P6: S3 conditional creation | ✅ plan assertions | — | ✅ apply |
+| P7: User role policy on Tooling | ✅ plan assertions | — | ✅ apply |
+| P8: Policy ARN format | ✅ `expect_failures` | ✅ rapid | — |
+| P9: Blueprint name validation | ✅ `expect_failures` | ✅ rapid | — |
