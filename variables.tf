@@ -69,3 +69,74 @@ variable "kms_key_identifier" {
   type        = string
   default     = null
 }
+
+# --- Blueprint Role Configuration ---
+variable "manage_access_role_arn" {
+  description = "ARN of existing AmazonSageMakerManageAccess role. If not provided, the role is auto-created."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.manage_access_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.manage_access_role_arn))
+    error_message = "Manage access role ARN must be a valid IAM role ARN."
+  }
+}
+
+variable "provisioning_role_arn" {
+  description = "ARN of existing AmazonSageMakerProvisioning role. If not provided, the role is auto-created."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.provisioning_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.provisioning_role_arn))
+    error_message = "Provisioning role ARN must be a valid IAM role ARN."
+  }
+}
+
+# --- Tooling Blueprint Configuration ---
+variable "vpc_id" {
+  description = "VPC ID for Tooling blueprint regional parameters"
+  type        = string
+
+  validation {
+    condition     = can(regex("^vpc-[a-z0-9]+$", var.vpc_id))
+    error_message = "VPC ID must match pattern vpc-xxx."
+  }
+}
+
+variable "subnet_ids" {
+  description = "Subnet IDs for Tooling blueprint regional parameters"
+  type        = list(string)
+
+  validation {
+    condition     = length(var.subnet_ids) > 0
+    error_message = "At least one subnet ID required."
+  }
+
+  validation {
+    condition     = alltrue([for s in var.subnet_ids : can(regex("^subnet-[a-z0-9]+$", s))])
+    error_message = "All subnet IDs must match pattern subnet-xxx."
+  }
+}
+
+variable "s3_bucket_name" {
+  description = "S3 bucket name for Tooling blueprint storage"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9.-]*[a-z0-9]$", var.s3_bucket_name))
+    error_message = "S3 bucket name must be valid."
+  }
+}
+
+# --- User Role Policy Configuration (R8) ---
+variable "user_role_policy_arn" {
+  description = "IAM policy ARN to apply as the user role policy on the Tooling blueprint. Defaults to SageMakerStudioProjectUserRolePolicy if not provided."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.user_role_policy_arn == null || can(regex("^arn:aws:iam::(aws|[0-9]{12}):policy/.+", var.user_role_policy_arn))
+    error_message = "Must be a valid IAM policy ARN."
+  }
+}

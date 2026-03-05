@@ -65,3 +65,20 @@ output "domain_service_role_created" {
   description = "Whether the domain service role was created by this module (false if it already existed)"
   value       = var.domain_service_role_arn == null && !local.domain_service_role_exists
 }
+
+# --- Blueprint Role Outputs ---
+output "manage_access_role_arn" {
+  description = "ARN of the manage access role (created or provided). Pass to blueprint modules."
+  value       = local.manage_access_role_arn
+}
+
+output "provisioning_role_arn" {
+  description = "ARN of the provisioning role (created or provided). Pass to blueprint modules."
+  value       = local.provisioning_role_arn
+}
+
+# --- Tooling Blueprint Outputs ---
+output "tooling_blueprint_id" {
+  description = "ID of the Tooling environment blueprint"
+  value       = data.aws_datazone_environment_blueprint.tooling.id
+}

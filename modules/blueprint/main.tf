@@ -1,0 +1,288 @@
+#####################################################################################
+# Singular Blueprint Configuration Module
+# Creates exactly one blueprint configuration per invocation.
+# Invoke this module multiple times with different blueprint_name values.
+#####################################################################################
+
+######################################
+# Data Sources
+######################################
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+# Resolve blueprint ID from name
+data "aws_datazone_environment_blueprint" "this" {
+  domain_id = var.domain_id
+  name      = var.blueprint_name
+  managed   = true
+}
+
+# Validate subnets are in the specified VPC (only when regional params are used)
+data "aws_subnet" "validation" {
+  for_each = local.has_regional_parameters ? toset(var.subnet_ids) : toset([])
+  id       = each.value
+}
+
+######################################
+# Locals
+######################################
+
+locals {
+  account_id       = data.aws_caller_identity.current.account_id
+  region           = data.aws_region.current.id
+  domain_id_suffix = replace(var.domain_id, "/^dzd-/", "")
+
+  enabled_regions = var.enabled_regions != null ? var.enabled_regions : [local.region]
+
+  # Whether this blueprint uses regional parameters
+  has_regional_parameters = var.has_regional_parameters
+
+  # 3-tier role resolution: user-provided > existing > auto-create
+  default_provisioning_role_name = "AmazonSageMakerProvisioning-${local.account_id}"
+  provisioning_role_exists       = var.provisioning_role_arn != null ? true : length(data.aws_iam_roles.provisioning_role.arns) > 0
+  provisioning_role_arn = var.provisioning_role_arn != null ? var.provisioning_role_arn : (
+    local.provisioning_role_exists ? tolist(data.aws_iam_roles.provisioning_role.arns)[0] : aws_iam_role.sagemaker_provisioning[0].arn
+  )
+
+  default_manage_access_role_name = "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
+  manage_access_role_exists       = var.manage_access_role_arn != null ? true : length(data.aws_iam_roles.manage_access_role.arns) > 0
+  manage_access_role_arn = var.manage_access_role_arn != null ? var.manage_access_role_arn : (
+    local.manage_access_role_exists ? tolist(data.aws_iam_roles.manage_access_role.arns)[0] : aws_iam_role.sagemaker_manage_access[0].arn
+  )
+
+  common_tags = merge(var.tags, {
+    ManagedBy = "Terraform"
+    Module    = "sagemaker-unified-studio-blueprint"
+  })
+
+  # Build regional_parameters for each enabled region (only when blueprint needs them)
+  regional_parameters = local.has_regional_parameters ? {
+    for r in local.enabled_regions : r => {
+      "S3Location" = "s3://${var.s3_bucket_name}"
+      "Subnets"    = join(",", var.subnet_ids)
+      "VpcId"      = var.vpc_id
+    }
+  } : null
+}
+
+######################################
+# Subnet-in-VPC Validation
+######################################
+
+resource "terraform_data" "subnet_vpc_validation" {
+  for_each = data.aws_subnet.validation
+
+  lifecycle {
+    precondition {
+      condition     = each.value.vpc_id == var.vpc_id
+      error_message = "Subnet ${each.key} belongs to VPC ${each.value.vpc_id}, not ${var.vpc_id}."
+    }
+  }
+}
+
+######################################
+# IAM Role Lookup and Creation (from R4)
+######################################
+
+data "aws_iam_roles" "provisioning_role" {
+  name_regex = "^AmazonSageMakerProvisioning-${local.account_id}$"
+}
+
+data "aws_iam_roles" "manage_access_role" {
+  name_regex = "^${local.default_manage_access_role_name}$"
+}
+
+# Create AmazonSageMakerProvisioning role if it doesn't exist
+resource "aws_iam_role" "sagemaker_provisioning" {
+  count = !local.provisioning_role_exists ? 1 : 0
+
+  name = local.default_provisioning_role_name
+  path = "/service-role/"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "datazone.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.account_id
+          }
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "sagemaker_provisioning" {
+  count      = !local.provisioning_role_exists ? 1 : 0
+  role       = aws_iam_role.sagemaker_provisioning[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerProvisioningRolePolicy"
+}
+
+# Create ManageAccess role if it doesn't exist
+resource "aws_iam_role" "sagemaker_manage_access" {
+  count = !local.manage_access_role_exists ? 1 : 0
+
+  name        = local.default_manage_access_role_name
+  description = "This role grants Amazon SageMaker Unified Studio permissions to publish, grant access, and revoke access to Amazon SageMaker Lakehouse, AWS Glue Data Catalog and Amazon Redshift data."
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "datazone.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = local.account_id
+          }
+          ArnEquals = {
+            "aws:SourceArn" = "arn:aws:datazone:${local.region}:${local.account_id}:domain/${var.domain_id}"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+# Custom Redshift secret access policy
+resource "aws_iam_policy" "sagemaker_manage_access_redshift" {
+  count = !local.manage_access_role_exists ? 1 : 0
+
+  name = "AmazonSageMakerManageAccessPolicy-${local.domain_id_suffix}"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "RedshiftSecretStatement"
+        Effect   = "Allow"
+        Action   = "secretsmanager:GetSecretValue"
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "secretsmanager:ResourceTag/AmazonDataZoneDomain" = var.domain_id
+          }
+        }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role_policy_attachment" "sagemaker_manage_access_custom" {
+  count      = !local.manage_access_role_exists ? 1 : 0
+  role       = aws_iam_role.sagemaker_manage_access[0].name
+  policy_arn = aws_iam_policy.sagemaker_manage_access_redshift[0].arn
+}
+
+resource "aws_iam_role_policy_attachment" "sagemaker_manage_access" {
+  count      = !local.manage_access_role_exists ? 1 : 0
+  role       = aws_iam_role.sagemaker_manage_access[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerManageAccessRolePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "glue_manage_access" {
+  count      = !local.manage_access_role_exists ? 1 : 0
+  role       = aws_iam_role.sagemaker_manage_access[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneGlueManageAccessRolePolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "redshift_manage_access" {
+  count      = !local.manage_access_role_exists ? 1 : 0
+  role       = aws_iam_role.sagemaker_manage_access[0].name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneRedshiftManageAccessRolePolicy"
+}
+
+######################################
+# Lake Formation Configuration (from R4)
+######################################
+
+resource "aws_lakeformation_data_lake_settings" "main" {
+  count = var.configure_lake_formation ? 1 : 0
+
+  admins = compact([
+    var.domain_execution_role_arn,
+    local.manage_access_role_arn,
+    local.provisioning_role_arn,
+  ])
+
+  depends_on = [
+    aws_iam_role.sagemaker_manage_access
+  ]
+}
+
+resource "time_sleep" "lakeformation_propagation" {
+  count = var.configure_lake_formation ? 1 : 0
+
+  depends_on      = [aws_lakeformation_data_lake_settings.main]
+  create_duration = "30s"
+}
+
+######################################
+# Blueprint Configuration (singular)
+######################################
+
+resource "aws_datazone_environment_blueprint_configuration" "this" {
+  domain_id                = var.domain_id
+  environment_blueprint_id = data.aws_datazone_environment_blueprint.this.id
+  manage_access_role_arn   = local.manage_access_role_arn
+  provisioning_role_arn    = local.provisioning_role_arn
+  enabled_regions          = local.enabled_regions
+  regional_parameters      = local.regional_parameters
+
+  lifecycle {
+    precondition {
+      condition     = !var.has_regional_parameters || (var.vpc_id != null && length(var.subnet_ids) > 0 && var.s3_bucket_name != null)
+      error_message = "vpc_id, subnet_ids, and s3_bucket_name are required when has_regional_parameters is true."
+    }
+  }
+
+  depends_on = [
+    terraform_data.subnet_vpc_validation,
+    time_sleep.lakeformation_propagation
+  ]
+}
+
+######################################
+# Policy Grant
+######################################
+
+resource "awscc_datazone_policy_grant" "this" {
+  domain_identifier = var.domain_id
+  entity_type       = "ENVIRONMENT_BLUEPRINT_CONFIGURATION"
+  entity_identifier = "${local.account_id}:${data.aws_datazone_environment_blueprint.this.id}"
+  policy_type       = "CREATE_ENVIRONMENT_FROM_BLUEPRINT"
+
+  detail = {
+    create_environment_from_blueprint = jsonencode({})
+  }
+
+  principal = {
+    project = {
+      project_designation = "CONTRIBUTOR"
+      project_grant_filter = {
+        domain_unit_filter = {
+          domain_unit                = var.domain_root_unit_id
+          include_child_domain_units = true
+        }
+      }
+    }
+  }
+
+  depends_on = [aws_datazone_environment_blueprint_configuration.this]
+}
