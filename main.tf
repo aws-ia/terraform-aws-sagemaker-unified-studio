@@ -182,7 +182,7 @@ resource "aws_iam_role" "sagemaker_provisioning" {
 resource "aws_iam_role_policy_attachment" "sagemaker_provisioning" {
   count      = !local.provisioning_role_exists ? 1 : 0
   role       = aws_iam_role.sagemaker_provisioning[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerProvisioningRolePolicy"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioProjectProvisioningRolePolicy"
 }
 
 #####################################################################################
@@ -284,11 +284,13 @@ resource "aws_iam_role_policy_attachment" "manage_access_redshift" {
 }
 
 # Customer managed policy for Redshift secret access
-#tfsec:ignore:aws-iam-no-policy-wildcards -- Resource is scoped by condition tag (AmazonDataZoneDomain)
+# Resource = "*" is scoped by condition tag (AmazonDataZoneDomain) — matches console-created policy
+#tfsec:ignore:aws-iam-no-policy-wildcards
 resource "aws_iam_policy" "manage_access_redshift_secret" {
   count = !local.manage_access_role_exists ? 1 : 0
 
   name = "AmazonSageMakerManageAccessPolicy-${replace(aws_datazone_domain.main.id, "/^dzd-/", "")}"
+  path = "/service-role/"
 
   policy = jsonencode({
     Version = "2012-10-17"
