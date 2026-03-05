@@ -130,13 +130,25 @@ variable "s3_bucket_name" {
 }
 
 # --- User Role Policy Configuration (R8) ---
-variable "user_role_policy_arn" {
-  description = "IAM policy ARN to apply as the user role policy on the Tooling blueprint. Defaults to SageMakerStudioProjectUserRolePolicy if not provided."
+variable "user_role_policy_arns" {
+  description = "List of IAM policy ARNs to apply as user role policies on the Tooling blueprint. Defaults to SageMakerStudioProjectUserRolePolicy if not provided."
+  type        = list(string)
+  default     = null
+
+  validation {
+    condition     = var.user_role_policy_arns == null || alltrue([for arn in var.user_role_policy_arns : can(regex("^arn:aws:iam::(aws|[0-9]{12}):policy/.+", arn))])
+    error_message = "All entries must be valid IAM policy ARNs."
+  }
+}
+
+# --- Query Execution Role Configuration (R3 AC6) ---
+variable "query_execution_role_arn" {
+  description = "ARN of a custom query execution role for the Tooling blueprint. If not provided, the service uses the default AmazonSageMakerQueryExecution role."
   type        = string
   default     = null
 
   validation {
-    condition     = var.user_role_policy_arn == null || can(regex("^arn:aws:iam::(aws|[0-9]{12}):policy/.+", var.user_role_policy_arn))
-    error_message = "Must be a valid IAM policy ARN."
+    condition     = var.query_execution_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.query_execution_role_arn))
+    error_message = "Must be a valid IAM role ARN."
   }
 }

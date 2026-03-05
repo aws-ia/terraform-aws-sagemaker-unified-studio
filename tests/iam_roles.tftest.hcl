@@ -32,6 +32,14 @@ override_data {
   }
 }
 
+override_data {
+  target = data.aws_iam_roles.provisioning_role
+  values = {
+    arns  = []
+    names = []
+  }
+}
+
 run "domain_no_roles_provided" {
   command = plan
   module {
@@ -42,6 +50,9 @@ run "domain_no_roles_provided" {
     domain_name               = "test-domain-fresh"
     domain_execution_role_arn = null
     domain_service_role_arn   = null
+    vpc_id                    = "vpc-abc123"
+    subnet_ids                = ["subnet-abc123"]
+    s3_bucket_name            = "test-bucket-fresh"
   }
 
   # Roles MUST be created (data sources return empty)
@@ -93,6 +104,9 @@ run "domain_user_provides_both_roles" {
     domain_name               = "test-domain-provided"
     domain_execution_role_arn = "arn:aws:iam::123456789012:role/MyCustomExecutionRole"
     domain_service_role_arn   = "arn:aws:iam::123456789012:role/MyCustomServiceRole"
+    vpc_id                    = "vpc-abc123"
+    subnet_ids                = ["subnet-abc123"]
+    s3_bucket_name            = "test-bucket-provided"
   }
 
   # No roles should be created

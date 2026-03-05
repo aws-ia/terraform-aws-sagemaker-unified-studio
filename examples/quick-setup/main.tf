@@ -60,10 +60,13 @@ locals {
 module "domain" {
   source = "../.."
 
-  domain_name                  = var.domain_name
-  description                  = var.domain_description
+  domain_name     = var.domain_name
+  description     = var.domain_description
+  vpc_id          = data.aws_vpc.default.id
+  subnet_ids      = data.aws_subnets.default.ids
+  s3_bucket_name  = module.s3_bucket_tooling.s3_bucket_id
 
-  tags = local.common_tags
+  tags       = local.common_tags
   enable_sso = var.enable_sso
 }
 
