@@ -120,11 +120,12 @@ variable "subnet_ids" {
 }
 
 variable "s3_bucket_name" {
-  description = "S3 bucket name for Tooling blueprint storage"
+  description = "Existing S3 bucket name for Tooling blueprint storage. If null, a dedicated bucket is created."
   type        = string
+  default     = null
 
   validation {
-    condition     = can(regex("^[a-z0-9][a-z0-9.-]*[a-z0-9]$", var.s3_bucket_name))
+    condition     = var.s3_bucket_name == null || can(regex("^[a-z0-9][a-z0-9.-]*[a-z0-9]$", var.s3_bucket_name))
     error_message = "S3 bucket name must be valid."
   }
 }

@@ -45,6 +45,11 @@ No modules.
 | [aws_iam_role_policy_attachment.manage_access_redshift_secret](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.manage_access_sagemaker](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.sagemaker_provisioning](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_s3_bucket.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
+| [aws_s3_bucket_logging.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_logging) | resource |
+| [aws_s3_bucket_public_access_block.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) | resource |
+| [aws_s3_bucket_server_side_encryption_configuration.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) | resource |
+| [aws_s3_bucket_versioning.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_versioning) | resource |
 | [awscc_datazone_environment_blueprint_configuration.tooling](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_environment_blueprint_configuration) | resource |
 | [awscc_datazone_project.model_governance_project](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project) | resource |
 | [awscc_datazone_project_profile.model_governance_project_profile](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_profile) | resource |
@@ -61,7 +66,6 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_s3_bucket_name"></a> [s3\_bucket\_name](#input\_s3\_bucket\_name) | S3 bucket name for Tooling blueprint storage | `string` | n/a | yes |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | Subnet IDs for Tooling blueprint regional parameters | `list(string)` | n/a | yes |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID for Tooling blueprint regional parameters | `string` | n/a | yes |
 | <a name="input_description"></a> [description](#input\_description) | Description of the domain | `string` | `"SageMaker Unified Studio domain managed by Terraform"` | no |
@@ -73,6 +77,7 @@ No modules.
 | <a name="input_manage_access_role_arn"></a> [manage\_access\_role\_arn](#input\_manage\_access\_role\_arn) | ARN of existing AmazonSageMakerManageAccess role. If not provided, the role is auto-created. | `string` | `null` | no |
 | <a name="input_provisioning_role_arn"></a> [provisioning\_role\_arn](#input\_provisioning\_role\_arn) | ARN of existing AmazonSageMakerProvisioning role. If not provided, the role is auto-created. | `string` | `null` | no |
 | <a name="input_query_execution_role_arn"></a> [query\_execution\_role\_arn](#input\_query\_execution\_role\_arn) | ARN of a custom query execution role for the Tooling blueprint. If not provided, the service uses the default AmazonSageMakerQueryExecution role. | `string` | `null` | no |
+| <a name="input_s3_bucket_name"></a> [s3\_bucket\_name](#input\_s3\_bucket\_name) | Existing S3 bucket name for Tooling blueprint storage. If null, a dedicated bucket is created. | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to the domain and related resources | `map(string)` | `{}` | no |
 | <a name="input_user_role_policy_arns"></a> [user\_role\_policy\_arns](#input\_user\_role\_policy\_arns) | List of IAM policy ARNs to apply as user role policies on the Tooling blueprint. Defaults to SageMakerStudioProjectUserRolePolicy if not provided. | `list(string)` | `null` | no |
 
@@ -95,5 +100,6 @@ No modules.
 | <a name="output_manage_access_role_arn"></a> [manage\_access\_role\_arn](#output\_manage\_access\_role\_arn) | ARN of the manage access role (created or provided). Pass to blueprint modules. |
 | <a name="output_provisioning_role_arn"></a> [provisioning\_role\_arn](#output\_provisioning\_role\_arn) | ARN of the provisioning role (created or provided). Pass to blueprint modules. |
 | <a name="output_region"></a> [region](#output\_region) | AWS Region where the domain is created |
+| <a name="output_s3_bucket_name"></a> [s3\_bucket\_name](#output\_s3\_bucket\_name) | S3 bucket name used by the Tooling blueprint (created or provided) |
 | <a name="output_tooling_blueprint_id"></a> [tooling\_blueprint\_id](#output\_tooling\_blueprint\_id) | ID of the Tooling environment blueprint |
 <!-- END_TF_DOCS -->

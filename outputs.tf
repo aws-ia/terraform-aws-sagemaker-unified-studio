@@ -82,3 +82,8 @@ output "tooling_blueprint_id" {
   description = "ID of the Tooling environment blueprint"
   value       = data.aws_datazone_environment_blueprint.tooling.id
 }
+
+output "s3_bucket_name" {
+  description = "S3 bucket name used by the Tooling blueprint (created or provided)"
+  value       = local.s3_bucket_name
+}

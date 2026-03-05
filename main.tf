@@ -77,11 +77,15 @@ resource "aws_iam_role" "domain_execution" {
         }
         Action = [
           "sts:AssumeRole",
+          "sts:TagSession",
           "sts:SetContext"
         ]
         Condition = {
           StringEquals = {
             "aws:SourceAccount" = local.account_id
+          }
+          "ForAllValues:StringLike" = {
+            "aws:TagKeys" = "datazone*"
           }
         }
       }
@@ -116,10 +120,7 @@ resource "aws_iam_role" "domain_service" {
         Principal = {
           Service = "datazone.amazonaws.com"
         }
-        Action = [
-          "sts:AssumeRole",
-          "sts:SetContext"
-        ]
+        Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
             "aws:SourceAccount" = local.account_id
@@ -252,7 +253,7 @@ resource "aws_iam_role" "sagemaker_manage_access" {
             "aws:SourceAccount" = local.account_id
           }
           ArnEquals = {
-            "aws:SourceArn" = "arn:aws:datazone:${local.region}:${local.account_id}:domain/${data.awscc_datazone_domain.main.root_domain_unit_id}"
+            "aws:SourceArn" = "arn:aws:datazone:${local.region}:${local.account_id}:domain/${aws_datazone_domain.main.id}"
           }
         }
       }
@@ -319,6 +320,67 @@ resource "aws_iam_role_policy_attachment" "manage_access_redshift_secret" {
 }
 
 #####################################################################################
+# Optional S3 Bucket (R3-AC7)
+# Created when var.s3_bucket_name is null
+#####################################################################################
+
+locals {
+  s3_bucket_name = var.s3_bucket_name != null ? var.s3_bucket_name : aws_s3_bucket.domain[0].id
+}
+
+#checkov:skip=CKV2_AWS_61:Lifecycle configuration not required for tooling storage
+#checkov:skip=CKV2_AWS_62:Event notifications not required for tooling storage
+#checkov:skip=CKV_AWS_144:Cross-region replication not required for tooling storage
+resource "aws_s3_bucket" "domain" {
+  count  = var.s3_bucket_name == null ? 1 : 0
+  bucket = "sagemaker-studio-${local.account_id}-${local.region}"
+
+  #checkov:skip=CKV2_AWS_61:Lifecycle configuration not required for tooling storage
+  #checkov:skip=CKV2_AWS_62:Event notifications not required for tooling storage
+  #checkov:skip=CKV_AWS_144:Cross-region replication not required for tooling storage
+
+  tags = merge(var.tags, {
+    Purpose = "SageMaker Unified Studio Domain Storage"
+  })
+}
+
+#tfsec:ignore:aws-s3-encryption-customer-key
+resource "aws_s3_bucket_server_side_encryption_configuration" "domain" {
+  count  = var.s3_bucket_name == null ? 1 : 0
+  bucket = aws_s3_bucket.domain[0].id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm     = var.kms_key_identifier != null ? "aws:kms" : "AES256"
+      kms_master_key_id = var.kms_key_identifier
+    }
+  }
+}
+
+resource "aws_s3_bucket_versioning" "domain" {
+  count  = var.s3_bucket_name == null ? 1 : 0
+  bucket = aws_s3_bucket.domain[0].id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_logging" "domain" {
+  count         = var.s3_bucket_name == null ? 1 : 0
+  bucket        = aws_s3_bucket.domain[0].id
+  target_bucket = aws_s3_bucket.domain[0].id
+  target_prefix = "access-logs/"
+}
+
+resource "aws_s3_bucket_public_access_block" "domain" {
+  count                   = var.s3_bucket_name == null ? 1 : 0
+  bucket                  = aws_s3_bucket.domain[0].id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+#####################################################################################
 # Tooling Blueprint Configuration (R3 + R8)
 # Uses awscc provider for global_parameters support (user role policy)
 #####################################################################################
@@ -347,7 +409,7 @@ resource "awscc_datazone_environment_blueprint_configuration" "tooling" {
   regional_parameters = [{
     region = local.region
     parameters = {
-      "S3Location" = "s3://${var.s3_bucket_name}"
+      "S3Location" = "s3://${local.s3_bucket_name}"
       "Subnets"    = join(",", var.subnet_ids)
       "VpcId"      = var.vpc_id
     }

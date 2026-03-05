@@ -23,6 +23,12 @@ variable "domain_root_unit_id" {
   type        = string
 }
 
+variable "allow_replace_existing" {
+  description = "Allow replacing an existing blueprint configuration for this domain/account"
+  type        = bool
+  default     = false
+}
+
 variable "has_regional_parameters" {
   description = "Whether this blueprint requires regional parameters (VPC, subnets, S3). Set to false for blueprints like QuickSight, Bedrock, MLflowApp, LakehouseAdmin."
   type        = bool
