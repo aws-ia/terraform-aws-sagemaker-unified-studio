@@ -24,12 +24,6 @@ variable "domain_root_unit_id" {
   type        = string
 }
 
-variable "sagemaker_manage_access_role_name" {
-  description = "Custom name for the SageMaker manage access role (if null, will use domain_name-sagemaker-manage-access-role)"
-  type        = string
-  default     = null
-}
-
 variable "manage_access_role_arn" {
   description = "ARN of existing SageMaker manage access role"
   type        = string

@@ -43,5 +43,25 @@ output "domain_execution_role_arn" {
 
 output "domain_execution_role_name" {
   description = "Name of the domain execution role"
-  value       = split("/", local.domain_execution_role_arn)[1]
+  value       = local.default_domain_execution_role_name
+}
+
+output "domain_service_role_arn" {
+  description = "ARN of the domain service role (created or existing)"
+  value       = local.domain_service_role_arn
+}
+
+output "domain_service_role_name" {
+  description = "Name of the domain service role"
+  value       = local.default_domain_service_role_name
+}
+
+output "domain_execution_role_created" {
+  description = "Whether the domain execution role was created by this module (false if it already existed)"
+  value       = var.domain_execution_role_arn == null && !local.domain_execution_role_exists
+}
+
+output "domain_service_role_created" {
+  description = "Whether the domain service role was created by this module (false if it already existed)"
+  value       = var.domain_service_role_arn == null && !local.domain_service_role_exists
 }
