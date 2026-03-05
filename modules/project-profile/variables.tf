@@ -49,21 +49,20 @@ variable "domain_unit_id" {
 variable "blueprints" {
   description = <<-EOT
     Map of blueprints to include in this project profile.
-    Key = blueprint name (e.g., "Tooling", "DataLake").
-    Value = object with blueprint_id and optional overrides.
+    Key = blueprint name (e.g., "Tooling", "DataLake", "RedshiftServerless").
+    The blueprint ID is resolved internally via data lookup.
 
     Tooling must always be included and automatically gets deployment_order = 1.
     Note: For EmrOnEks, you must provide eksClusterArn in parameter_overrides.
 
     Example:
       blueprints = {
-        Tooling            = { blueprint_id = "cjegf7f6kky6w7" }
-        DataLake           = { blueprint_id = "d6y5smpdi8x9lz", parameter_overrides = { glueDbName = "my_db" } }
-        RedshiftServerless = { blueprint_id = "43h4jsps0h7baf", deployment_mode = "ON_DEMAND" }
+        Tooling            = {}
+        DataLake           = { parameter_overrides = { glueDbName = "my_db" } }
+        RedshiftServerless = { deployment_mode = "ON_DEMAND", parameter_overrides = { redshiftBaseCapacity = "256" } }
       }
   EOT
   type = map(object({
-    blueprint_id        = string
     description         = optional(string)
     deployment_mode     = optional(string, "ON_CREATE")
     parameter_overrides = optional(map(string), {})

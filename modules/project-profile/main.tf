@@ -3,10 +3,19 @@
 # Creates exactly one project profile per invocation.
 # Tooling is always first (deployment_order = 1), other blueprints follow in
 # alphabetical order starting at 2.
+# Blueprint IDs are resolved internally by name via data source lookup.
 #####################################################################################
 
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
+
+# Resolve blueprint IDs from names
+data "aws_datazone_environment_blueprint" "this" {
+  for_each  = var.blueprints
+  domain_id = var.domain_id
+  name      = each.key
+  managed   = true
+}
 
 locals {
   account_id = data.aws_caller_identity.current.account_id
@@ -20,7 +29,7 @@ locals {
     # Tooling — always first
     [{
       name                     = "Tooling"
-      environment_blueprint_id = var.blueprints["Tooling"].blueprint_id
+      environment_blueprint_id = data.aws_datazone_environment_blueprint.this["Tooling"].id
       description              = var.blueprints["Tooling"].description
       deployment_mode          = var.blueprints["Tooling"].deployment_mode
       deployment_order         = 1
@@ -42,7 +51,7 @@ locals {
     # Other blueprints — alphabetical order starting at 2
     [for idx, name in local.non_tooling_names : {
       name                     = name
-      environment_blueprint_id = var.blueprints[name].blueprint_id
+      environment_blueprint_id = data.aws_datazone_environment_blueprint.this[name].id
       description              = var.blueprints[name].description
       deployment_mode          = var.blueprints[name].deployment_mode
       deployment_order         = idx + 2

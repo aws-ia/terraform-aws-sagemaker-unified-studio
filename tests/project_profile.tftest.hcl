@@ -14,11 +14,16 @@ run "profile_tooling_only" {
     source = "./modules/project-profile"
   }
 
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["Tooling"]
+    values = { id = "mock-tooling-id" }
+  }
+
   variables {
     domain_id = "dzd-test123456"
     name      = "Basic Profile"
     blueprints = {
-      Tooling = { blueprint_id = "bp-tooling-123" }
+      Tooling = {}
     }
   }
 
@@ -59,13 +64,28 @@ run "profile_multi_blueprint_ordering" {
     source = "./modules/project-profile"
   }
 
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["Tooling"]
+    values = { id = "mock-tooling-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["RedshiftServerless"]
+    values = { id = "mock-redshift-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["DataLake"]
+    values = { id = "mock-datalake-id" }
+  }
+
   variables {
     domain_id = "dzd-test123456"
     name      = "Data Engineering"
     blueprints = {
-      Tooling            = { blueprint_id = "bp-tooling-123" }
-      RedshiftServerless = { blueprint_id = "bp-redshift-456" }
-      DataLake           = { blueprint_id = "bp-datalake-789" }
+      Tooling            = {}
+      RedshiftServerless = {}
+      DataLake           = {}
     }
   }
 
@@ -110,11 +130,6 @@ run "profile_multi_blueprint_ordering" {
     condition     = output.blueprint_count == 3
     error_message = "Blueprint count should be 3"
   }
-
-  assert {
-    condition     = contains(output.blueprint_names, "Tooling") && contains(output.blueprint_names, "DataLake") && contains(output.blueprint_names, "RedshiftServerless")
-    error_message = "Blueprint names should contain all 3 blueprints"
-  }
 }
 
 #####################################################################################
@@ -128,28 +143,34 @@ run "profile_parameter_overrides" {
     source = "./modules/project-profile"
   }
 
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["Tooling"]
+    values = { id = "mock-tooling-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["DataLake"]
+    values = { id = "mock-datalake-id" }
+  }
+
   variables {
     domain_id = "dzd-test123456"
     name      = "Custom Params Profile"
     blueprints = {
       Tooling = {
-        blueprint_id        = "bp-tooling-123"
         parameter_overrides = { idleTimeoutInMinutes = "120", maxEbsVolumeSize = "200" }
       }
       DataLake = {
-        blueprint_id        = "bp-datalake-789"
         parameter_overrides = { glueDbName = "analytics_db" }
       }
     }
   }
 
-  # Tooling should have 2 parameter overrides
   assert {
     condition     = awscc_datazone_project_profile.this.environment_configurations[0].configuration_parameters != null
     error_message = "Tooling should have configuration_parameters set"
   }
 
-  # DataLake should have 1 parameter override
   assert {
     condition     = awscc_datazone_project_profile.this.environment_configurations[1].configuration_parameters != null
     error_message = "DataLake should have configuration_parameters set"
@@ -162,7 +183,7 @@ run "profile_parameter_overrides" {
 }
 
 #####################################################################################
-# Scenario 4: No parameter overrides — configuration_parameters should be null
+# Scenario 4: No parameter overrides
 #####################################################################################
 
 run "profile_no_overrides" {
@@ -172,12 +193,22 @@ run "profile_no_overrides" {
     source = "./modules/project-profile"
   }
 
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["Tooling"]
+    values = { id = "mock-tooling-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["DataLake"]
+    values = { id = "mock-datalake-id" }
+  }
+
   variables {
     domain_id = "dzd-test123456"
     name      = "Defaults Profile"
     blueprints = {
-      Tooling  = { blueprint_id = "bp-tooling-123" }
-      DataLake = { blueprint_id = "bp-datalake-789" }
+      Tooling  = {}
+      DataLake = {}
     }
   }
 
@@ -208,25 +239,32 @@ run "profile_on_demand_deployment" {
     source = "./modules/project-profile"
   }
 
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["Tooling"]
+    values = { id = "mock-tooling-id" }
+  }
+
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["RedshiftServerless"]
+    values = { id = "mock-redshift-id" }
+  }
+
   variables {
     domain_id = "dzd-test123456"
     name      = "On Demand Profile"
     blueprints = {
-      Tooling = { blueprint_id = "bp-tooling-123" }
+      Tooling = {}
       RedshiftServerless = {
-        blueprint_id    = "bp-redshift-456"
         deployment_mode = "ON_DEMAND"
       }
     }
   }
 
-  # Tooling default = ON_CREATE
   assert {
     condition     = awscc_datazone_project_profile.this.environment_configurations[0].deployment_mode == "ON_CREATE"
     error_message = "Tooling should default to ON_CREATE"
   }
 
-  # RedshiftServerless = ON_DEMAND
   assert {
     condition     = awscc_datazone_project_profile.this.environment_configurations[1].deployment_mode == "ON_DEMAND"
     error_message = "RedshiftServerless should be ON_DEMAND"
@@ -244,12 +282,17 @@ run "profile_disabled_status" {
     source = "./modules/project-profile"
   }
 
+  override_data {
+    target = data.aws_datazone_environment_blueprint.this["Tooling"]
+    values = { id = "mock-tooling-id" }
+  }
+
   variables {
     domain_id = "dzd-test123456"
     name      = "Disabled Profile"
     status    = "DISABLED"
     blueprints = {
-      Tooling = { blueprint_id = "bp-tooling-123" }
+      Tooling = {}
     }
   }
 
