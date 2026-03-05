@@ -137,7 +137,7 @@ variable "user_role_policy_arns" {
   default     = null
 
   validation {
-    condition     = var.user_role_policy_arns == null || alltrue([for arn in var.user_role_policy_arns : can(regex("^arn:aws:iam::(aws|[0-9]{12}):policy/.+", arn))])
+    condition     = var.user_role_policy_arns == null ? true : alltrue([for arn in var.user_role_policy_arns : can(regex("^arn:aws:iam::(aws|[0-9]{12}):policy/.+", arn))])
     error_message = "All entries must be valid IAM policy ARNs."
   }
 }
