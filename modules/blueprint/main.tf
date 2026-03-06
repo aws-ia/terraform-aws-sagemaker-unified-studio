@@ -18,10 +18,26 @@ data "aws_datazone_environment_blueprint" "this" {
   managed   = true
 }
 
+# Flatten all subnet IDs across regions for VPC validation
+locals {
+  subnet_region_pairs = flatten([
+    for region, params in var.regional_parameters : [
+      for subnet_id in params.subnet_ids : {
+        key       = "${region}:${subnet_id}"
+        region    = region
+        subnet_id = subnet_id
+        vpc_id    = params.vpc_id
+      }
+    ]
+  ])
+  subnet_validation_map = { for pair in local.subnet_region_pairs : pair.key => pair }
+}
+
 # Validate subnets are in the specified VPC (only when regional params are used)
 data "aws_subnet" "validation" {
-  for_each = local.has_regional_parameters ? toset(var.subnet_ids) : toset([])
-  id       = each.value
+  for_each = local.subnet_validation_map
+  id       = each.value.subnet_id
+  region   = each.value.region
 }
 
 ######################################
@@ -33,10 +49,10 @@ locals {
   region           = data.aws_region.current.id
   domain_id_suffix = replace(var.domain_id, "/^dzd-/", "")
 
-  enabled_regions = var.enabled_regions != null ? var.enabled_regions : [local.region]
+  enabled_regions = length(var.regional_parameters) > 0 ? keys(var.regional_parameters) : [local.region]
 
   # Whether this blueprint uses regional parameters
-  has_regional_parameters = var.has_regional_parameters
+  has_regional_parameters = length(var.regional_parameters) > 0
 
   # 3-tier role resolution: user-provided > existing > auto-create
   default_provisioning_role_name = "AmazonSageMakerProvisioning-${local.account_id}"
@@ -58,10 +74,10 @@ locals {
 
   # Build regional_parameters for each enabled region (only when blueprint needs them)
   regional_parameters = local.has_regional_parameters ? {
-    for r in local.enabled_regions : r => {
-      "S3Location" = "s3://${var.s3_bucket_name}"
-      "Subnets"    = join(",", var.subnet_ids)
-      "VpcId"      = var.vpc_id
+    for r, params in var.regional_parameters : r => {
+      "S3Location" = "s3://${params.s3_bucket_name}"
+      "Subnets"    = join(",", params.subnet_ids)
+      "VpcId"      = params.vpc_id
     }
   } : null
 }
@@ -75,8 +91,8 @@ resource "terraform_data" "subnet_vpc_validation" {
 
   lifecycle {
     precondition {
-      condition     = each.value.vpc_id == var.vpc_id
-      error_message = "Subnet ${each.key} belongs to VPC ${each.value.vpc_id}, not ${var.vpc_id}."
+      condition     = each.value.vpc_id == local.subnet_validation_map[each.key].vpc_id
+      error_message = "Subnet ${each.value.id} belongs to VPC ${each.value.vpc_id}, not ${local.subnet_validation_map[each.key].vpc_id}."
     }
   }
 }
@@ -244,13 +260,6 @@ resource "aws_datazone_environment_blueprint_configuration" "this" {
   provisioning_role_arn    = local.provisioning_role_arn
   enabled_regions          = local.enabled_regions
   regional_parameters      = local.regional_parameters
-
-  lifecycle {
-    precondition {
-      condition     = !var.has_regional_parameters || (var.vpc_id != null && length(var.subnet_ids) > 0 && var.s3_bucket_name != null)
-      error_message = "vpc_id, subnet_ids, and s3_bucket_name are required when has_regional_parameters is true."
-    }
-  }
 
   depends_on = [
     terraform_data.subnet_vpc_validation,
