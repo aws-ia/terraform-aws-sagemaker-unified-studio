@@ -31,11 +31,11 @@ variable "allow_replace_existing" {
 }
 
 variable "regional_parameters" {
-  description = "Map of AWS regions to their infrastructure parameters (vpc_id, subnet_ids, s3_bucket_name). Keys become enabled_regions. Leave empty for blueprints that don't require regional parameters (e.g., QuickSight, Bedrock, MLflowApp, LakehouseAdmin)."
+  description = "Map of AWS regions to their infrastructure parameters (vpc_id, subnet_ids, s3_bucket_uri). Keys become enabled_regions. Leave empty for blueprints that don't require regional parameters (e.g., QuickSight, Bedrock, MLflowApp, LakehouseAdmin)."
   type = map(object({
     vpc_id         = string
     subnet_ids     = list(string)
-    s3_bucket_name = string
+    s3_uri  = string
   }))
   default = {}
 
@@ -64,9 +64,9 @@ variable "regional_parameters" {
 
   validation {
     condition = alltrue([
-      for region, params in var.regional_parameters : can(regex("^[a-z0-9][a-z0-9.-]*[a-z0-9]$", params.s3_bucket_name))
+      for region, params in var.regional_parameters : can(regex("^s3://[a-z0-9][a-z0-9.-]*[a-z0-9]$", params.s3_uri))
     ])
-    error_message = "All s3_bucket_name values must be valid (lowercase letters, numbers, hyphens, and dots only)."
+    error_message = "All s3_uri values must be in the format 's3://<bucket-name>' with a valid bucket name."
   }
 }
 

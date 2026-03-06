@@ -80,7 +80,7 @@ locals {
   # Build regional_parameters for each enabled region (only when blueprint needs them)
   regional_parameters = local.has_regional_parameters ? {
     for r, params in var.regional_parameters : r => {
-      "S3Location" = "s3://${params.s3_bucket_name}"
+      "S3Location" = params.s3_uri
       "Subnets"    = join(",", params.subnet_ids)
       "VpcId"      = params.vpc_id
     }
@@ -222,13 +222,13 @@ resource "aws_iam_role_policy_attachment" "sagemaker_manage_access" {
 resource "aws_iam_role_policy_attachment" "glue_manage_access" {
   count      = !local.manage_access_role_exists ? 1 : 0
   role       = aws_iam_role.sagemaker_manage_access[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneGlueManageAccessRolePolicy"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDataZoneGlueManageAccessRolePolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "redshift_manage_access" {
   count      = !local.manage_access_role_exists ? 1 : 0
   role       = aws_iam_role.sagemaker_manage_access[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneRedshiftManageAccessRolePolicy"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDataZoneRedshiftManageAccessRolePolicy"
 }
 
 ######################################
