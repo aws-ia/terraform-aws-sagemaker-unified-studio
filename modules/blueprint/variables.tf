@@ -30,6 +30,12 @@ variable "allow_replace_existing" {
   default     = false
 }
 
+variable "global_parameters" {
+  description = "Map of the global parameters to attach to the project."
+  type        = map(string)
+  default     = {}
+}
+
 variable "regional_parameters" {
   description = "Map of AWS regions to their infrastructure parameters (vpc_id, subnet_ids, s3_bucket_uri). Keys become enabled_regions. Leave empty for blueprints that don't require regional parameters (e.g., QuickSight, Bedrock, MLflowApp, LakehouseAdmin)."
   type = map(object({
