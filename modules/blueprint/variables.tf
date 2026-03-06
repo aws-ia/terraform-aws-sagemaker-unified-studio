@@ -18,9 +18,10 @@ variable "blueprint_name" {
   type        = string
 }
 
-variable "domain_root_unit_id" {
-  description = "The root domain unit ID for policy grants"
-  type        = string
+variable "domain_unit_ids" {
+  description = "A list of domain unit IDs to grant access to the blueprint. If not specified, the default root domain unit of the domain will be used."
+  type        = list(string)
+  default = []
 }
 
 variable "allow_replace_existing" {

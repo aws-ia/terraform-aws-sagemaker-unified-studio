@@ -11,6 +11,11 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+# Data source needed to get root domain unit
+data "awscc_datazone_domain" "main" {
+  id = var.domain_id
+}
+
 # Resolve blueprint ID from name
 data "aws_datazone_environment_blueprint" "this" {
   domain_id = var.domain_id
@@ -80,6 +85,8 @@ locals {
       "VpcId"      = params.vpc_id
     }
   } : null
+  # Resolve domain unit IDs: user-provided list, or fall back to root domain unit
+  effective_domain_unit_ids = length(var.domain_unit_ids) > 0 ? toset(var.domain_unit_ids) : toset([data.awscc_datazone_domain.main.root_domain_unit_id])
 }
 
 ######################################
@@ -272,6 +279,8 @@ resource "aws_datazone_environment_blueprint_configuration" "this" {
 ######################################
 
 resource "awscc_datazone_policy_grant" "this" {
+  for_each = local.effective_domain_unit_ids
+
   domain_identifier = var.domain_id
   entity_type       = "ENVIRONMENT_BLUEPRINT_CONFIGURATION"
   entity_identifier = "${local.account_id}:${data.aws_datazone_environment_blueprint.this.id}"
@@ -286,7 +295,7 @@ resource "awscc_datazone_policy_grant" "this" {
       project_designation = "CONTRIBUTOR"
       project_grant_filter = {
         domain_unit_filter = {
-          domain_unit                = var.domain_root_unit_id
+          domain_unit                = each.value
           include_child_domain_units = true
         }
       }
