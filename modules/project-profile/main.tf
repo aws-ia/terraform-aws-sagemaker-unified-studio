@@ -11,7 +11,7 @@ data "aws_region" "current" {}
 
 # Resolve blueprint IDs from names
 data "aws_datazone_environment_blueprint" "this" {
-  for_each  = var.blueprints
+  for_each  = toset(concat(["Tooling"], keys(var.blueprints)))
   domain_id = var.domain_id
   name      = each.key
   managed   = true
@@ -30,16 +30,17 @@ locals {
     [{
       name                     = "Tooling"
       environment_blueprint_id = data.aws_datazone_environment_blueprint.this["Tooling"].id
-      description              = var.blueprints["Tooling"].description
-      deployment_mode          = var.blueprints["Tooling"].deployment_mode
-      deployment_order         = 1
+      // description and deployment mode always set by default
+      description      = "Configuration for the Tooling"
+      deployment_mode  = "ON_CREATE"
+      deployment_order = 1
       aws_account = {
         aws_account_id = local.account_id
       }
       aws_region = {
         region_name = local.region
       }
-      configuration_parameters = length(var.blueprints["Tooling"].parameter_overrides) > 0 ? {
+      configuration_parameters = contains(keys(var.blueprints), "Tooling") && length(var.blueprints["Tooling"].parameter_overrides) > 0 ? {
         parameter_overrides = [
           for k, v in var.blueprints["Tooling"].parameter_overrides : {
             name  = k

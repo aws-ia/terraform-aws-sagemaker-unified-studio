@@ -18,9 +18,10 @@ variable "blueprint_name" {
   type        = string
 }
 
-variable "domain_root_unit_id" {
-  description = "The root domain unit ID for policy grants"
-  type        = string
+variable "domain_unit_ids" {
+  description = "A list of domain unit IDs to grant access to the blueprint. If not specified, the default root domain unit of the domain will be used."
+  type        = list(string)
+  default = []
 }
 
 variable "allow_replace_existing" {
@@ -29,44 +30,49 @@ variable "allow_replace_existing" {
   default     = false
 }
 
-variable "has_regional_parameters" {
-  description = "Whether this blueprint requires regional parameters (VPC, subnets, S3). Set to false for blueprints like QuickSight, Bedrock, MLflowApp, LakehouseAdmin."
-  type        = bool
-  default     = true
+variable "global_parameters" {
+  description = "Map of the global parameters to attach to the project."
+  type        = map(string)
+  default     = {}
 }
 
-variable "vpc_id" {
-  description = "VPC ID for blueprint regional parameters. Required when has_regional_parameters is true."
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.vpc_id == null || can(regex("^vpc-[a-z0-9]+$", var.vpc_id))
-    error_message = "VPC ID must be in the format 'vpc-' followed by alphanumeric characters."
-  }
-}
-
-variable "subnet_ids" {
-  description = "List of subnet IDs for blueprint regional parameters. Required when has_regional_parameters is true."
-  type        = list(string)
-  default     = []
+variable "regional_parameters" {
+  description = "Map of AWS regions to their infrastructure parameters (vpc_id, subnet_ids, s3_bucket_uri). Keys become enabled_regions. Leave empty for blueprints that don't require regional parameters (e.g., QuickSight, Bedrock, MLflowApp, LakehouseAdmin)."
+  type = map(object({
+    vpc_id         = string
+    subnet_ids     = list(string)
+    s3_uri  = string
+  }))
+  default = {}
 
   validation {
     condition = alltrue([
-      for subnet_id in var.subnet_ids : can(regex("^subnet-[a-z0-9]+$", subnet_id))
+      for region, params in var.regional_parameters : can(regex("^vpc-[a-z0-9]+$", params.vpc_id))
+    ])
+    error_message = "All vpc_id values must be in the format 'vpc-' followed by alphanumeric characters."
+  }
+
+  validation {
+    condition = alltrue([
+      for region, params in var.regional_parameters : alltrue([
+        for subnet_id in params.subnet_ids : can(regex("^subnet-[a-z0-9]+$", subnet_id))
+      ])
     ])
     error_message = "All subnet IDs must be in the format 'subnet-' followed by alphanumeric characters."
   }
-}
-
-variable "s3_bucket_name" {
-  description = "S3 bucket name for blueprint storage. Required when has_regional_parameters is true."
-  type        = string
-  default     = null
 
   validation {
-    condition     = var.s3_bucket_name == null || can(regex("^[a-z0-9][a-z0-9.-]*[a-z0-9]$", var.s3_bucket_name))
-    error_message = "S3 bucket name must be valid (lowercase letters, numbers, hyphens, and dots only)."
+    condition = alltrue([
+      for region, params in var.regional_parameters : length(params.subnet_ids) > 0
+    ])
+    error_message = "Each region must have at least one subnet_id."
+  }
+
+  validation {
+    condition = alltrue([
+      for region, params in var.regional_parameters : can(regex("^s3://[a-z0-9][a-z0-9.-]*[a-z0-9]$", params.s3_uri))
+    ])
+    error_message = "All s3_uri values must be in the format 's3://<bucket-name>' with a valid bucket name."
   }
 }
 
@@ -90,12 +96,6 @@ variable "provisioning_role_arn" {
     condition     = var.provisioning_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.provisioning_role_arn))
     error_message = "Provisioning role ARN must be a valid IAM role ARN."
   }
-}
-
-variable "enabled_regions" {
-  description = "List of AWS regions to enable the blueprint in. Defaults to current region."
-  type        = list(string)
-  default     = null
 }
 
 variable "configure_lake_formation" {
