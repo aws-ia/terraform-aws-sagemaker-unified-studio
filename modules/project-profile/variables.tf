@@ -68,10 +68,6 @@ variable "blueprints" {
     parameter_overrides = optional(map(string), {})
   }))
 
-  validation {
-    condition     = contains(keys(var.blueprints), "Tooling")
-    error_message = "Tooling blueprint must always be included in the project profile."
-  }
 
   validation {
     condition = alltrue([
