@@ -13,6 +13,17 @@ variable "domain_id" {
   }
 }
 
+variable "domain_account_id" {
+  description = "AWS account ID where the domain resides. Defaults to the current account. Set this for cross-account blueprints so IAM trust policies grant the domain account permission to assume roles."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.domain_account_id == null || can(regex("^[0-9]{12}$", var.domain_account_id))
+    error_message = "Account ID must be a 12-digit number."
+  }
+}
+
 variable "blueprint_name" {
   description = "Name of the blueprint to configure (e.g., LakehouseCatalog, MLExperiments, RedshiftServerless). The blueprint ID is resolved internally via data lookup — if the name is invalid, the data source will fail with a clear error."
   type        = string

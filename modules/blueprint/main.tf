@@ -53,6 +53,7 @@ locals {
   account_id       = data.aws_caller_identity.current.account_id
   region           = data.aws_region.current.id
   domain_id_suffix = replace(var.domain_id, "/^dzd-/", "")
+  domain_account_id = var.domain_account_id != null ? var.domain_account_id : local.account_id
 
   enabled_regions = length(var.regional_parameters) > 0 ? keys(var.regional_parameters) : [local.region]
 
@@ -149,7 +150,7 @@ resource "aws_iam_role" "sagemaker_provisioning" {
         Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "aws:SourceAccount" = local.account_id
+            "aws:SourceAccount" = local.domain_account_id
           }
         }
       }
@@ -187,10 +188,10 @@ resource "aws_iam_role" "sagemaker_manage_access" {
         Action = "sts:AssumeRole"
         Condition = {
           StringEquals = {
-            "aws:SourceAccount" = local.account_id
+            "aws:SourceAccount" = local.domain_account_id
           }
           ArnEquals = {
-            "aws:SourceArn" = "arn:aws:datazone:${local.region}:${local.account_id}:domain/${var.domain_id}"
+            "aws:SourceArn" = "arn:aws:datazone:${local.region}:${local.domain_account_id}:domain/${var.domain_id}"
           }
         }
       }
