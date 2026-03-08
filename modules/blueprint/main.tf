@@ -156,6 +156,10 @@ resource "aws_iam_role" "sagemaker_provisioning" {
     ]
   })
 
+  lifecycle {
+    prevent_destroy = true
+  }
+
   tags = local.common_tags
 }
 
@@ -192,6 +196,10 @@ resource "aws_iam_role" "sagemaker_manage_access" {
       }
     ]
   })
+
+  lifecycle {
+    prevent_destroy = true
+  }
 
   tags = local.common_tags
 }
@@ -258,6 +266,10 @@ resource "aws_lakeformation_data_lake_settings" "main" {
     local.manage_access_role_arn,
     local.provisioning_role_arn,
   ])
+
+  lifecycle {
+    prevent_destroy = true
+  }
 
   depends_on = [
     aws_iam_role.sagemaker_manage_access
