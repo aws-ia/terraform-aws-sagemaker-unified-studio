@@ -288,6 +288,20 @@ resource "time_sleep" "lakeformation_propagation" {
 # Blueprint Configuration (singular)
 ######################################
 
+# Warn if blueprint is already configured and allow_replace_existing is false.
+# The scoped data source inside the check block is independent of the resource
+# lifecycle — if the config doesn't exist (404), the check simply warns.
+check "existing_blueprint_configuration" {
+  data "awscc_datazone_environment_blueprint_configuration" "existing" {
+    id = "${var.domain_id}|${data.aws_datazone_environment_blueprint.this.id}"
+  }
+
+  assert {
+    condition     = var.allow_replace_existing || length(data.awscc_datazone_environment_blueprint_configuration.existing.enabled_regions) == 0
+    error_message = "Blueprint '${var.blueprint_name}' is already configured for domain ${var.domain_id}. Set allow_replace_existing = true to replace the existing configuration."
+  }
+}
+
 resource "aws_datazone_environment_blueprint_configuration" "this" {
   count                    = local.has_global_parameters ? 0 : 1
   domain_id                = var.domain_id
