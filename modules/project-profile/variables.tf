@@ -58,14 +58,22 @@ variable "blueprints" {
     Example:
       blueprints = {
         Tooling            = {}
-        DataLake           = { parameter_overrides = { glueDbName = "my_db" } }
-        RedshiftServerless = { deployment_mode = "ON_DEMAND", parameter_overrides = { redshiftBaseCapacity = "256" } }
+        DataLake           = { parameter_overrides = { glueDbName = { value = "my_db" } } }
+        RedshiftServerless = {
+          deployment_mode = "ON_DEMAND"
+          parameter_overrides = {
+            redshiftBaseCapacity = { value = "256", is_editable = true }
+          }
+        }
       }
   EOT
   type = map(object({
-    description         = optional(string)
-    deployment_mode     = optional(string, "ON_CREATE")
-    parameter_overrides = optional(map(string), {})
+    description = optional(string)
+    deployment_mode = optional(string, "ON_CREATE")
+    parameter_overrides = optional(map(object({
+      value       = string
+      is_editable = optional(bool, false)
+    })), {})
   }))
 
 
@@ -78,7 +86,8 @@ variable "blueprints" {
 
   validation {
     condition = !contains(keys(var.blueprints), "EmrOnEks") || contains(
-      keys(try(var.blueprints["EmrOnEks"].parameter_overrides, {})), "eksClusterArn"
+      keys(try(var.blueprints["EmrOnEks"].parameter_overrides, {})),
+      "eksClusterArn"
     )
     error_message = "eksClusterArn is required in parameter_overrides when using EmrOnEks blueprint."
   }

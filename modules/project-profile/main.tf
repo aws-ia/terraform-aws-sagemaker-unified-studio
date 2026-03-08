@@ -17,6 +17,11 @@ data "aws_datazone_environment_blueprint" "this" {
   managed   = true
 }
 
+# Check if Tooling blueprint is configured (enabled) for this domain in the current account/region
+data "awscc_datazone_environment_blueprint_configuration" "tooling" {
+  id = "${var.domain_id}|${data.aws_datazone_environment_blueprint.this["Tooling"].id}"
+}
+
 locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
@@ -43,8 +48,9 @@ locals {
       configuration_parameters = contains(keys(var.blueprints), "Tooling") && length(var.blueprints["Tooling"].parameter_overrides) > 0 ? {
         parameter_overrides = [
           for k, v in var.blueprints["Tooling"].parameter_overrides : {
-            name  = k
-            value = v
+            name        = k
+            value       = v.value
+            is_editable = v.is_editable
           }
         ]
       } : null
@@ -65,8 +71,9 @@ locals {
       configuration_parameters = length(var.blueprints[name].parameter_overrides) > 0 ? {
         parameter_overrides = [
           for k, v in var.blueprints[name].parameter_overrides : {
-            name  = k
-            value = v
+            name        = k
+            value       = v.value
+            is_editable = v.is_editable
           }
         ]
       } : null
@@ -81,4 +88,11 @@ resource "awscc_datazone_project_profile" "this" {
   status                     = var.status
   domain_unit_identifier     = var.domain_unit_id
   environment_configurations = local.environment_configurations
+
+  lifecycle {
+    precondition {
+      condition     = contains(data.awscc_datazone_environment_blueprint_configuration.tooling.enabled_regions, local.region)
+      error_message = "Tooling blueprint is not configured for this domain in the current region (${local.region}). Enable the Tooling blueprint via the domain module before creating a project profile."
+    }
+  }
 }

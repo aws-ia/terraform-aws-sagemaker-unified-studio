@@ -158,10 +158,15 @@ run "profile_parameter_overrides" {
     name      = "Custom Params Profile"
     blueprints = {
       Tooling = {
-        parameter_overrides = { idleTimeoutInMinutes = "120", maxEbsVolumeSize = "200" }
+        parameter_overrides = {
+          idleTimeoutInMinutes = { value = "120" }
+          maxEbsVolumeSize     = { value = "200", is_editable = true }
+        }
       }
       DataLake = {
-        parameter_overrides = { glueDbName = "analytics_db" }
+        parameter_overrides = {
+          glueDbName = { value = "analytics_db", is_editable = true }
+        }
       }
     }
   }
