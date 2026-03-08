@@ -58,12 +58,12 @@ output "domain_service_role_name" {
 
 output "domain_execution_role_created" {
   description = "Whether the domain execution role was created by this module (false if it already existed)"
-  value       = var.domain_execution_role_arn == null && !local.domain_execution_role_exists
+  value       = local.create_domain_execution_role && length(data.aws_iam_roles.domain_execution_role.arns) == 0
 }
 
 output "domain_service_role_created" {
   description = "Whether the domain service role was created by this module (false if it already existed)"
-  value       = var.domain_service_role_arn == null && !local.domain_service_role_exists
+  value       = local.create_domain_service_role && length(data.aws_iam_roles.domain_service_role.arns) == 0
 }
 
 # --- Blueprint Role Outputs ---

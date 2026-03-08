@@ -22,22 +22,23 @@ locals {
   default_domain_service_role_name   = "AmazonSageMakerDomainService"
   default_provisioning_role_name     = "AmazonSageMakerProvisioning-${local.account_id}"
 
-  # Check if existing roles were found by checking if list is non-empty
-  domain_execution_role_exists = var.domain_execution_role_arn != null ? true : length(data.aws_iam_roles.domain_execution_role.arns) > 0
-  domain_service_role_exists   = var.domain_service_role_arn != null ? true : length(data.aws_iam_roles.domain_service_role.arns) > 0
-  provisioning_role_exists     = var.provisioning_role_arn != null ? true : length(data.aws_iam_roles.provisioning_role.arns) > 0
+  # Role creation: count driven by variable only (not data source) to avoid flip-flop.
+  # Data sources are used only for ARN resolution when role pre-exists outside Terraform.
+  create_domain_execution_role = var.domain_execution_role_arn == null
+  create_domain_service_role   = var.domain_service_role_arn == null
+  create_provisioning_role     = var.provisioning_role_arn == null
 
-  # Determine final role ARNs: user-provided > existing > newly created
+  # 3-tier ARN resolution: user-provided > pre-existing in AWS > Terraform-managed
   domain_execution_role_arn = var.domain_execution_role_arn != null ? var.domain_execution_role_arn : (
-    local.domain_execution_role_exists ? tolist(data.aws_iam_roles.domain_execution_role.arns)[0] : aws_iam_role.domain_execution[0].arn
+    length(data.aws_iam_roles.domain_execution_role.arns) > 0 ? tolist(data.aws_iam_roles.domain_execution_role.arns)[0] : aws_iam_role.domain_execution[0].arn
   )
 
   domain_service_role_arn = var.domain_service_role_arn != null ? var.domain_service_role_arn : (
-    local.domain_service_role_exists ? tolist(data.aws_iam_roles.domain_service_role.arns)[0] : aws_iam_role.domain_service[0].arn
+    length(data.aws_iam_roles.domain_service_role.arns) > 0 ? tolist(data.aws_iam_roles.domain_service_role.arns)[0] : aws_iam_role.domain_service[0].arn
   )
 
   provisioning_role_arn = var.provisioning_role_arn != null ? var.provisioning_role_arn : (
-    local.provisioning_role_exists ? tolist(data.aws_iam_roles.provisioning_role.arns)[0] : aws_iam_role.sagemaker_provisioning[0].arn
+    length(data.aws_iam_roles.provisioning_role.arns) > 0 ? tolist(data.aws_iam_roles.provisioning_role.arns)[0] : aws_iam_role.sagemaker_provisioning[0].arn
   )
 
   # Manage access role name is domain-scoped (includes region and domain ID)
@@ -62,7 +63,7 @@ data "aws_iam_roles" "provisioning_role" {
 
 # Create AmazonSageMakerDomainExecution role if it doesn't exist
 resource "aws_iam_role" "domain_execution" {
-  count = !local.domain_execution_role_exists ? 1 : 0
+  count = local.create_domain_execution_role ? 1 : 0
 
   name = local.default_domain_execution_role_name
   path = "/service-role/"
@@ -100,14 +101,14 @@ resource "aws_iam_role" "domain_execution" {
 
 # Attach the managed policy to domain execution role
 resource "aws_iam_role_policy_attachment" "domain_execution_policy" {
-  count      = !local.domain_execution_role_exists ? 1 : 0
+  count      = local.create_domain_execution_role ? 1 : 0
   role       = aws_iam_role.domain_execution[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioDomainExecutionRolePolicy"
 }
 
 # Create AmazonSageMakerDomainService role if it doesn't exist
 resource "aws_iam_role" "domain_service" {
-  count = !local.domain_service_role_exists ? 1 : 0
+  count = local.create_domain_service_role ? 1 : 0
 
   name = local.default_domain_service_role_name
   path = "/service-role/"
@@ -138,7 +139,7 @@ resource "aws_iam_role" "domain_service" {
 
 # Attach the managed policy to domain service role
 resource "aws_iam_role_policy_attachment" "domain_service_policy" {
-  count      = !local.domain_service_role_exists ? 1 : 0
+  count      = local.create_domain_service_role ? 1 : 0
   role       = aws_iam_role.domain_service[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioDomainServiceRolePolicy"
 }
@@ -151,7 +152,7 @@ resource "aws_iam_role_policy_attachment" "domain_service_policy" {
 
 # Create AmazonSageMakerProvisioning role if it doesn't exist
 resource "aws_iam_role" "sagemaker_provisioning" {
-  count = !local.provisioning_role_exists ? 1 : 0
+  count = local.create_provisioning_role ? 1 : 0
 
   name = local.default_provisioning_role_name
   path = "/service-role/"
@@ -181,7 +182,7 @@ resource "aws_iam_role" "sagemaker_provisioning" {
 }
 
 resource "aws_iam_role_policy_attachment" "sagemaker_provisioning" {
-  count      = !local.provisioning_role_exists ? 1 : 0
+  count      = local.create_provisioning_role ? 1 : 0
   role       = aws_iam_role.sagemaker_provisioning[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioProjectProvisioningRolePolicy"
 }
