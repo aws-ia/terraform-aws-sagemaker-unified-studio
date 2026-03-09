@@ -9,6 +9,10 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+data "awscc_datazone_domain" "main" {
+  id = var.domain_id
+}
+
 # Resolve blueprint IDs from names
 data "aws_datazone_environment_blueprint" "this" {
   for_each  = toset(concat(["Tooling"], keys(var.blueprints)))
@@ -93,6 +97,27 @@ resource "awscc_datazone_project_profile" "this" {
     precondition {
       condition     = contains(data.awscc_datazone_environment_blueprint_configuration.tooling.enabled_regions, local.region)
       error_message = "Tooling blueprint is not configured for this domain in the current region (${local.region}). Enable the Tooling blueprint via the domain module before creating a project profile."
+    }
+  }
+}
+
+# Grant domain unit permission to create projects from this profile
+resource "awscc_datazone_policy_grant" "create_project_from_profile" {
+  domain_identifier = var.domain_id
+  entity_type       = "DOMAIN_UNIT"
+  entity_identifier = var.domain_unit_id != null ? var.domain_unit_id : data.awscc_datazone_domain.main.root_domain_unit_id
+  policy_type       = "CREATE_PROJECT_FROM_PROJECT_PROFILE"
+
+  detail = {
+    create_project_from_project_profile = {
+      include_child_domain_units = true
+      project_profiles           = [awscc_datazone_project_profile.this.project_profile_id]
+    }
+  }
+
+  principal = {
+    user = {
+      all_users_grant_filter = jsonencode({})
     }
   }
 }
