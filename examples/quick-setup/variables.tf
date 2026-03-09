@@ -141,6 +141,24 @@ variable "enable_redshift_serverless" {
   default     = true
 }
 
+variable "enable_generative_ai" {
+  description = "Enable the Generative AI application development default project profile. Enabling this will create the project profile and enable the selected blueprints."
+  type        = bool
+  default     = true
+}
+
+variable "enable_sql_analytics" {
+  description = "Enable the SQL analytics default project profile. Enabling this will create the project profile and enable the selected blueprints."
+  type        = bool
+  default     = true
+}
+
+variable "enable_all_capabilities" {
+  description = "Enable the All capabilities default project profile. Enabling this will create the project profile and enable the selected blueprints."
+  type        = bool
+  default     = true
+}
+
 #####################################################################################
 # Project Configuration
 #####################################################################################

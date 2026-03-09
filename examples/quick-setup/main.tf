@@ -73,23 +73,155 @@ locals {
 
   # Build the map of blueprints to enable based on toggle variables
   blueprint_configs = merge(
-    var.enable_lakehouse_catalog ? {
+    (var.enable_generative_ai || var.enable_all_capabilities) ? {
+      amazon_bedrock_generative_ai = {
+        blueprint_name = "AmazonBedrockGenerativeAI"
+      }
+      amazon_bedrock_chat_agent = {
+        blueprint_name = "AmazonBedrockChatAgent"
+      }
+      amazon_bedrock_evaluation = {
+        blueprint_name = "AmazonBedrockEvaluation"
+      }
+      amazon_bedrock_flow = {
+        blueprint_name = "AmazonBedrockFlow"
+      }
+      amazon_bedrock_function = {
+        blueprint_name = "AmazonBedrockFunction"
+      }
+      amazon_bedrock_guardrail = {
+        blueprint_name = "AmazonBedrockGuardrail"
+      }
+      amazon_bedrock_knowledge_base = {
+        blueprint_name = "AmazonBedrockKnowledgeBase"
+      }
+      amazon_bedrock_prompt = {
+        blueprint_name = "AmazonBedrockPrompt"
+      }
+    } : {},
+    (var.enable_sql_analytics || var.enable_all_capabilities) ? {
+      lakehouse_database = {
+        blueprint_name = "DataLake"
+      }
       lakehouse_catalog = {
         blueprint_name = "LakehouseCatalog"
       }
-    } : {},
-    var.enable_ml_experiments ? {
-      ml_experiments = {
-        blueprint_name = "MLExperiments"
-      }
-    } : {},
-    var.enable_redshift_serverless ? {
       redshift_serverless = {
         blueprint_name = "RedshiftServerless"
       }
     } : {},
+    (var.enable_all_capabilities) ? {
+      emr_serverless = {
+        blueprint_name = "EmrServerless"
+      }
+      emr_on_ec2 = {
+        blueprint_name = "EmrOnEc2"
+      }
+      ml_experiments = {
+        blueprint_name = "MLExperiments"
+      }
+      workflows = {
+        blueprint_name = "Workflows"
+      }
+    } : {},
   )
 
+  sql_analytics_blueprint_config = {
+    "DataLake" = {
+      deployment_mode = "ON_CREATE"
+      parameter_overrides = {
+        "glueDbName" = {
+          value       = "glue_db"
+          is_editable = true
+        }
+      }
+    }
+    "RedshiftServerless" = {
+      deployment_mode = "ON_CREATE"
+      parameter_overrides = {
+        "connectToRMSCatalog" = {
+          value       = "true"
+          is_editable = false
+        }
+        "redshiftDbName" = {
+          value       = "dev"
+          is_editable = true
+        }
+        "redshiftMaxCapacity" = {
+          value       = "512"
+          is_editable = false
+        }
+      }
+    }
+    "LakehouseCatalog" = {
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "catalogDescription" = {
+          value       = "RMS catalog"
+          is_editable = true
+        }
+        "catalogName" = {
+          value       = ""
+          is_editable = true
+        }
+      }
+    }
+    "RedshiftServerless" = {
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "connectionName" = {
+          value       = "redshift.serverless"
+          is_editable = true
+        }
+        "connectToRMSCatalog" = {
+          value       = "false"
+          is_editable = false
+        }
+        "redshiftBaseCapacity" = {
+          value       = "128"
+          is_editable = true
+        }
+        "redshiftDbName" = {
+          value       = "dev"
+          is_editable = true
+        }
+        "redshiftMaxCapacity" = {
+          value       = "512"
+          is_editable = true
+        }
+        "redshiftWorkgroupName" = {
+          value       = "redshift-serverless-workgroup"
+          is_editable = true
+        }
+      }
+    }
+  }
+
+  generative_ai_blueprint_config = {
+    "AmazonBedrockEvaluation" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockPrompt" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockFlow" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockFunction" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockGuardrail" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockKnowledgeBase" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockChatAgent" = {
+      deployment_mode = "ON_DEMAND"
+    }
+  }
+
+  all_capabilities_blueprint_config = merge(local.sql_analytics_blueprint_config, local.generative_ai_blueprint_config)
   # Build the regional parameters for each blueprint (same VPC/subnets/S3 for all)
   regional_parameters = {
     (local.region) = {
@@ -162,17 +294,47 @@ module "blueprints" {
 #                  Tooling blueprint integration from domain output (Req 9.3)
 #####################################################################################
 
-module "project_profile" {
+module "sql_analytics_project_profile" {
+  count  = var.enable_sql_analytics ? 1 : 0
   source = "../../modules/project-profile"
 
-  domain_id = module.domain.domain_id
-  name      = "${var.domain_name}-quick-setup-profile"
+  domain_id   = module.domain.domain_id
+  name        = "SQL analytics"
+  description = "Analyze your data in SageMaker Lakehouse using SQL"
 
   # Compose blueprints into the profile — Tooling is automatically included
   # and always first in the environment configurations
-  blueprints = {
-    for key, config in local.blueprint_configs : config.blueprint_name => {}
-  }
+  blueprints = local.sql_analytics_blueprint_config
+
+  depends_on = [module.blueprints]
+}
+
+module "generative_ai_project_profile" {
+  count  = var.enable_generative_ai ? 1 : 0
+  source = "../../modules/project-profile"
+
+  domain_id   = module.domain.domain_id
+  name        = "Generative AI application development"
+  description = "Build generative AI applications powered by Amazon Bedrock"
+
+  # Compose blueprints into the profile — Tooling is automatically included
+  # and always first in the environment configurations
+  blueprints = local.generative_ai_blueprint_config
+
+  depends_on = [module.blueprints]
+}
+
+module "all_capabilities_project_profile" {
+  count  = var.enable_all_capabilities ? 1 : 0
+  source = "../../modules/project-profile"
+
+  domain_id   = module.domain.domain_id
+  name        = "All capabilities"
+  description = "Analyze data and build machine learning and generative AI models and applications powered by Amazon Bedrock, Amazon EMR, AWS Glue, Amazon Athena, Amazon SageMaker AI and Amazon SageMaker Lakehouse"
+
+  # Compose blueprints into the profile — Tooling is automatically included
+  # and always first in the environment configurations
+  blueprints = local.all_capabilities_blueprint_config
 
   depends_on = [module.blueprints]
 }
@@ -183,12 +345,14 @@ module "project_profile" {
 #####################################################################################
 
 module "project" {
+  count  = (var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai) ? 1 : 0
   source = "../../modules/project"
 
   domain_id           = module.domain.domain_id
   project_name        = local.project_name
   project_description = var.project_description
-  project_profile_id  = module.project_profile.project_profile_id
+  // pick first available project profile
+  project_profile_id  = concat(module.all_capabilities_project_profile, module.sql_analytics_project_profile, module.generative_ai_project_profile)[0].project_profile_id
 
   depends_on = [module.project_profile]
 }
