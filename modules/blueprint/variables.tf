@@ -41,6 +41,12 @@ variable "allow_replace_existing" {
   default     = false
 }
 
+variable "create_roles" {
+  description = "Whether to create IAM roles (provisioning, manage access) in this module. Set to false when passing role ARNs from the domain module."
+  type        = bool
+  default     = true
+}
+
 variable "global_parameters" {
   description = "Map of the global parameters to attach to the project."
   type        = map(string)

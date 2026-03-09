@@ -64,6 +64,7 @@ locals {
   has_global_parameters = length(var.global_parameters) > 0
 
   # 3-tier role resolution: user-provided > existing > auto-create
+  # count driven by var.create_roles (always known at plan time)
   default_provisioning_role_name = "AmazonSageMakerProvisioning-${local.account_id}"
   provisioning_role_exists       = var.provisioning_role_arn != null ? true : length(data.aws_iam_roles.provisioning_role.arns) > 0
   provisioning_role_arn = var.provisioning_role_arn != null ? var.provisioning_role_arn : (
@@ -134,7 +135,7 @@ data "aws_iam_roles" "manage_access_role" {
 
 # Create AmazonSageMakerProvisioning role if it doesn't exist
 resource "aws_iam_role" "sagemaker_provisioning" {
-  count = !local.provisioning_role_exists ? 1 : 0
+  count = var.create_roles ? 1 : 0
 
   name = local.default_provisioning_role_name
   path = "/service-role/"
@@ -165,14 +166,14 @@ resource "aws_iam_role" "sagemaker_provisioning" {
 }
 
 resource "aws_iam_role_policy_attachment" "sagemaker_provisioning" {
-  count      = !local.provisioning_role_exists ? 1 : 0
+  count      = var.create_roles ? 1 : 0
   role       = aws_iam_role.sagemaker_provisioning[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerProvisioningRolePolicy"
 }
 
 # Create ManageAccess role if it doesn't exist
 resource "aws_iam_role" "sagemaker_manage_access" {
-  count = !local.manage_access_role_exists ? 1 : 0
+  count = var.create_roles ? 1 : 0
 
   name        = local.default_manage_access_role_name
   description = "This role grants Amazon SageMaker Unified Studio permissions to publish, grant access, and revoke access to Amazon SageMaker Lakehouse, AWS Glue Data Catalog and Amazon Redshift data."
@@ -207,7 +208,7 @@ resource "aws_iam_role" "sagemaker_manage_access" {
 
 # Custom Redshift secret access policy
 resource "aws_iam_policy" "sagemaker_manage_access_redshift" {
-  count = !local.manage_access_role_exists ? 1 : 0
+  count = var.create_roles ? 1 : 0
 
   name = "AmazonSageMakerManageAccessPolicy-${local.domain_id_suffix}"
 
@@ -232,25 +233,25 @@ resource "aws_iam_policy" "sagemaker_manage_access_redshift" {
 }
 
 resource "aws_iam_role_policy_attachment" "sagemaker_manage_access_custom" {
-  count      = !local.manage_access_role_exists ? 1 : 0
+  count      = var.create_roles ? 1 : 0
   role       = aws_iam_role.sagemaker_manage_access[0].name
   policy_arn = aws_iam_policy.sagemaker_manage_access_redshift[0].arn
 }
 
 resource "aws_iam_role_policy_attachment" "sagemaker_manage_access" {
-  count      = !local.manage_access_role_exists ? 1 : 0
+  count      = var.create_roles ? 1 : 0
   role       = aws_iam_role.sagemaker_manage_access[0].name
   policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerManageAccessRolePolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "glue_manage_access" {
-  count      = !local.manage_access_role_exists ? 1 : 0
+  count      = var.create_roles ? 1 : 0
   role       = aws_iam_role.sagemaker_manage_access[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDataZoneGlueManageAccessRolePolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "redshift_manage_access" {
-  count      = !local.manage_access_role_exists ? 1 : 0
+  count      = var.create_roles ? 1 : 0
   role       = aws_iam_role.sagemaker_manage_access[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDataZoneRedshiftManageAccessRolePolicy"
 }
@@ -341,7 +342,7 @@ resource "awscc_datazone_environment_blueprint_configuration" "this" {
 ######################################
 
 resource "awscc_datazone_policy_grant" "this" {
-  for_each = local.effective_domain_unit_ids
+  count = length(var.domain_unit_ids) > 0 ? length(var.domain_unit_ids) : 1
 
   domain_identifier = var.domain_id
   entity_type       = "ENVIRONMENT_BLUEPRINT_CONFIGURATION"
@@ -357,7 +358,7 @@ resource "awscc_datazone_policy_grant" "this" {
       project_designation = "CONTRIBUTOR"
       project_grant_filter = {
         domain_unit_filter = {
-          domain_unit                = each.value
+          domain_unit                = length(var.domain_unit_ids) > 0 ? var.domain_unit_ids[count.index] : data.aws_datazone_domain.main.root_domain_unit_id
           include_child_domain_units = true
         }
       }
