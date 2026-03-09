@@ -66,7 +66,7 @@ locals {
         aws_account_id = local.account_id
       }
       aws_region = {
-        region_name = local.region
+        region_name = var.blueprints[name].region != null ? var.blueprints[name].region : local.region
       }
       configuration_parameters = length(var.blueprints[name].parameter_overrides) > 0 ? {
         parameter_overrides = [

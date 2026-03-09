@@ -58,9 +58,10 @@ variable "blueprints" {
     Example:
       blueprints = {
         Tooling            = {}
-        DataLake           = { parameter_overrides = { glueDbName = { value = "my_db" } } }
+        DataLake           = { region = "us-west-2", parameter_overrides = { glueDbName = { value = "my_db" } } }
         RedshiftServerless = {
           deployment_mode = "ON_DEMAND"
+          region          = "eu-west-1"
           parameter_overrides = {
             redshiftBaseCapacity = { value = "256", is_editable = true }
           }
@@ -70,6 +71,7 @@ variable "blueprints" {
   type = map(object({
     description = optional(string)
     deployment_mode = optional(string, "ON_CREATE")
+    region          = optional(string)
     parameter_overrides = optional(map(object({
       value       = string
       is_editable = optional(bool, false)
