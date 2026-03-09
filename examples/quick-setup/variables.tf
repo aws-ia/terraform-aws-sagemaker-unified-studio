@@ -1,7 +1,10 @@
-# Variables for SageMaker Unified Studio MVP Example
-# This combines variables from both basic-domain and single-account-project examples
+# Variables for SageMaker Unified Studio Quick-Setup Example
+# Demonstrates the new modular architecture with domain, blueprint, and project profile modules
 
+#####################################################################################
 # AWS Configuration
+#####################################################################################
+
 variable "aws_region" {
   description = "AWS region where the domain will be created"
   type        = string
@@ -17,11 +20,14 @@ variable "aws_region" {
   }
 }
 
+#####################################################################################
 # Domain Configuration
+#####################################################################################
+
 variable "domain_name" {
   description = "Name of the SageMaker Unified Studio domain"
   type        = string
-  default     = "terraform-mvp-domain"
+  default     = "terraform-quick-setup-domain"
 
   validation {
     condition     = can(regex("^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$", var.domain_name))
@@ -37,14 +43,112 @@ variable "domain_name" {
 variable "domain_description" {
   description = "Description of the SageMaker Unified Studio domain"
   type        = string
-  default     = "MVP SageMaker Unified Studio domain with complete project setup"
+  default     = "SageMaker Unified Studio domain with modular blueprint and profile setup"
 }
 
+#####################################################################################
+# VPC and Network Configuration
+#####################################################################################
+
+variable "vpc_id" {
+  description = "VPC ID for blueprint regional parameters. If null, the default VPC is used."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.vpc_id == null || can(regex("^vpc-[a-z0-9]+$", var.vpc_id))
+    error_message = "VPC ID must match pattern vpc-xxx."
+  }
+}
+
+variable "subnet_ids" {
+  description = "Subnet IDs for blueprint regional parameters. If null, subnets from the default VPC are used."
+  type        = list(string)
+  default     = null
+
+  validation {
+    condition     = var.subnet_ids == null || (length(var.subnet_ids) > 0 && alltrue([for s in var.subnet_ids : can(regex("^subnet-[a-z0-9]+$", s))]))
+    error_message = "All subnet IDs must match pattern subnet-xxx and at least one is required."
+  }
+}
+
+#####################################################################################
+# S3 Bucket Configuration
+#####################################################################################
+
+variable "s3_bucket_name" {
+  description = "Existing S3 bucket name for Tooling blueprint storage. If null, a dedicated bucket is created by the domain module."
+  type        = string
+  default     = null
+}
+
+#####################################################################################
+# IAM Role Configuration
+#####################################################################################
+
+variable "user_role_policy_arns" {
+  description = "List of IAM policy ARNs to apply as user role policies on the Tooling blueprint"
+  type        = list(string)
+  default     = null
+
+  validation {
+    condition     = var.user_role_policy_arns == null ? true : alltrue([for arn in var.user_role_policy_arns : can(regex("^arn:aws:iam::(aws|[0-9]{12}):policy/.+", arn))])
+    error_message = "All entries must be valid IAM policy ARNs."
+  }
+}
+
+variable "model_management_role_arn" {
+  description = "ARN of existing AmazonDataZoneBedrockModelManagementRole. If null, auto-created by the domain module."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.model_management_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.model_management_role_arn))
+    error_message = "Must be a valid IAM role ARN."
+  }
+}
+
+variable "model_consumption_role_arn" {
+  description = "ARN of existing AmazonDataZoneBedrockFMConsumptionRole. If null, auto-created by the domain module."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.model_consumption_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.model_consumption_role_arn))
+    error_message = "Must be a valid IAM role ARN."
+  }
+}
+
+#####################################################################################
+# Blueprint Selection
+#####################################################################################
+
+variable "enable_lakehouse_catalog" {
+  description = "Enable LakehouseCatalog blueprint for data lake and catalog functionality"
+  type        = bool
+  default     = true
+}
+
+variable "enable_ml_experiments" {
+  description = "Enable MLExperiments blueprint for ML workloads"
+  type        = bool
+  default     = true
+}
+
+variable "enable_redshift_serverless" {
+  description = "Enable RedshiftServerless blueprint for analytics"
+  type        = bool
+  default     = true
+}
+
+#####################################################################################
 # Project Configuration
+#####################################################################################
+
 variable "project_name" {
   description = "Name of the project to create"
   type        = string
-  default     = "terraform-mvp-project"
+  default     = "terraform-quick-setup-project"
 
   validation {
     condition     = length(var.project_name) > 0 && length(var.project_name) <= 64
@@ -55,35 +159,29 @@ variable "project_name" {
 variable "project_description" {
   description = "Description of the project"
   type        = string
-  default     = "MVP project created with Terraform for SageMaker Unified Studio"
+  default     = "Quick-setup project created with Terraform for SageMaker Unified Studio"
 }
 
-# Blueprint Configuration
-variable "enable_data_lake" {
-  description = "Enable Default Data Lake blueprint (essential for data catalog and lake functionality)"
-  type        = bool
-  default     = true
-}
+#####################################################################################
+# SSO and User Configuration
+#####################################################################################
 
-variable "enable_redshift_serverless" {
-  description = "Enable Default Data Warehouse blueprint (essential for analytics)"
-  type        = bool
-  default     = true
-}
-
-variable "enable_sagemaker" {
-  description = "Enable Default SageMaker blueprint (essential for ML workloads)"
-  type        = bool
-  default     = true
-}
-
-variable "enable_custom_aws_service" {
-  description = "Enable Custom AWS Service blueprint (optional for custom integrations)"
+variable "enable_sso" {
+  description = "Enable single sign on (SSO) using the default IAM Identity Center instance for the region"
   type        = bool
   default     = false
 }
 
+variable "sso_users" {
+  description = "A list of SSO user identifiers to add as members to the created domain and project"
+  type        = list(string)
+  default     = []
+}
+
+#####################################################################################
 # Environment and Tagging
+#####################################################################################
+
 variable "environment" {
   description = "Environment name (e.g., dev, staging, prod)"
   type        = string
@@ -98,21 +196,11 @@ variable "environment" {
 variable "owner" {
   description = "Owner of the domain (for tagging purposes)"
   type        = string
-  default     = "terraform-validation"
+  default     = "terraform-quick-setup"
 }
 
 variable "tags" {
   description = "Additional tags to apply to all resources"
   type        = map(string)
   default     = {}
-}
-
-variable enable_sso {
-  description = "Choose to enable single sign on (SSO) and use an existing AWS IAM Identity Center Instance. When set to true, this will use the default IAM IDC instance that is enabled for the account within the same region as the domain."
-  type = bool
-}
-
-variable sso_users {
-  description = "A list of SSO user identifiers to add as members to the created domain and project."
-  type = list(string)
 }
