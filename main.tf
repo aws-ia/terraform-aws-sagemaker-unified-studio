@@ -220,7 +220,7 @@ resource "aws_datazone_domain" "main" {
 }
 
 # Data source needed to get root domain unit
-data "awscc_datazone_domain" "main" {
+data "aws_datazone_domain" "main" {
   id = aws_datazone_domain.main.id
 }
 
@@ -434,7 +434,7 @@ resource "awscc_datazone_project_profile" "model_governance_project_profile" {
   description            = "Govern generative AI models powered by Amazon Bedrock"
   status                 = "ENABLED"
   domain_identifier      = aws_datazone_domain.main.id
-  domain_unit_identifier = data.awscc_datazone_domain.main.root_domain_unit_id
+  domain_unit_identifier = data.aws_datazone_domain.main.root_domain_unit_id
 }
 
 resource "awscc_datazone_project" "model_governance_project" {

@@ -12,7 +12,7 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 # Data source needed to get root domain unit
-data "awscc_datazone_domain" "main" {
+data "aws_datazone_domain" "main" {
   id = var.domain_id
 }
 
@@ -102,7 +102,7 @@ locals {
   ]
 
   # Resolve domain unit IDs: user-provided list, or fall back to root domain unit
-  effective_domain_unit_ids = length(var.domain_unit_ids) > 0 ? toset(var.domain_unit_ids) : toset([data.awscc_datazone_domain.main.root_domain_unit_id])
+  effective_domain_unit_ids = length(var.domain_unit_ids) > 0 ? toset(var.domain_unit_ids) : toset([data.aws_datazone_domain.main.root_domain_unit_id])
 }
 
 ######################################

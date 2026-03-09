@@ -23,7 +23,7 @@ output "domain_url" {
 
 output "domain_root_unit_id" {
   description = "Actual root domain unit ID (not domain ID)"
-  value       = data.awscc_datazone_domain.main.root_domain_unit_id
+  value       = data.aws_datazone_domain.main.root_domain_unit_id
 }
 
 output "account_id" {

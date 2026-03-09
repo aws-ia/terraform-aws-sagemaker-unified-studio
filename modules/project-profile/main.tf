@@ -9,7 +9,7 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-data "awscc_datazone_domain" "main" {
+data "aws_datazone_domain" "main" {
   id = var.domain_id
 }
 
@@ -105,7 +105,7 @@ resource "awscc_datazone_project_profile" "this" {
 resource "awscc_datazone_policy_grant" "create_project_from_profile" {
   domain_identifier = var.domain_id
   entity_type       = "DOMAIN_UNIT"
-  entity_identifier = var.domain_unit_id != null ? var.domain_unit_id : data.awscc_datazone_domain.main.root_domain_unit_id
+  entity_identifier = var.domain_unit_id != null ? var.domain_unit_id : data.aws_datazone_domain.main.root_domain_unit_id
   policy_type       = "CREATE_PROJECT_FROM_PROJECT_PROFILE"
 
   detail = {
