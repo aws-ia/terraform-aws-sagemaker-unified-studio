@@ -123,24 +123,6 @@ variable "model_consumption_role_arn" {
 # Blueprint Selection
 #####################################################################################
 
-variable "enable_lakehouse_catalog" {
-  description = "Enable LakehouseCatalog blueprint for data lake and catalog functionality"
-  type        = bool
-  default     = true
-}
-
-variable "enable_ml_experiments" {
-  description = "Enable MLExperiments blueprint for ML workloads"
-  type        = bool
-  default     = true
-}
-
-variable "enable_redshift_serverless" {
-  description = "Enable RedshiftServerless blueprint for analytics"
-  type        = bool
-  default     = true
-}
-
 variable "enable_generative_ai" {
   description = "Enable the Generative AI application development default project profile. Enabling this will create the project profile and enable the selected blueprints."
   type        = bool
