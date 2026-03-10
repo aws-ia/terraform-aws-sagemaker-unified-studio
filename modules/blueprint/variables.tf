@@ -41,12 +41,6 @@ variable "allow_replace_existing" {
   default     = false
 }
 
-variable "create_roles" {
-  description = "Whether to create IAM roles (provisioning, manage access) in this module. Set to false when passing role ARNs from the domain module."
-  type        = bool
-  default     = true
-}
-
 variable "global_parameters" {
   description = "Map of the global parameters to attach to the project."
   type        = map(string)
@@ -94,7 +88,7 @@ variable "regional_parameters" {
 }
 
 variable "manage_access_role_arn" {
-  description = "ARN of existing ManageAccess role. If not provided, the role is looked up or auto-created."
+  description = "ARN of existing ManageAccess role. If not provided, the role is looked up by name. If neither is found, the module will fail — use the bootstrap submodule to create roles first."
   type        = string
   default     = null
 
@@ -105,30 +99,13 @@ variable "manage_access_role_arn" {
 }
 
 variable "provisioning_role_arn" {
-  description = "ARN of existing Provisioning role. If not provided, the role is looked up or auto-created."
+  description = "ARN of existing Provisioning role. If not provided, the role is looked up by name. If neither is found, the module will fail — use the bootstrap submodule to create roles first."
   type        = string
   default     = null
 
   validation {
     condition     = var.provisioning_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.provisioning_role_arn))
     error_message = "Provisioning role ARN must be a valid IAM role ARN."
-  }
-}
-
-variable "configure_lake_formation" {
-  description = "Whether to configure Lake Formation data lake settings with admin permissions for SageMaker roles"
-  type        = bool
-  default     = true
-}
-
-variable "domain_execution_role_arn" {
-  description = "ARN of the domain execution role to grant Lake Formation admin permissions"
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.domain_execution_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.domain_execution_role_arn))
-    error_message = "Domain execution role ARN must be a valid IAM role ARN."
   }
 }
 

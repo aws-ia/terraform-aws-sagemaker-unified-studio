@@ -63,18 +63,18 @@ locals {
   # Whether this blueprint uses global parameters
   has_global_parameters = length(var.global_parameters) > 0
 
-  # 3-tier role resolution: user-provided > existing > auto-create
-  # count driven by var.create_roles (always known at plan time)
-  default_provisioning_role_name = "AmazonSageMakerProvisioning-${local.account_id}"
-  provisioning_role_exists       = var.provisioning_role_arn != null ? true : length(data.aws_iam_roles.provisioning_role.arns) > 0
+  # 2-tier role resolution: user-provided > data lookup > fail
+  default_provisioning_role_name  = "AmazonSageMakerProvisioning-${local.account_id}"
+  default_manage_access_role_name = "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
+
+  provisioning_role_exists = var.provisioning_role_arn != null ? true : length(data.aws_iam_roles.provisioning_role.arns) > 0
   provisioning_role_arn = var.provisioning_role_arn != null ? var.provisioning_role_arn : (
-    local.provisioning_role_exists ? tolist(data.aws_iam_roles.provisioning_role.arns)[0] : aws_iam_role.sagemaker_provisioning[0].arn
+    length(data.aws_iam_roles.provisioning_role.arns) > 0 ? tolist(data.aws_iam_roles.provisioning_role.arns)[0] : null
   )
 
-  default_manage_access_role_name = "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
-  manage_access_role_exists       = var.manage_access_role_arn != null ? true : length(data.aws_iam_roles.manage_access_role.arns) > 0
+  manage_access_role_exists = var.manage_access_role_arn != null ? true : length(data.aws_iam_roles.manage_access_role.arns) > 0
   manage_access_role_arn = var.manage_access_role_arn != null ? var.manage_access_role_arn : (
-    local.manage_access_role_exists ? tolist(data.aws_iam_roles.manage_access_role.arns)[0] : aws_iam_role.sagemaker_manage_access[0].arn
+    length(data.aws_iam_roles.manage_access_role.arns) > 0 ? tolist(data.aws_iam_roles.manage_access_role.arns)[0] : null
   )
 
   common_tags = merge(var.tags, {
@@ -122,7 +122,7 @@ resource "terraform_data" "subnet_vpc_validation" {
 }
 
 ######################################
-# IAM Role Lookup and Creation (from R4)
+# IAM Role Lookup
 ######################################
 
 data "aws_iam_roles" "provisioning_role" {
@@ -133,156 +133,26 @@ data "aws_iam_roles" "manage_access_role" {
   name_regex = "^${local.default_manage_access_role_name}$"
 }
 
-# Create AmazonSageMakerProvisioning role if it doesn't exist
-resource "aws_iam_role" "sagemaker_provisioning" {
-  count = var.create_roles ? 1 : 0
-
-  name = local.default_provisioning_role_name
-  path = "/service-role/"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "datazone.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-        Condition = {
-          StringEquals = {
-            "aws:SourceAccount" = local.domain_account_id
-          }
-        }
-      }
-    ]
-  })
-
-  lifecycle {
-    prevent_destroy = true
-  }
-
-  tags = local.common_tags
-}
-
-resource "aws_iam_role_policy_attachment" "sagemaker_provisioning" {
-  count      = var.create_roles ? 1 : 0
-  role       = aws_iam_role.sagemaker_provisioning[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioProjectProvisioningRolePolicy"
-}
-
-# Create ManageAccess role if it doesn't exist
-resource "aws_iam_role" "sagemaker_manage_access" {
-  count = var.create_roles ? 1 : 0
-
-  name        = local.default_manage_access_role_name
-  description = "This role grants Amazon SageMaker Unified Studio permissions to publish, grant access, and revoke access to Amazon SageMaker Lakehouse, AWS Glue Data Catalog and Amazon Redshift data."
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "datazone.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-        Condition = {
-          StringEquals = {
-            "aws:SourceAccount" = local.domain_account_id
-          }
-          ArnEquals = {
-            "aws:SourceArn" = "arn:aws:datazone:${local.region}:${local.domain_account_id}:domain/${var.domain_id}"
-          }
-        }
-      }
-    ]
-  })
-
-  lifecycle {
-    prevent_destroy = true
-  }
-
-  tags = local.common_tags
-}
-
-# Custom Redshift secret access policy
-resource "aws_iam_policy" "sagemaker_manage_access_redshift" {
-  count = var.create_roles ? 1 : 0
-
-  name = "AmazonSageMakerManageAccessPolicy-${local.domain_id_suffix}"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "RedshiftSecretStatement"
-        Effect   = "Allow"
-        Action   = "secretsmanager:GetSecretValue"
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "secretsmanager:ResourceTag/AmazonDataZoneDomain" = var.domain_id
-          }
-        }
-      }
-    ]
-  })
-
-  tags = local.common_tags
-}
-
-resource "aws_iam_role_policy_attachment" "sagemaker_manage_access_custom" {
-  count      = var.create_roles ? 1 : 0
-  role       = aws_iam_role.sagemaker_manage_access[0].name
-  policy_arn = aws_iam_policy.sagemaker_manage_access_redshift[0].arn
-}
-
-resource "aws_iam_role_policy_attachment" "sagemaker_manage_access" {
-  count      = var.create_roles ? 1 : 0
-  role       = aws_iam_role.sagemaker_manage_access[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerManageAccessRolePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "glue_manage_access" {
-  count      = var.create_roles ? 1 : 0
-  role       = aws_iam_role.sagemaker_manage_access[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDataZoneGlueManageAccessRolePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "redshift_manage_access" {
-  count      = var.create_roles ? 1 : 0
-  role       = aws_iam_role.sagemaker_manage_access[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDataZoneRedshiftManageAccessRolePolicy"
-}
-
 ######################################
-# Lake Formation Configuration (from R4)
+# Role Existence Validation
 ######################################
 
-resource "aws_lakeformation_data_lake_settings" "main" {
-  count = var.configure_lake_formation ? 1 : 0
-
-  admins = compact([
-    var.domain_execution_role_arn,
-    local.manage_access_role_arn,
-    local.provisioning_role_arn,
-  ])
-
+resource "terraform_data" "provisioning_role_validation" {
   lifecycle {
-    prevent_destroy = true
+    precondition {
+      condition     = local.provisioning_role_arn != null
+      error_message = "Provisioning role '${local.default_provisioning_role_name}' not found. Please create it first using the bootstrap submodule (modules/blueprint/bootstrap) or pass var.provisioning_role_arn explicitly."
+    }
   }
-
-  depends_on = [
-    aws_iam_role.sagemaker_manage_access
-  ]
 }
 
-resource "time_sleep" "lakeformation_propagation" {
-  count = var.configure_lake_formation ? 1 : 0
-
-  depends_on      = [aws_lakeformation_data_lake_settings.main]
-  create_duration = "30s"
+resource "terraform_data" "manage_access_role_validation" {
+  lifecycle {
+    precondition {
+      condition     = local.manage_access_role_arn != null
+      error_message = "Manage access role '${local.default_manage_access_role_name}' not found. Please create it first using the bootstrap submodule (modules/blueprint/bootstrap) or pass var.manage_access_role_arn explicitly."
+    }
+  }
 }
 
 ######################################
@@ -314,7 +184,8 @@ resource "aws_datazone_environment_blueprint_configuration" "this" {
 
   depends_on = [
     terraform_data.subnet_vpc_validation,
-    time_sleep.lakeformation_propagation
+    terraform_data.provisioning_role_validation,
+    terraform_data.manage_access_role_validation,
   ]
 }
 
@@ -333,7 +204,8 @@ resource "awscc_datazone_environment_blueprint_configuration" "this" {
 
   depends_on = [
     terraform_data.subnet_vpc_validation,
-    time_sleep.lakeformation_propagation
+    terraform_data.provisioning_role_validation,
+    terraform_data.manage_access_role_validation,
   ]
 }
 
