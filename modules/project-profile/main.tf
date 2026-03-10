@@ -9,6 +9,11 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+# Data source needed to get root domain unit
+data "aws_datazone_domain" "main" {
+  id = var.domain_id
+}
+
 # Resolve blueprint IDs from names
 data "aws_datazone_environment_blueprint" "this" {
   for_each  = toset(concat(["Tooling"], keys(var.blueprints)))
@@ -87,6 +92,7 @@ locals {
       } : null
     }]
   )
+  effective_domain_unit_id = var.domain_unit_id != null ? var.domain_unit_id : data.aws_datazone_domain.main.root_domain_unit_id
 }
 
 resource "awscc_datazone_project_profile" "this" {
@@ -94,7 +100,7 @@ resource "awscc_datazone_project_profile" "this" {
   name                       = var.name
   description                = var.description
   status                     = var.status
-  domain_unit_identifier     = var.domain_unit_id
+  domain_unit_identifier     = local.effective_domain_unit_id
   environment_configurations = local.environment_configurations
 
   lifecycle {
@@ -117,7 +123,7 @@ resource "awscc_datazone_project_profile" "this" {
 resource "awscc_datazone_policy_grant" "create_project_from_profile" {
   domain_identifier = var.domain_id
   entity_type       = "DOMAIN_UNIT"
-  entity_identifier = awscc_datazone_project_profile.this.domain_unit_identifier
+  entity_identifier = local.effective_domain_unit_id
   policy_type       = "CREATE_PROJECT_FROM_PROJECT_PROFILE"
 
   detail = {
