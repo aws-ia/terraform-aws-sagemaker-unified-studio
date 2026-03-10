@@ -93,6 +93,13 @@ locals {
     }]
   )
   effective_domain_unit_id = var.domain_unit_id != null ? var.domain_unit_id : data.aws_datazone_domain.main.root_domain_unit_id
+
+  # Filter domain_units: exclude the effective domain unit (already owns the profile)
+  # and skip entirely if the root domain unit was used (domain_unit_id is null).
+  additional_domain_units = var.domain_unit_id != null ? {
+    for du in var.domain_units : du.domain_unit_id => du
+    if du.domain_unit_id != local.effective_domain_unit_id
+  } : {}
 }
 
 resource "awscc_datazone_project_profile" "this" {
@@ -119,16 +126,18 @@ resource "awscc_datazone_project_profile" "this" {
   }
 }
 
-# Grant domain unit permission to create projects from this profile
+# Grant additional domain units permission to create projects from this profile
 resource "awscc_datazone_policy_grant" "create_project_from_profile" {
+  for_each = local.additional_domain_units
+
   domain_identifier = var.domain_id
   entity_type       = "DOMAIN_UNIT"
-  entity_identifier = local.effective_domain_unit_id
+  entity_identifier = each.key
   policy_type       = "CREATE_PROJECT_FROM_PROJECT_PROFILE"
 
   detail = {
     create_project_from_project_profile = {
-      include_child_domain_units = true
+      include_child_domain_units = each.value.include_child_domain_units
       project_profiles           = [awscc_datazone_project_profile.this.project_profile_id]
     }
   }

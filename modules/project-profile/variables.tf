@@ -41,9 +41,18 @@ variable "status" {
 }
 
 variable "domain_unit_id" {
-  description = "The domain unit ID for the project profile. If not provided, uses the root domain unit."
+  description = "The domain unit ID that owns the project profile. If not provided, the module will use the root domain unit."
   type        = string
   default     = null
+}
+
+variable "domain_units" {
+  description = "A list of domain units identified by domain_unit_id that are allowed to create a project from the project profile. Set include_child_domain_units to true to cascade access to the child domain units under the specified domain unit"
+  type = list(object({
+    domain_unit_id             = string
+    include_child_domain_units = bool
+  }))
+  default = []
 }
 
 variable "blueprints" {
@@ -69,7 +78,7 @@ variable "blueprints" {
       }
   EOT
   type = map(object({
-    description = optional(string)
+    description     = optional(string)
     deployment_mode = optional(string, "ON_CREATE")
     region          = optional(string)
     parameter_overrides = optional(map(object({
