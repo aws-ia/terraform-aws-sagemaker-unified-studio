@@ -17,9 +17,14 @@ data "aws_datazone_environment_blueprint" "this" {
   managed   = true
 }
 
-# Check if Tooling blueprint is configured (enabled) for this domain in the current account/region
-data "awscc_datazone_environment_blueprint_configuration" "tooling" {
-  id = "${var.domain_id}|${data.aws_datazone_environment_blueprint.this["Tooling"].id}"
+# Verify ALL referenced blueprints are configured (enabled) for this domain.
+# Blueprint IDs always resolve (managed blueprints exist in every domain), but that
+# does NOT mean they are configured with VPC, roles, and enabled regions.
+# Without this check, a project profile could reference an unconfigured blueprint,
+# causing environment creation failures at project time.
+data "awscc_datazone_environment_blueprint_configuration" "this" {
+  for_each = data.aws_datazone_environment_blueprint.this
+  id       = "${var.domain_id}|${each.value.id}"
 }
 
 locals {
@@ -91,8 +96,16 @@ resource "awscc_datazone_project_profile" "this" {
 
   lifecycle {
     precondition {
-      condition     = contains(data.awscc_datazone_environment_blueprint_configuration.tooling.enabled_regions, local.region)
-      error_message = "Tooling blueprint is not configured for this domain in the current region (${local.region}). Enable the Tooling blueprint via the domain module before creating a project profile."
+      condition     = contains(data.awscc_datazone_environment_blueprint_configuration.this["Tooling"].enabled_regions, local.region)
+      error_message = "Tooling blueprint is not configured for this domain in the current region (${local.region}). Enable the Tooling blueprint before creating a project profile."
+    }
+
+    precondition {
+      condition = alltrue([
+        for name in local.non_tooling_names :
+        length(data.awscc_datazone_environment_blueprint_configuration.this[name].enabled_regions) > 0
+      ])
+      error_message = "One or more blueprints are not configured for this domain. Ensure all blueprints in var.blueprints are enabled via the blueprint module before creating a project profile."
     }
   }
 }

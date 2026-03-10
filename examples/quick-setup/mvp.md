@@ -14,7 +14,7 @@ This MVP provides an initial **Terraform implementation** of Amazon SageMaker Un
 | **IAM Roles (3)** | Service execution roles | IAM role definitions |
 | - Domain Execution Role | Domain management | `AmazonDataZoneDomainExecutionRolePolicy` |
 | - SageMaker Manage Access Role | Environment access | `AmazonDataZoneSageMakerManageAccessRolePolicy` |
-| - SageMaker Provisioning Role | Environment provisioning | `AmazonDataZoneSageMakerProvisioningRolePolicy` |
+| - SageMaker Provisioning Role | Environment provisioning | `SageMakerStudioProjectProvisioningRolePolicy` |
 | **Environment Blueprints (3)** | Pre-configured environments | Blueprint configurations |
 | - Default Data Lake | Data catalog & lake functionality | `DefaultDataLake` blueprint |
 | - Default Data Warehouse | Analytics workloads | `DefaultDataWarehouse` blueprint |

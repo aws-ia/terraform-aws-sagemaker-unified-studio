@@ -89,7 +89,7 @@ resource "aws_iam_role" "sagemaker_provisioning" {
 resource "aws_iam_role_policy_attachment" "sagemaker_provisioning" {
   count      = !local.provisioning_role_exists ? 1 : 0
   role       = aws_iam_role.sagemaker_provisioning[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerProvisioningRolePolicy"
+  policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioProjectProvisioningRolePolicy"
 }
 
 resource "aws_iam_role" "sagemaker_manage_access" {
