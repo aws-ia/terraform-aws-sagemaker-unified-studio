@@ -98,9 +98,19 @@ output "sagemaker_manage_access_role_arn" {
   value       = local.manage_access_role_arn
 }
 
+output "sagemaker_manage_access_role_created" {
+  description = "Whether the SageMaker manage access role was created by this module (false if it already existed or was user-provided)"
+  value       = var.manage_access_role_arn == null && !local.manage_access_role_exists
+}
+
 output "sagemaker_provisioning_role_arn" {
   description = "ARN of the SageMaker provisioning role (created or existing)"
   value       = local.provisioning_role_arn
+}
+
+output "sagemaker_provisioning_role_created" {
+  description = "Whether the SageMaker provisioning role was created by this module (false if it already existed or was user-provided)"
+  value       = var.provisioning_role_arn == null && !local.provisioning_role_exists
 }
 
 # Lake Formation Configuration Outputs

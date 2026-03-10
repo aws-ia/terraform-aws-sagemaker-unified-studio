@@ -7,11 +7,23 @@ run "mandatory_plan_domain" {
   module {
     source = "./"
   }
+
+  variables {
+    vpc_id         = "vpc-abc123"
+    subnet_ids     = ["subnet-abc123"]
+    s3_bucket_name = "test-bucket-domain"
+  }
 }
 
 run "mandatory_apply_domain" {
   command = apply
   module {
     source = "./"
+  }
+
+  variables {
+    vpc_id         = "vpc-abc123"
+    subnet_ids     = ["subnet-abc123"]
+    s3_bucket_name = "test-bucket-domain"
   }
 }
