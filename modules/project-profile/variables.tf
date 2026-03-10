@@ -94,3 +94,9 @@ variable "blueprints" {
     error_message = "eksClusterArn is required in parameter_overrides when using EmrOnEks blueprint."
   }
 }
+
+variable "blueprint_dependencies" {
+  description = "List of blueprint entity IDs to ensure they are created before the profile. Pass the entity_id output from each blueprint module. This prevents race conditions when blueprints and profiles are deployed in the same apply."
+  type        = list(string)
+  default     = []
+}

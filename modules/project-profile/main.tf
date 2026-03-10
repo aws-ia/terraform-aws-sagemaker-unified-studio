@@ -22,9 +22,12 @@ data "aws_datazone_environment_blueprint" "this" {
 # does NOT mean they are configured with VPC, roles, and enabled regions.
 # Without this check, a project profile could reference an unconfigured blueprint,
 # causing environment creation failures at project time.
+#
+# The join() on blueprint_dependencies creates an implicit dependency so Terraform
+# waits for blueprint modules to finish before reading configs.
 data "awscc_datazone_environment_blueprint_configuration" "this" {
   for_each = data.aws_datazone_environment_blueprint.this
-  id       = "${var.domain_id}|${each.value.id}"
+  id       = "${var.domain_id}|${each.value.id}${join("", var.blueprint_dependencies) == "" ? "" : ""}"
 }
 
 locals {
