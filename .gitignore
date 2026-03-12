@@ -69,3 +69,6 @@ venv/
 *.pyc
 __pycache__/
 requirements.txt
+
+# E2E tests
+tests/e2e/
