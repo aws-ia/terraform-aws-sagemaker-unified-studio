@@ -2,13 +2,16 @@
 
 ## NOTE: paths may differ when running in a managed task. To ensure behavior is consistent between
 # managed and local tasks always use these variables for the project and project type path
-PROJECT_PATH=${BASE_PATH}/project
-PROJECT_TYPE_PATH=${BASE_PATH}/projecttype
+PROJECT_PATH="${BASE_PATH}/project"
+PROJECT_TYPE_PATH="${BASE_PATH}/projecttype"
 
 echo "Starting Static Tests"
 
+# Ensure Homebrew Ruby and gems are on PATH (needed for mdl)
+export PATH="/opt/homebrew/opt/ruby/bin:/opt/homebrew/lib/ruby/gems/4.0.0/bin:$PATH"
+
 #********** Terraform Validate *************
-cd ${PROJECT_PATH}
+cd "${PROJECT_PATH}"
 terraform init
 terraform validate
 if [ $? -eq 0 ]
@@ -21,8 +24,8 @@ fi
 
 #********** tflint ********************
 echo 'Starting tflint'
-tflint --init --config ${PROJECT_PATH}/.config/.tflint.hcl
-MYLINT=$(tflint --force --config ${PROJECT_PATH}/.config/.tflint.hcl)
+tflint --init --config "${PROJECT_PATH}/.config/.tflint.hcl"
+MYLINT=$(tflint --force --config "${PROJECT_PATH}/.config/.tflint.hcl")
 if [ -z "$MYLINT" ]
 then
     echo "Success - tflint found no linting issues!"
@@ -34,7 +37,7 @@ fi
 
 #********** tfsec *********************
 echo 'Starting tfsec'
-MYTFSEC=$(tfsec . --config-file ${PROJECT_PATH}/.config/.tfsec.yml --custom-check-dir ${PROJECT_PATH}/.config/.tfsec)
+MYTFSEC=$(tfsec . --config-file "${PROJECT_PATH}/.config/.tfsec.yml" --custom-check-dir "${PROJECT_PATH}/.config/.tfsec")
 if [[ $MYTFSEC == *"No problems detected!"* ]];
 then
     echo "Success - tfsec found no security issues!"
@@ -47,7 +50,14 @@ fi
 
 #********** Checkov Analysis *************
 echo "Running Checkov Analysis"
-checkov --config-file ${PROJECT_PATH}/.config/.checkov.yml
+if [ -x "${PROJECT_PATH}/.venv/bin/python" ]; then
+    "${PROJECT_PATH}/.venv/bin/python" -m checkov.main --config-file "${PROJECT_PATH}/.config/.checkov.yml"
+elif command -v checkov > /dev/null; then
+    checkov --config-file "${PROJECT_PATH}/.config/.checkov.yml"
+else
+    echo "checkov not found. Install it or activate the virtual environment."
+    exit 1
+fi
 if [ $? -eq 0 ]
 then
     echo "Success - Checkov found no issues!"
@@ -58,7 +68,7 @@ fi
 
 #********** Markdown Lint **************
 echo 'Starting markdown lint'
-MYMDL=$(mdl --config ${PROJECT_PATH}/.config/.mdlrc .header.md examples/*/.header.md)
+MYMDL=$(mdl --config "${PROJECT_PATH}/.config/.mdlrc" .header.md examples/*/.header.md)
 if [ -z "$MYMDL" ]
 then
     echo "Success - markdown lint found no linting issues!"
@@ -70,7 +80,7 @@ fi
 
 #********** Terraform Docs *************
 echo 'Starting terraform-docs'
-TDOCS="$(terraform-docs --config ${PROJECT_PATH}/.config/.terraform-docs.yaml --lockfile=false ./)"
+TDOCS="$(terraform-docs --config "${PROJECT_PATH}/.config/.terraform-docs.yaml" --lockfile=false ./)"
 git add -N README.md
 GDIFF="$(git diff --compact-summary)"
 if [ -z "$GDIFF" ]

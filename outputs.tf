@@ -23,7 +23,7 @@ output "domain_url" {
 
 output "domain_root_unit_id" {
   description = "Actual root domain unit ID (not domain ID)"
-  value       = data.awscc_datazone_domain.main.root_domain_unit_id
+  value       = data.aws_datazone_domain.main.root_domain_unit_id
 }
 
 output "account_id" {
@@ -43,5 +43,47 @@ output "domain_execution_role_arn" {
 
 output "domain_execution_role_name" {
   description = "Name of the domain execution role"
-  value       = split("/", local.domain_execution_role_arn)[1]
+  value       = local.default_domain_execution_role_name
+}
+
+output "domain_service_role_arn" {
+  description = "ARN of the domain service role (created or existing)"
+  value       = local.domain_service_role_arn
+}
+
+output "domain_service_role_name" {
+  description = "Name of the domain service role"
+  value       = local.default_domain_service_role_name
+}
+
+output "domain_execution_role_created" {
+  description = "Whether the domain execution role was created by this module (false if it already existed)"
+  value       = local.create_domain_execution_role && length(data.aws_iam_roles.domain_execution_role.arns) == 0
+}
+
+output "domain_service_role_created" {
+  description = "Whether the domain service role was created by this module (false if it already existed)"
+  value       = local.create_domain_service_role && length(data.aws_iam_roles.domain_service_role.arns) == 0
+}
+
+# --- Blueprint Role Outputs ---
+output "manage_access_role_arn" {
+  description = "ARN of the manage access role (created or provided). Pass to blueprint modules."
+  value       = local.manage_access_role_arn
+}
+
+output "provisioning_role_arn" {
+  description = "ARN of the provisioning role (created or provided). Pass to blueprint modules."
+  value       = local.provisioning_role_arn
+}
+
+# --- Tooling Blueprint Outputs ---
+output "tooling_blueprint_id" {
+  description = "ID of the Tooling environment blueprint"
+  value       = data.aws_datazone_environment_blueprint.tooling.id
+}
+
+output "s3_bucket_name" {
+  description = "S3 bucket name used by the Tooling blueprint (created or provided)"
+  value       = local.s3_bucket_name
 }

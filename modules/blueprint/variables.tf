@@ -1,0 +1,110 @@
+#####################################################################################
+# Singular Blueprint Configuration Module Variables
+# This module configures exactly one blueprint per invocation
+#####################################################################################
+
+variable "domain_id" {
+  description = "The ID of the SageMaker Unified Studio domain"
+  type        = string
+
+  validation {
+    condition     = can(regex("^dzd[-_][a-zA-Z0-9_-]{1,36}$", var.domain_id))
+    error_message = "Domain ID must be in the format 'dzd_' or 'dzd-' followed by 1-36 alphanumeric characters, underscores, and hyphens."
+  }
+}
+
+variable "domain_account_id" {
+  description = "AWS account ID where the domain resides. Defaults to the current account. Set this for cross-account blueprints so IAM trust policies grant the domain account permission to assume roles."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.domain_account_id == null || can(regex("^[0-9]{12}$", var.domain_account_id))
+    error_message = "Account ID must be a 12-digit number."
+  }
+}
+
+variable "blueprint_name" {
+  description = "Name of the blueprint to configure (e.g., LakehouseCatalog, MLExperiments, RedshiftServerless). The blueprint ID is resolved internally via data lookup — if the name is invalid, the data source will fail with a clear error."
+  type        = string
+}
+
+variable "domain_unit_ids" {
+  description = "A list of domain unit IDs to grant access to the blueprint. If not specified, the default root domain unit of the domain will be used."
+  type        = list(string)
+  default     = []
+}
+
+variable "global_parameters" {
+  description = "Map of the global parameters to attach to the project."
+  type        = map(string)
+  default     = {}
+}
+
+variable "regional_parameters" {
+  description = "Map of AWS regions to their infrastructure parameters (vpc_id, subnet_ids, s3_bucket_uri). Keys become enabled_regions. Leave empty for blueprints that don't require regional parameters (e.g., QuickSight, Bedrock, MLflowApp, LakehouseAdmin)."
+  type = map(object({
+    vpc_id     = string
+    subnet_ids = list(string)
+    s3_uri     = string
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue([
+      for region, params in var.regional_parameters : can(regex("^vpc-[a-z0-9]+$", params.vpc_id))
+    ])
+    error_message = "All vpc_id values must be in the format 'vpc-' followed by alphanumeric characters."
+  }
+
+  validation {
+    condition = alltrue([
+      for region, params in var.regional_parameters : alltrue([
+        for subnet_id in params.subnet_ids : can(regex("^subnet-[a-z0-9]+$", subnet_id))
+      ])
+    ])
+    error_message = "All subnet IDs must be in the format 'subnet-' followed by alphanumeric characters."
+  }
+
+  validation {
+    condition = alltrue([
+      for region, params in var.regional_parameters : length(params.subnet_ids) > 0
+    ])
+    error_message = "Each region must have at least one subnet_id."
+  }
+
+  validation {
+    condition = alltrue([
+      for region, params in var.regional_parameters : can(regex("^s3://[a-z0-9][a-z0-9.-]*[a-z0-9]$", params.s3_uri))
+    ])
+    error_message = "All s3_uri values must be in the format 's3://<bucket-name>' with a valid bucket name."
+  }
+}
+
+variable "manage_access_role_arn" {
+  description = "ARN of existing ManageAccess role. If not provided, the role is looked up by name. If neither is found, the module will fail — use the bootstrap submodule to create roles first."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.manage_access_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.manage_access_role_arn))
+    error_message = "Manage access role ARN must be a valid IAM role ARN."
+  }
+}
+
+variable "provisioning_role_arn" {
+  description = "ARN of existing Provisioning role. If not provided, the role is looked up by name. If neither is found, the module will fail — use the bootstrap submodule to create roles first."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.provisioning_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.provisioning_role_arn))
+    error_message = "Provisioning role ARN must be a valid IAM role ARN."
+  }
+}
+
+variable "tags" {
+  description = "Tags to apply to all resources created by this module"
+  type        = map(string)
+  default     = {}
+}

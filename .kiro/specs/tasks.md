@@ -59,12 +59,12 @@ Refactor the SageMaker Unified Studio Terraform module from a monolithic archite
 - [ ] 3. Checkpoint — Domain module refactoring
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Create singular Blueprint Module (`modules/blueprint/`)
-  - [ ] 4.1 Create `modules/blueprint/variables.tf` with all input variables
+- [x] 4. Create singular Blueprint Module (`modules/blueprint/`)
+  - [x] 4.1 Create `modules/blueprint/variables.tf` with all input variables
     - Define `domain_id` (string, regex validation `^dzd[-_][a-zA-Z0-9_-]{1,36}$`), `blueprint_name` (string, `contains()` validation against supported blueprint names list), `vpc_id` (string, regex `^vpc-[a-z0-9]+$`), `subnet_ids` (list(string), non-empty, regex `^subnet-[a-z0-9]+$`), `s3_bucket_name` (string), `domain_root_unit_id` (string), `manage_access_role_arn` (optional string, auto-created if null), `provisioning_role_arn` (optional string, auto-created if null), `allow_replace_existing` (bool, default false), `enabled_regions` (optional list(string)), `configure_lake_formation` (bool, default true), `domain_execution_role_arn` (optional string), `tags` (map(string))
     - _Requirements: 1.1, 1.3, 1.6, 1.8, 1.9, 1.10, 5.1, 5.2, 5.6, 5.7_
 
-  - [ ] 4.2 Create `modules/blueprint/main.tf` with data lookups, validation, and single blueprint configuration
+  - [x] 4.2 Create `modules/blueprint/main.tf` with data lookups, validation, and single blueprint configuration
     - Add `data.aws_datazone_environment_blueprint.this` to resolve blueprint ID from `blueprint_name`
     - Add `data.awscc_datazone_domain.this` to look up domain details
     - Add `data.aws_subnet.validation` for_each on `subnet_ids` to validate VPC membership
@@ -73,15 +73,15 @@ Refactor the SageMaker Unified Studio Terraform module from a monolithic archite
     - Create `awscc_datazone_policy_grant.this` for `CREATE_ENVIRONMENT_FROM_BLUEPRINT` permission to root domain unit with child domain units
     - _Requirements: 1.1, 1.2, 1.4, 1.5, 1.6, 1.11, 5.3, 5.4, 5.5, 5.8_
 
-  - [ ] 4.3 Implement conditional IAM role creation in `modules/blueprint/main.tf` for ManageAccess and Provisioning roles
+  - [x] 4.3 Implement conditional IAM role creation in `modules/blueprint/main.tf` for ManageAccess and Provisioning roles
     - Create `aws_iam_role.manage_access` with count conditional on `manage_access_role_arn == null`, name pattern `AmazonSageMakerManageAccess-<region>-<domainId>`, attach Glue/Redshift/SageMaker managed policies
     - Resolve `provisioning_role_arn` local with default name pattern `AmazonSageMakerProvisioning-<accountId>`
     - _Requirements: 1.6_
 
-  - [ ] 4.4 Create `modules/blueprint/outputs.tf` with blueprint_id, blueprint_name, entity_id, manage_access_role_arn, provisioning_role_arn
+  - [x] 4.4 Create `modules/blueprint/outputs.tf` with blueprint_id, blueprint_name, entity_id, manage_access_role_arn, provisioning_role_arn
     - _Requirements: 1.7_
 
-  - [ ] 4.5 Create `modules/blueprint/versions.tf` with required providers (aws >= 6.28.0, awscc >= 1.68.0)
+  - [x] 4.5 Create `modules/blueprint/versions.tf` with required providers (aws >= 6.28.0, awscc >= 1.68.0)
     - _Requirements: 1.7_
 
   - [ ]* 4.6 Write property tests for VPC ID and Subnet ID format validation (Go + rapid)
