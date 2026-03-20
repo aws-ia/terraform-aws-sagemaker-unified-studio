@@ -19,7 +19,7 @@ locals {
   domain_account_id = var.domain_account_id != null ? var.domain_account_id : local.account_id
 
   # 3-tier role resolution: user-provided > existing > auto-create
-  default_provisioning_role_name = "AmazonSageMakerProvisioning-${local.account_id}"
+  default_provisioning_role_name = "AmazonSageMakerProvisioning-${local.account_id}-${var.domain_id}"
 
   default_manage_access_role_name = "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
   common_tags = merge(var.tags, {

@@ -64,7 +64,7 @@ locals {
   has_global_parameters = length(var.global_parameters) > 0
 
   # 2-tier role resolution: user-provided > data lookup > fail
-  default_provisioning_role_name  = "AmazonSageMakerProvisioning-${local.account_id}"
+  default_provisioning_role_name  = "AmazonSageMakerProvisioning-${local.account_id}-${var.domain_id}"
   default_manage_access_role_name = "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
 
   provisioning_role_exists = var.provisioning_role_arn != null ? true : length(data.aws_iam_roles.provisioning_role.arns) > 0

@@ -74,9 +74,6 @@ locals {
   # Build the map of blueprints to enable based on toggle variables
   blueprint_configs = merge(
     (var.enable_generative_ai || var.enable_all_capabilities) ? {
-      amazon_bedrock_generative_ai = {
-        blueprint_name = "AmazonBedrockGenerativeAI"
-      }
       amazon_bedrock_chat_agent = {
         blueprint_name = "AmazonBedrockChatAgent"
       }
