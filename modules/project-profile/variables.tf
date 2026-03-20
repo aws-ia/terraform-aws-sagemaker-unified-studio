@@ -46,15 +46,6 @@ variable "domain_unit_id" {
   default     = null
 }
 
-variable "domain_units" {
-  description = "A list of domain units identified by domain_unit_id that are allowed to create a project from the project profile. Set include_child_domain_units to true to cascade access to the child domain units under the specified domain unit"
-  type = list(object({
-    domain_unit_id             = string
-    include_child_domain_units = bool
-  }))
-  default = []
-}
-
 variable "blueprints" {
   description = <<-EOT
     Map of blueprints to include in this project profile.
