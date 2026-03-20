@@ -1,5 +1,5 @@
 #####################################################################################
-# Domain Unit Policy Grant Module Variables
+# Create Project Policy Grant Module Variables
 #####################################################################################
 
 variable "domain_id" {
@@ -12,13 +12,8 @@ variable "domain_id" {
   }
 }
 
-variable "domain_unit_id" {
-  description = "The domain unit ID that owns the project profiles being granted."
-  type        = string
-}
-
 variable "project_profile_ids" {
-  description = "List of project profile IDs to grant access to."
+  description = "List of project profile IDs to grant access to. All project profile IDs must be owned by the same domain unit and domain"
   type        = list(string)
 
   validation {
@@ -28,7 +23,7 @@ variable "project_profile_ids" {
 }
 
 variable "include_child_domain_units" {
-  description = "Whether to also grant access to child domain units of the target domain unit."
+  description = "Specifies whether to include child domain units when creating a project from project profile policy grant details"
   type        = bool
   default     = true
 }
