@@ -80,7 +80,7 @@ output "provisioning_role_arn" {
 # --- Tooling Blueprint Outputs ---
 output "tooling_blueprint_id" {
   description = "ID of the Tooling environment blueprint"
-  value       = data.aws_datazone_environment_blueprint.tooling.id
+  value       = module.tooling_blueprint.blueprint_id
 }
 
 output "s3_bucket_name" {
