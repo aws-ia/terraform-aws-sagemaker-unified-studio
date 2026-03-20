@@ -12,8 +12,13 @@ variable "domain_id" {
   }
 }
 
+variable "domain_unit_id" {
+  description = "The domain unit ID that owns the project profiles. All granted profiles must belong to this domain unit."
+  type        = string
+}
+
 variable "project_profile_ids" {
-  description = "List of project profile IDs to grant access to. All project profile IDs must be owned by the same domain unit and domain"
+  description = "List of project profile IDs to grant access to. All must belong to the same domain unit specified by domain_unit_id."
   type        = list(string)
 
   validation {
@@ -28,7 +33,7 @@ variable "include_child_domain_units" {
   default     = true
 }
 
-# ── Principal variables ──────────────────────────────────────────────────────────
+# -- Principal variables -----------------------------------------------------------
 
 variable "user_principals" {
   description = "List of individual user identifiers to grant access to."

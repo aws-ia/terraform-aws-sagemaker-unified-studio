@@ -13,6 +13,6 @@ output "domain_id" {
 }
 
 output "domain_unit_id" {
-  description = "The domain unit ID derived from the project profiles."
-  value       = local.domain_unit_id
+  description = "The domain unit ID that owns the project profiles."
+  value       = var.domain_unit_id
 }
