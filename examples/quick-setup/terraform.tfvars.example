@@ -1,34 +1,33 @@
-# SageMaker Unified Studio MVP Example Configuration
+# SageMaker Unified Studio Quick-Setup Example Configuration
 # Copy this file to terraform.tfvars and customize the values
 
 # AWS Configuration
-aws_region = "us-west-2"  # Change to your preferred region
+aws_region = "us-west-2" # Change to your preferred region
 
 # Domain Configuration
-domain_name        = "my-unified-studio-mvp"
-domain_description = "Complete SageMaker Unified Studio MVP deployment with Terraform"
+domain_name        = "my-unified-studio"
+domain_description = "SageMaker Unified Studio domain with modular blueprint and profile setup"
 
 # Project Configuration
 project_name        = "my-analytics-project"
-project_description = "MVP project for data science and ML workloads"
+project_description = "Quick-setup project for data science and ML workloads"
 
-# Blueprint Configuration - Essential blueprints for MVP
-enable_data_lake           = true   # Essential for data catalog and lake functionality
-enable_data_warehouse      = true   # Essential for analytics workloads
-enable_sagemaker           = true   # Essential for ML workloads
-enable_custom_aws_service  = false  # Optional for custom integrations
+# Project Profile Selection -- controls which profiles and blueprints are enabled
+enable_sql_analytics    = true  # SQL analytics profile (DataLake, LakehouseCatalog, RedshiftServerless)
+enable_generative_ai    = true  # Generative AI profile (Bedrock blueprints)
+enable_all_capabilities = false # All capabilities profile (combines SQL + GenAI + EMR + ML)
+
+# VPC and Network Configuration (null = use default VPC)
+# vpc_id     = "vpc-xxx"
+# subnet_ids = ["subnet-xxx", "subnet-xxx"]
+
+# S3 Bucket Configuration (null = auto-create)
+# s3_bucket_name = "my-existing-bucket"
+
+# SSO Configuration
+enable_sso = true
+sso_users  = ["user@example.com"]
 
 # Environment and Tagging
 environment = "test"
 owner       = "data-team"
-
-# Additional Tags
-tags = {
-  Project     = "analytics-mvp"
-  Environment = "test"
-  CostCenter  = "engineering"
-  Owner       = "data-team"
-}
-
-enable_sso = true
-sso_users = ["user@example.com", "datascientist@example.com"]

@@ -275,15 +275,9 @@ module "blueprints" {
   regional_parameters = local.regional_parameters
 
   # Reuse roles created by the domain module
-  manage_access_role_arn    = module.domain.manage_access_role_arn
-  provisioning_role_arn     = module.domain.provisioning_role_arn
-  domain_execution_role_arn = module.domain.domain_execution_role_arn
-  configure_lake_formation  = true
-
-  # Allow replacing existing blueprint configurations
-  allow_replace_existing = true
-
-  tags = local.common_tags
+  manage_access_role_arn = module.domain.manage_access_role_arn
+  provisioning_role_arn  = module.domain.provisioning_role_arn
+  tags                   = local.common_tags
 
   depends_on = [module.domain]
 }
@@ -339,6 +333,24 @@ module "all_capabilities_project_profile" {
   depends_on = [module.blueprints]
 }
 
+module "create_project_from_project_profile_grant" {
+  count  = (var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai) ? 1 : 0
+  source    = "../../modules/policy-grant/create_project"
+  domain_id = module.domain.domain_id
+  project_profile_ids = concat(
+    [for p in module.all_capabilities_project_profile : p.project_profile_id],
+    [for p in module.sql_analytics_project_profile : p.project_profile_id],
+    [for p in module.generative_ai_project_profile : p.project_profile_id],
+  )
+  all_users = true
+  depends_on = [
+    module.all_capabilities_project_profile,
+    module.sql_analytics_project_profile,
+    module.generative_ai_project_profile
+  ]
+}
+
+
 #####################################################################################
 # 4. Project Module
 #    Creates a project from the profile with SSO user membership
@@ -352,9 +364,9 @@ module "project" {
   project_name        = local.project_name
   project_description = var.project_description
   // pick first available project profile
-  project_profile_id  = concat(module.all_capabilities_project_profile, module.sql_analytics_project_profile, module.generative_ai_project_profile)[0].project_profile_id
+  project_profile_id = concat(module.all_capabilities_project_profile, module.sql_analytics_project_profile, module.generative_ai_project_profile)[0].project_profile_id
 
-  depends_on = [module.project_profile]
+  depends_on = [module.create_project_from_project_profile_grant]
 }
 
 #####################################################################################

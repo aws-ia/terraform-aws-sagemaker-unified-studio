@@ -54,19 +54,13 @@ output "blueprint_names" {
 # Project Profile Outputs
 #####################################################################################
 
-output "project_profile_id" {
-  description = "ID of the created project profile"
-  value       = module.project_profile.project_profile_id
-}
-
-output "project_profile_name" {
-  description = "Name of the created project profile"
-  value       = module.project_profile.name
-}
-
-output "project_profile_blueprint_count" {
-  description = "Number of blueprints in the project profile"
-  value       = module.project_profile.blueprint_count
+output "project_profile_ids" {
+  description = "List of all enabled project profile IDs"
+  value = concat(
+    [for p in module.all_capabilities_project_profile : p.project_profile_id],
+    [for p in module.sql_analytics_project_profile : p.project_profile_id],
+    [for p in module.generative_ai_project_profile : p.project_profile_id],
+  )
 }
 
 #####################################################################################
@@ -75,17 +69,17 @@ output "project_profile_blueprint_count" {
 
 output "project_id" {
   description = "ID of the created project"
-  value       = module.project.project_id
+  value       = length(module.project) > 0 ? module.project[0].project_id : null
 }
 
 output "project_name" {
   description = "Name of the created project"
-  value       = module.project.project_name
+  value       = length(module.project) > 0 ? module.project[0].project_name : null
 }
 
 output "project_url" {
   description = "URL to access the project in SageMaker Unified Studio"
-  value       = module.project.project_url
+  value       = length(module.project) > 0 ? module.project[0].project_url : null
 }
 
 #####################################################################################
