@@ -335,8 +335,9 @@ module "all_capabilities_project_profile" {
 
 module "create_project_from_project_profile_grant" {
   count  = (var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai) ? 1 : 0
-  source    = "../../modules/policy-grant/create_project"
-  domain_id = module.domain.domain_id
+  source         = "../../modules/policy-grant/create_project"
+  domain_id      = module.domain.domain_id
+  domain_unit_id = module.domain.domain_root_unit_id
   project_profile_ids = concat(
     [for p in module.all_capabilities_project_profile : p.project_profile_id],
     [for p in module.sql_analytics_project_profile : p.project_profile_id],
@@ -383,7 +384,7 @@ resource "aws_datazone_user_profile" "sso_users" {
 resource "awscc_datazone_project_membership" "project_membership" {
   for_each           = toset(var.sso_users)
   domain_identifier  = module.domain.domain_id
-  project_identifier = module.project.project_id
+  project_identifier = module.project[0].project_id
   member = {
     user_identifier = each.key
   }

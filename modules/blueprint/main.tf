@@ -224,3 +224,12 @@ resource "awscc_datazone_policy_grant" "this" {
 
   depends_on = [aws_datazone_environment_blueprint_configuration.this, awscc_datazone_environment_blueprint_configuration.this]
 }
+
+######################################
+# Propagation Wait
+######################################
+
+resource "time_sleep" "blueprint_propagation" {
+  depends_on      = [awscc_datazone_policy_grant.this]
+  create_duration = "5s"
+}
