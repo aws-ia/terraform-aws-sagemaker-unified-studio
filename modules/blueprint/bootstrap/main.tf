@@ -53,10 +53,6 @@ resource "aws_iam_role" "sagemaker_provisioning" {
     ]
   })
 
-  lifecycle {
-    prevent_destroy = true
-  }
-
   tags = local.common_tags
 }
 
@@ -93,10 +89,6 @@ resource "aws_iam_role" "sagemaker_manage_access" {
       }
     ]
   })
-
-  lifecycle {
-    prevent_destroy = true
-  }
 
   tags = local.common_tags
 }
@@ -159,10 +151,6 @@ resource "aws_lakeformation_data_lake_settings" "main" {
   count = var.configure_lake_formation ? 1 : 0
 
   admins = toset(concat([for role in aws_iam_role.sagemaker_provisioning : role.arn], [for role in aws_iam_role.sagemaker_manage_access : role.arn]))
-
-  lifecycle {
-    prevent_destroy = true
-  }
 
   depends_on = [
     aws_iam_role.sagemaker_provisioning,
