@@ -94,7 +94,7 @@ resource "aws_iam_role" "sagemaker_manage_access" {
 }
 
 # Custom Redshift secret access policy
-resource "aws_iam_policy" "sagemaker_manage_access_redshift" {
+resource "aws_iam_policy" "sagemaker_manage_access_redshift" { #tfsec:ignore:aws-iam-no-policy-wildcards -- Resource '*' is scoped by a StringEquals condition on secretsmanager:ResourceTag/AmazonDataZoneDomain, limiting access to secrets tagged with the specific domain ID
   count = var.create_manage_access_role ? 1 : 0
 
   name = "AmazonSageMakerManageAccessPolicy-${local.domain_id_suffix}"
