@@ -19,7 +19,7 @@ locals {
   domain_account_id = var.domain_account_id != null ? var.domain_account_id : local.account_id
 
   # 3-tier role resolution: user-provided > existing > auto-create
-  default_provisioning_role_name = "AmazonSageMakerProvisioning-${local.account_id}"
+  default_provisioning_role_name = "AmazonSageMakerProvisioning-${local.account_id}-${var.domain_id}"
 
   default_manage_access_role_name = "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
   common_tags = merge(var.tags, {
@@ -52,10 +52,6 @@ resource "aws_iam_role" "sagemaker_provisioning" {
       }
     ]
   })
-
-  lifecycle {
-    prevent_destroy = true
-  }
 
   tags = local.common_tags
 }
@@ -94,15 +90,11 @@ resource "aws_iam_role" "sagemaker_manage_access" {
     ]
   })
 
-  lifecycle {
-    prevent_destroy = true
-  }
-
   tags = local.common_tags
 }
 
 # Custom Redshift secret access policy
-resource "aws_iam_policy" "sagemaker_manage_access_redshift" {
+resource "aws_iam_policy" "sagemaker_manage_access_redshift" { #tfsec:ignore:aws-iam-no-policy-wildcards -- Resource '*' is scoped by a StringEquals condition on secretsmanager:ResourceTag/AmazonDataZoneDomain, limiting access to secrets tagged with the specific domain ID
   count = var.create_manage_access_role ? 1 : 0
 
   name = "AmazonSageMakerManageAccessPolicy-${local.domain_id_suffix}"
@@ -159,10 +151,6 @@ resource "aws_lakeformation_data_lake_settings" "main" {
   count = var.configure_lake_formation ? 1 : 0
 
   admins = toset(concat([for role in aws_iam_role.sagemaker_provisioning : role.arn], [for role in aws_iam_role.sagemaker_manage_access : role.arn]))
-
-  lifecycle {
-    prevent_destroy = true
-  }
 
   depends_on = [
     aws_iam_role.sagemaker_provisioning,

@@ -80,10 +80,15 @@ output "provisioning_role_arn" {
 # --- Tooling Blueprint Outputs ---
 output "tooling_blueprint_id" {
   description = "ID of the Tooling environment blueprint"
-  value       = data.aws_datazone_environment_blueprint.tooling.id
+  value       = module.tooling_blueprint.blueprint_id
 }
 
 output "s3_bucket_name" {
   description = "S3 bucket name used by the Tooling blueprint (created or provided)"
   value       = local.s3_bucket_name
+}
+
+output "query_execution_role_arn" {
+  description = "ARN of the query execution role (created or provided). Used by the Tooling blueprint."
+  value       = local.query_execution_role_arn
 }

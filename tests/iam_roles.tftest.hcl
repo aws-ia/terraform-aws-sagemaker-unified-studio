@@ -167,9 +167,9 @@ provider "aws" {
 }
 
 #####################################################################################
-# Scenario 5: Blueprint - fresh account, no roles exist, no ARNs provided
-# Uses override_data to simulate empty data source results (no existing roles),
-# ensuring the creation path is deterministically tested.
+# Scenario 5: Blueprint bootstrap - create roles when requested
+# Tests the bootstrap submodule with create_provisioning_role = true and
+# create_manage_access_role = true (defaults), ensuring roles are created.
 #####################################################################################
 
 run "blueprint_no_roles_provided" {
@@ -180,82 +180,34 @@ run "blueprint_no_roles_provided" {
   }
 
   module {
-    source = "./modules/blueprints"
-  }
-
-  # Mock IAM data sources to return empty results (fresh account)
-  override_data {
-    target = data.aws_iam_roles.provisioning_role
-    values = {
-      arns  = []
-      names = []
-    }
-  }
-
-  override_data {
-    target = data.aws_iam_roles.manage_access_role
-    values = {
-      arns  = []
-      names = []
-    }
-  }
-
-  # Mock environment blueprint data sources to avoid ListEnvironmentBlueprints permission
-  override_data {
-    target = data.aws_datazone_environment_blueprint.default_data_lake
-    values = { id = "mock-datalake-bp-id" }
-  }
-
-  override_data {
-    target = data.aws_datazone_environment_blueprint.LakehouseCatalog
-    values = { id = "mock-lakehouse-bp-id" }
-  }
-
-  override_data {
-    target = data.aws_datazone_environment_blueprint.Tooling
-    values = { id = "mock-tooling-bp-id" }
-  }
-
-  override_data {
-    target = data.aws_datazone_environment_blueprint.RedshiftServerless
-    values = { id = "mock-redshift-bp-id" }
-  }
-
-  override_data {
-    target = data.aws_datazone_environment_blueprint.MLExperiments
-    values = { id = "mock-ml-bp-id" }
+    source = "./modules/blueprint/bootstrap"
   }
 
   variables {
     domain_id                 = "dzd-example123456"
-    domain_root_unit_id       = "dzd-example123456"
-    manage_access_role_arn    = null
-    provisioning_role_arn     = null
-    s3_bucket_name            = "test-bucket-123"
-    vpc_id                    = "vpc-abc123"
-    subnet_ids                = ["subnet-abc123"]
-    domain_execution_role_arn = "arn:aws:iam::123456789012:role/service-role/AmazonSageMakerDomainExecution"
+    create_provisioning_role  = true
+    create_manage_access_role = true
   }
 
-  # Roles MUST be created (data sources return empty)
+  # Roles MUST be created
   assert {
     condition     = length(aws_iam_role.sagemaker_provisioning) == 1
-    error_message = "Provisioning role should be created when it doesn't exist"
+    error_message = "Provisioning role should be created when create_provisioning_role is true"
   }
 
   assert {
     condition     = length(aws_iam_role.sagemaker_manage_access) == 1
-    error_message = "Manage access role should be created when it doesn't exist"
+    error_message = "Manage access role should be created when create_manage_access_role is true"
   }
 
   # Outputs should reflect creation
   assert {
-    condition     = output.sagemaker_provisioning_role_created == true
+    condition     = output.create_provisioning_role == true
     error_message = "Output should indicate provisioning role was created"
   }
 
   assert {
-    condition     = output.sagemaker_manage_access_role_created == true
+    condition     = output.create_manage_access_role == true
     error_message = "Output should indicate manage access role was created"
   }
 
@@ -287,7 +239,7 @@ run "blueprint_no_roles_provided" {
 }
 
 #####################################################################################
-# Scenario 6: Blueprint - user provides both roles
+# Scenario 6: Blueprint bootstrap - skip role creation when not requested
 # Expected: No roles created
 #####################################################################################
 
@@ -299,68 +251,37 @@ run "blueprint_user_provides_both_roles" {
   }
 
   module {
-    source = "./modules/blueprints"
-  }
-
-  # Mock environment blueprint data sources to avoid ListEnvironmentBlueprints permission
-  override_data {
-    target = data.aws_datazone_environment_blueprint.default_data_lake
-    values = { id = "mock-datalake-bp-id" }
-  }
-
-  override_data {
-    target = data.aws_datazone_environment_blueprint.LakehouseCatalog
-    values = { id = "mock-lakehouse-bp-id" }
-  }
-
-  override_data {
-    target = data.aws_datazone_environment_blueprint.Tooling
-    values = { id = "mock-tooling-bp-id" }
-  }
-
-  override_data {
-    target = data.aws_datazone_environment_blueprint.RedshiftServerless
-    values = { id = "mock-redshift-bp-id" }
-  }
-
-  override_data {
-    target = data.aws_datazone_environment_blueprint.MLExperiments
-    values = { id = "mock-ml-bp-id" }
+    source = "./modules/blueprint/bootstrap"
   }
 
   variables {
     domain_id                 = "dzd-example123456"
-    domain_root_unit_id       = "dzd-example123456"
-    manage_access_role_arn    = "arn:aws:iam::123456789012:role/MyCustomManageAccess"
-    provisioning_role_arn     = "arn:aws:iam::123456789012:role/MyCustomProvisioning"
-    s3_bucket_name            = "test-bucket-456"
-    vpc_id                    = "vpc-def456"
-    subnet_ids                = ["subnet-def456"]
-    domain_execution_role_arn = "arn:aws:iam::123456789012:role/service-role/AmazonSageMakerDomainExecution"
+    create_provisioning_role  = false
+    create_manage_access_role = false
   }
 
   assert {
     condition     = length(aws_iam_role.sagemaker_manage_access) == 0
-    error_message = "Manage access role should NOT be created when user provides ARN"
+    error_message = "Manage access role should NOT be created when create_manage_access_role is false"
   }
 
   assert {
     condition     = length(aws_iam_role.sagemaker_provisioning) == 0
-    error_message = "Provisioning role should NOT be created when user provides ARN"
+    error_message = "Provisioning role should NOT be created when create_provisioning_role is false"
   }
 
   assert {
     condition     = length(aws_iam_policy.sagemaker_manage_access_redshift) == 0
-    error_message = "Customer managed policy should NOT be created when user provides manage access ARN"
+    error_message = "Customer managed policy should NOT be created when create_manage_access_role is false"
   }
 
   assert {
-    condition     = output.sagemaker_provisioning_role_created == false
+    condition     = output.create_provisioning_role == false
     error_message = "Output should indicate provisioning role was not created"
   }
 
   assert {
-    condition     = output.sagemaker_manage_access_role_created == false
+    condition     = output.create_manage_access_role == false
     error_message = "Output should indicate manage access role was not created"
   }
 }

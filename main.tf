@@ -10,6 +10,11 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+resource "random_string" "role_name_suffix" {
+  length  = 8
+  special = false
+}
+
 locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
@@ -18,15 +23,13 @@ locals {
   domain_name = var.domain_name != null ? var.domain_name : "domain-${formatdate("MM-DD-YYYY-HHmmss", timestamp())}"
 
   # Default role names for SageMaker Unified Studio
-  default_domain_execution_role_name = "AmazonSageMakerDomainExecution"
-  default_domain_service_role_name   = "AmazonSageMakerDomainService"
-  default_provisioning_role_name     = "AmazonSageMakerProvisioning-${local.account_id}"
+  default_domain_execution_role_name = "AmazonSageMakerDomainExecution${random_string.role_name_suffix.result}"
+  default_domain_service_role_name   = "AmazonSageMakerDomainService${random_string.role_name_suffix.result}"
 
   # Role creation: count driven by variable only (not data source) to avoid flip-flop.
   # Data sources are used only for ARN resolution when role pre-exists outside Terraform.
   create_domain_execution_role = var.domain_execution_role_arn == null
   create_domain_service_role   = var.domain_service_role_arn == null
-  create_provisioning_role     = var.provisioning_role_arn == null
 
   # 3-tier ARN resolution: user-provided > pre-existing in AWS > Terraform-managed
   domain_execution_role_arn = var.domain_execution_role_arn != null ? var.domain_execution_role_arn : (
@@ -37,12 +40,12 @@ locals {
     length(data.aws_iam_roles.domain_service_role.arns) > 0 ? tolist(data.aws_iam_roles.domain_service_role.arns)[0] : aws_iam_role.domain_service[0].arn
   )
 
-  provisioning_role_arn = var.provisioning_role_arn != null ? var.provisioning_role_arn : (
-    length(data.aws_iam_roles.provisioning_role.arns) > 0 ? tolist(data.aws_iam_roles.provisioning_role.arns)[0] : aws_iam_role.sagemaker_provisioning[0].arn
-  )
+  # Blueprint role ARNs — resolved from bootstrap module or user-provided
+  provisioning_role_arn  = var.provisioning_role_arn != null ? var.provisioning_role_arn : module.bootstrap.provisioning_role_arn
+  manage_access_role_arn = var.manage_access_role_arn != null ? var.manage_access_role_arn : module.bootstrap.manage_access_role_arn
 
-  # Manage access role name is domain-scoped (includes region and domain ID)
-  # Computed after domain creation — see locals block below
+  # Query execution role — user-provided or auto-created
+  query_execution_role_arn = var.query_execution_role_arn != null ? var.query_execution_role_arn : aws_iam_role.query_execution[0].arn
 }
 
 #####################################################################################
@@ -55,10 +58,6 @@ data "aws_iam_roles" "domain_execution_role" {
 
 data "aws_iam_roles" "domain_service_role" {
   name_regex = "^${local.default_domain_service_role_name}$"
-}
-
-data "aws_iam_roles" "provisioning_role" {
-  name_regex = "^${local.default_provisioning_role_name}$"
 }
 
 # Create AmazonSageMakerDomainExecution role if it doesn't exist
@@ -145,16 +144,13 @@ resource "aws_iam_role_policy_attachment" "domain_service_policy" {
 }
 
 #####################################################################################
-# Blueprint IAM Roles — Provisioning and Manage Access (R3)
-# Created here so the Tooling blueprint (part of domain) can use them.
-# Outputs are available for other blueprint modules to consume.
+# Query Execution Role (optional, auto-created when not provided)
 #####################################################################################
 
-# Create AmazonSageMakerProvisioning role if it doesn't exist
-resource "aws_iam_role" "sagemaker_provisioning" {
-  count = local.create_provisioning_role ? 1 : 0
+resource "aws_iam_role" "query_execution" {
+  count = var.query_execution_role_arn == null ? 1 : 0
 
-  name = local.default_provisioning_role_name
+  name = "AmazonSageMakerQueryExecution${random_string.role_name_suffix.result}"
   path = "/service-role/"
 
   assume_role_policy = jsonencode({
@@ -177,14 +173,30 @@ resource "aws_iam_role" "sagemaker_provisioning" {
 
   tags = merge(var.tags, {
     ManagedBy = "Terraform"
-    Purpose   = "SageMaker-Unified-Studio-Provisioning"
+    Purpose   = "SageMaker-Unified-Studio-QueryExecution"
   })
 }
 
-resource "aws_iam_role_policy_attachment" "sagemaker_provisioning" {
-  count      = local.create_provisioning_role ? 1 : 0
-  role       = aws_iam_role.sagemaker_provisioning[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioProjectProvisioningRolePolicy"
+resource "aws_iam_role_policy_attachment" "query_execution_policy" {
+  count      = var.query_execution_role_arn == null ? 1 : 0
+  role       = aws_iam_role.query_execution[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/SageMakerStudioQueryExecutionRolePolicy"
+}
+
+#####################################################################################
+# Blueprint IAM Roles — Provisioning and Manage Access (R3)
+# Delegated to the bootstrap submodule for role creation.
+# Outputs are available for other blueprint modules to consume.
+#####################################################################################
+
+module "bootstrap" {
+  source = "./modules/blueprint/bootstrap"
+
+  domain_id                 = aws_datazone_domain.main.id
+  create_provisioning_role  = var.provisioning_role_arn == null
+  create_manage_access_role = var.manage_access_role_arn == null
+  configure_lake_formation  = true
+  tags                      = var.tags
 }
 
 #####################################################################################
@@ -222,102 +234,6 @@ resource "aws_datazone_domain" "main" {
 # Data source needed to get root domain unit
 data "aws_datazone_domain" "main" {
   id = aws_datazone_domain.main.id
-}
-
-#####################################################################################
-# Manage Access Role (domain-scoped, created after domain)
-#####################################################################################
-
-locals {
-  default_manage_access_role_name = "AmazonSageMakerManageAccess-${local.region}-${aws_datazone_domain.main.id}"
-  manage_access_role_exists       = var.manage_access_role_arn != null
-  manage_access_role_arn = var.manage_access_role_arn != null ? var.manage_access_role_arn : aws_iam_role.sagemaker_manage_access[0].arn
-}
-
-resource "aws_iam_role" "sagemaker_manage_access" {
-  count = !local.manage_access_role_exists ? 1 : 0
-
-  name        = local.default_manage_access_role_name
-  description = "Grants Amazon SageMaker Unified Studio permissions to manage access to data resources."
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "datazone.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-        Condition = {
-          StringEquals = {
-            "aws:SourceAccount" = local.account_id
-          }
-          ArnEquals = {
-            "aws:SourceArn" = "arn:aws:datazone:${local.region}:${local.account_id}:domain/${aws_datazone_domain.main.id}"
-          }
-        }
-      }
-    ]
-  })
-
-  tags = merge(var.tags, {
-    ManagedBy = "Terraform"
-    Purpose   = "SageMaker-Unified-Studio-ManageAccess"
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "manage_access_sagemaker" {
-  count      = !local.manage_access_role_exists ? 1 : 0
-  role       = aws_iam_role.sagemaker_manage_access[0].name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonDataZoneSageMakerManageAccessRolePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "manage_access_glue" {
-  count      = !local.manage_access_role_exists ? 1 : 0
-  role       = aws_iam_role.sagemaker_manage_access[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDataZoneGlueManageAccessRolePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "manage_access_redshift" {
-  count      = !local.manage_access_role_exists ? 1 : 0
-  role       = aws_iam_role.sagemaker_manage_access[0].name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDataZoneRedshiftManageAccessRolePolicy"
-}
-
-# Customer managed policy for Redshift secret access
-# Resource = "*" is scoped by condition tag (AmazonDataZoneDomain) — matches console-created policy
-#tfsec:ignore:aws-iam-no-policy-wildcards
-resource "aws_iam_policy" "manage_access_redshift_secret" {
-  count = !local.manage_access_role_exists ? 1 : 0
-
-  name = "AmazonSageMakerManageAccessPolicy-${replace(aws_datazone_domain.main.id, "/^dzd-/", "")}"
-  path = "/service-role/"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "RedshiftSecretStatement"
-        Effect = "Allow"
-        Action = "secretsmanager:GetSecretValue"
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "secretsmanager:ResourceTag/AmazonDataZoneDomain" = aws_datazone_domain.main.id
-          }
-        }
-      }
-    ]
-  })
-
-  tags = var.tags
-}
-
-resource "aws_iam_role_policy_attachment" "manage_access_redshift_secret" {
-  count      = !local.manage_access_role_exists ? 1 : 0
-  role       = aws_iam_role.sagemaker_manage_access[0].name
-  policy_arn = aws_iam_policy.manage_access_redshift_secret[0].arn
 }
 
 #####################################################################################
@@ -383,49 +299,33 @@ resource "aws_s3_bucket_public_access_block" "domain" {
 
 #####################################################################################
 # Tooling Blueprint Configuration (R3 + R8)
-# Uses awscc provider for global_parameters support (user role policy)
+# Delegated to the blueprint module for consistent blueprint management.
 #####################################################################################
 
-data "aws_datazone_environment_blueprint" "tooling" {
-  domain_id = aws_datazone_domain.main.id
-  name      = "Tooling"
-  managed   = true
+module "tooling_blueprint" {
+  source = "./modules/blueprint"
 
-  depends_on = [aws_datazone_domain.main]
-}
+  domain_id      = aws_datazone_domain.main.id
+  blueprint_name = "Tooling"
 
-# Allow time for managed blueprints to become available after domain creation
-resource "time_sleep" "domain_propagation" {
-  depends_on      = [aws_datazone_domain.main]
-  create_duration = "10s"
-}
-
-resource "awscc_datazone_environment_blueprint_configuration" "tooling" {
-  domain_identifier                = aws_datazone_domain.main.id
-  environment_blueprint_identifier = "Tooling"
-  enabled_regions                  = [local.region]
-  manage_access_role_arn           = local.manage_access_role_arn
-  provisioning_role_arn            = local.provisioning_role_arn
-
-  regional_parameters = [{
-    region = local.region
-    parameters = {
-      "S3Location" = "s3://${local.s3_bucket_name}"
-      "Subnets"    = join(",", var.subnet_ids)
-      "VpcId"      = var.vpc_id
+  regional_parameters = {
+    (local.region) = {
+      vpc_id     = var.vpc_id
+      subnet_ids = var.subnet_ids
+      s3_uri     = "s3://${local.s3_bucket_name}"
     }
-  }]
+  }
 
   global_parameters = merge(
-    var.query_execution_role_arn != null ? { sagemakerQueryExecutionRoleArn = var.query_execution_role_arn } : {},
+    { sagemakerQueryExecutionRoleArn = local.query_execution_role_arn },
     var.user_role_policy_arns != null ? { projectRolePolicyArns = join(",", var.user_role_policy_arns) } : {}
   )
 
-  depends_on = [
-    aws_iam_role.sagemaker_manage_access,
-    aws_iam_role.sagemaker_provisioning,
-    time_sleep.domain_propagation
-  ]
+  manage_access_role_arn = local.manage_access_role_arn
+  provisioning_role_arn  = local.provisioning_role_arn
+  tags                   = var.tags
+
+  depends_on = [module.bootstrap]
 }
 
 # Deploy hidden project and project profile used to govern/enable bedrock models

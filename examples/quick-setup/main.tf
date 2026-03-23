@@ -1,6 +1,16 @@
-# SageMaker Unified Studio MVP Example
-# This example combines domain creation and project setup in a single configuration
-# Equivalent to deploying both basic-domain and single-account-project examples together
+#####################################################################################
+# SageMaker Unified Studio Quick-Setup Example
+#
+# Demonstrates the modular architecture:
+#   1. Root domain module — creates domain, Tooling blueprint, IAM roles, S3 bucket,
+#      model governance resources
+#   2. Blueprint module (singular) — invoked per blueprint (LakehouseCatalog,
+#      MLExperiments, RedshiftServerless)
+#   3. Project profile module (singular) — composes blueprints into a deployable profile
+#   4. Project module — creates a project from the profile
+#
+# Equivalent to the AWS console quick-setup experience.
+#####################################################################################
 
 # Configure the AWS Provider
 provider "aws" {
@@ -11,7 +21,7 @@ provider "aws" {
       Project     = "SageMaker-Unified-Studio"
       Environment = var.environment
       ManagedBy   = "Terraform"
-      Example     = "mvp"
+      Example     = "quick-setup"
     }
   }
 }
@@ -21,322 +31,357 @@ provider "awscc" {
   region = var.aws_region
 }
 
-# Data sources for current context
+#####################################################################################
+# Data Sources
+#####################################################################################
+
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# Get default VPC and subnets for testing
+# Use default VPC/subnets when not explicitly provided
 data "aws_vpc" "default" {
+  count   = var.vpc_id == null ? 1 : 0
   default = true
 }
 
 data "aws_subnets" "default" {
+  count = var.subnet_ids == null ? 1 : 0
   filter {
     name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
+    values = [data.aws_vpc.default[0].id]
   }
 }
 
-# Local values for resource naming and tagging
+#####################################################################################
+# Locals
+#####################################################################################
+
 locals {
-  # Generate dynamic project name using pet + 6-digit suffix
-  dynamic_project_name = "${random_pet.project_name.id}-${random_id.project_suffix.hex}"
+  vpc_id     = var.vpc_id != null ? var.vpc_id : data.aws_vpc.default[0].id
+  subnet_ids = var.subnet_ids != null ? var.subnet_ids : data.aws_subnets.default[0].ids
+  region     = data.aws_region.current.id
 
-  # Project name with account suffix for uniqueness
-  project_name_with_account = "${local.dynamic_project_name}-${substr(data.aws_caller_identity.current.account_id, -4, 4)}"
-
-  # Get project profile ID from the project profiles module (using dynamic profile)
-  project_profile_id = module.project_profiles.dynamic_profile_id
+  # Dynamic project name with random suffix for uniqueness
+  project_name = "${var.project_name}-${random_id.project_suffix.hex}"
 
   common_tags = {
     DomainName  = var.domain_name
     Environment = var.environment
     Owner       = var.owner
-    CreatedBy   = "terraform-mvp-example"
+    CreatedBy   = "terraform-quick-setup-example"
   }
-}
 
-# Create the SageMaker Unified Studio domain with integrated IAM role
-module "domain" {
-  source = "../.."
+  # Build the map of blueprints to enable based on toggle variables
+  blueprint_configs = merge(
+    (var.enable_generative_ai || var.enable_all_capabilities) ? {
+      amazon_bedrock_chat_agent = {
+        blueprint_name = "AmazonBedrockChatAgent"
+      }
+      amazon_bedrock_evaluation = {
+        blueprint_name = "AmazonBedrockEvaluation"
+      }
+      amazon_bedrock_flow = {
+        blueprint_name = "AmazonBedrockFlow"
+      }
+      amazon_bedrock_function = {
+        blueprint_name = "AmazonBedrockFunction"
+      }
+      amazon_bedrock_guardrail = {
+        blueprint_name = "AmazonBedrockGuardrail"
+      }
+      amazon_bedrock_knowledge_base = {
+        blueprint_name = "AmazonBedrockKnowledgeBase"
+      }
+      amazon_bedrock_prompt = {
+        blueprint_name = "AmazonBedrockPrompt"
+      }
+    } : {},
+    (var.enable_sql_analytics || var.enable_all_capabilities) ? {
+      lakehouse_database = {
+        blueprint_name = "DataLake"
+      }
+      lakehouse_catalog = {
+        blueprint_name = "LakehouseCatalog"
+      }
+      redshift_serverless = {
+        blueprint_name = "RedshiftServerless"
+      }
+    } : {},
+    (var.enable_all_capabilities) ? {
+      emr_serverless = {
+        blueprint_name = "EmrServerless"
+      }
+      emr_on_ec2 = {
+        blueprint_name = "EmrOnEc2"
+      }
+      ml_experiments = {
+        blueprint_name = "MLExperiments"
+      }
+      workflows = {
+        blueprint_name = "Workflows"
+      }
+    } : {},
+  )
 
-  domain_name     = var.domain_name
-  description     = var.domain_description
-  vpc_id          = data.aws_vpc.default.id
-  subnet_ids      = data.aws_subnets.default.ids
-  s3_bucket_name  = module.s3_bucket_tooling.s3_bucket_id
-
-  tags       = local.common_tags
-  enable_sso = var.enable_sso
-}
-
-# Create random pet name for project with 6-digit suffix
-resource "random_pet" "project_name" {
-  length    = 2
-  separator = "-"
-}
-
-resource "random_id" "project_suffix" {
-  byte_length = 3 # 3 bytes = 6 hex digits
-}
-
-# Create S3 bucket for tooling environment using community module
-resource "random_id" "bucket_suffix" {
-  byte_length = 4
-}
-
-module "s3_bucket_tooling" {
-  source = "git::https://github.com/terraform-aws-modules/terraform-aws-s3-bucket.git?ref=v5.10.0"
-
-  bucket                   = "${local.dynamic_project_name}-tooling-${random_id.bucket_suffix.hex}"
-  control_object_ownership = true
-  object_ownership         = "BucketOwnerEnforced"
-  block_public_acls        = true
-  block_public_policy      = true
-  ignore_public_acls       = true
-  restrict_public_buckets  = true
-
-  server_side_encryption_configuration = {
-    rule = {
-      apply_server_side_encryption_by_default = {
-        sse_algorithm = "AES256"
+  sql_analytics_blueprint_config = {
+    "DataLake" = {
+      deployment_mode = "ON_CREATE"
+      parameter_overrides = {
+        "glueDbName" = {
+          value       = "glue_db"
+          is_editable = true
+        }
+      }
+    }
+    "RedshiftServerless" = {
+      deployment_mode = "ON_CREATE"
+      parameter_overrides = {
+        "connectToRMSCatalog" = {
+          value       = "true"
+          is_editable = false
+        }
+        "redshiftDbName" = {
+          value       = "dev"
+          is_editable = true
+        }
+        "redshiftMaxCapacity" = {
+          value       = "512"
+          is_editable = false
+        }
+      }
+    }
+    "LakehouseCatalog" = {
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "catalogDescription" = {
+          value       = "RMS catalog"
+          is_editable = true
+        }
+        "catalogName" = {
+          value       = ""
+          is_editable = true
+        }
+      }
+    }
+    "RedshiftServerless" = {
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "connectionName" = {
+          value       = "redshift.serverless"
+          is_editable = true
+        }
+        "connectToRMSCatalog" = {
+          value       = "false"
+          is_editable = false
+        }
+        "redshiftBaseCapacity" = {
+          value       = "128"
+          is_editable = true
+        }
+        "redshiftDbName" = {
+          value       = "dev"
+          is_editable = true
+        }
+        "redshiftMaxCapacity" = {
+          value       = "512"
+          is_editable = true
+        }
+        "redshiftWorkgroupName" = {
+          value       = "redshift-serverless-workgroup"
+          is_editable = true
+        }
       }
     }
   }
 
-  versioning = {
-    enabled = true
+  generative_ai_blueprint_config = {
+    "AmazonBedrockEvaluation" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockPrompt" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockFlow" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockFunction" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockGuardrail" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockKnowledgeBase" = {
+      deployment_mode = "ON_DEMAND"
+    }
+    "AmazonBedrockChatAgent" = {
+      deployment_mode = "ON_DEMAND"
+    }
   }
 
-  tags = merge(local.common_tags, {
-    Purpose = "SageMaker Unified Studio Tooling Environment"
-  })
+  all_capabilities_blueprint_config = merge(local.sql_analytics_blueprint_config, local.generative_ai_blueprint_config)
+  # Build the regional parameters for each blueprint (same VPC/subnets/S3 for all)
+  regional_parameters = {
+    (local.region) = {
+      vpc_id     = local.vpc_id
+      subnet_ids = local.subnet_ids
+      s3_uri     = "s3://${module.domain.s3_bucket_name}"
+    }
+  }
 }
 
-# Enable Blueprint Configurations with integrated SageMaker roles
-module "blueprints" {
-  source = "../../modules/blueprints"
+resource "random_id" "project_suffix" {
+  byte_length = 3
+}
 
-  domain_id               = module.domain.domain_id
-  domain_name             = var.domain_name
-  domain_root_unit_id     = module.domain.domain_root_unit_id
-  s3_bucket_name          = module.s3_bucket_tooling.s3_bucket_id
-  vpc_id                  = data.aws_vpc.default.id
-  subnet_ids              = data.aws_subnets.default.ids
-  domain_execution_role_arn = module.domain.domain_execution_role_arn
+#####################################################################################
+# 1. Domain Module
+#    Creates the domain, Tooling blueprint, IAM roles, optional S3 bucket,
+#    and model governance resources.
+#    Demonstrates: Tooling blueprint integration (Req 9.3),
+#                  model provisioning/consumption role config (Req 9.5),
+#                  user role policy config (Req 9.6)
+#####################################################################################
 
-  # Lake Formation configuration (enabled by default)
-  configure_lake_formation = true
+module "domain" {
+  source = "../.."
 
-  # Enable available blueprints for testing
-  enable_tooling             = true # Required for other environments
-  enable_data_lake           = var.enable_data_lake
-  enable_redshift_serverless = var.enable_redshift_serverless
-  enable_sagemaker           = var.enable_sagemaker
-  enable_custom_aws_service  = var.enable_custom_aws_service
+  domain_name           = var.domain_name
+  description           = var.domain_description
+  vpc_id                = local.vpc_id
+  subnet_ids            = local.subnet_ids
+  s3_bucket_name        = var.s3_bucket_name
+  user_role_policy_arns = var.user_role_policy_arns
+  enable_sso            = var.enable_sso
 
   tags = local.common_tags
+}
+
+#####################################################################################
+# 2. Blueprint Module (singular, invoked per blueprint)
+#    Demonstrates: multiple blueprint invocations (Req 9.1),
+#                  VPC configuration parameters (Req 9.4)
+#####################################################################################
+
+module "blueprints" {
+  source   = "../../modules/blueprint"
+  for_each = local.blueprint_configs
+
+  domain_id      = module.domain.domain_id
+  blueprint_name = each.value.blueprint_name
+
+  regional_parameters = local.regional_parameters
+
+  # Reuse roles created by the domain module
+  manage_access_role_arn = module.domain.manage_access_role_arn
+  provisioning_role_arn  = module.domain.provisioning_role_arn
+  tags                   = local.common_tags
 
   depends_on = [module.domain]
 }
 
-# Create project profiles
-module "project_profiles" {
-  source = "../../modules/project-profiles"
+#####################################################################################
+# 3. Project Profile Module (singular)
+#    Demonstrates: blueprint dictionary composition (Req 9.2),
+#                  Tooling blueprint integration from domain output (Req 9.3)
+#####################################################################################
 
-  domain_id = module.domain.domain_id
+module "sql_analytics_project_profile" {
+  count  = var.enable_sql_analytics ? 1 : 0
+  source = "../../modules/project-profile"
 
-  # Enable dynamic profile creation for the MVP
-  enable_dynamic_profile = true
-  dynamic_profile_name   = "${var.domain_name}-mvp-profile"
+  domain_id   = module.domain.domain_id
+  name        = "SQL analytics"
+  description = "Analyze your data in SageMaker Lakehouse using SQL"
 
-  # Enable the blueprints we want in the profile
-  enable_data_lake           = var.enable_data_lake
-  enable_redshift_serverless = var.enable_redshift_serverless
-  enable_sagemaker           = var.enable_sagemaker
+  # Compose blueprints into the profile — Tooling is automatically included
+  # and always first in the environment configurations
+  blueprints = local.sql_analytics_blueprint_config
 
-  # Pass blueprint IDs from the blueprints module (dynamic IDs)
-  tooling_id             = module.blueprints.tooling_id
-  data_lake_id           = module.blueprints.data_lake_id
-  redshift_serverless_id = module.blueprints.redshift_serverless_id
-  ml_experiments_id      = module.blueprints.sagemaker_id
+  depends_on = [module.blueprints]
+}
 
-  tags = local.common_tags
+module "generative_ai_project_profile" {
+  count  = var.enable_generative_ai ? 1 : 0
+  source = "../../modules/project-profile"
 
-  # Lake Formation permissions are now configured in the blueprints module
+  domain_id   = module.domain.domain_id
+  name        = "Generative AI application development"
+  description = "Build generative AI applications powered by Amazon Bedrock"
+
+  # Compose blueprints into the profile — Tooling is automatically included
+  # and always first in the environment configurations
+  blueprints = local.generative_ai_blueprint_config
+
+  depends_on = [module.blueprints]
+}
+
+module "all_capabilities_project_profile" {
+  count  = var.enable_all_capabilities ? 1 : 0
+  source = "../../modules/project-profile"
+
+  domain_id   = module.domain.domain_id
+  name        = "All capabilities"
+  description = "Analyze data and build machine learning and generative AI models and applications powered by Amazon Bedrock, Amazon EMR, AWS Glue, Amazon Athena, Amazon SageMaker AI and Amazon SageMaker Lakehouse"
+
+  # Compose blueprints into the profile — Tooling is automatically included
+  # and always first in the environment configurations
+  blueprints = local.all_capabilities_blueprint_config
+
+  depends_on = [module.blueprints]
+}
+
+module "create_project_from_project_profile_grant" {
+  count  = (var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai) ? 1 : 0
+  source         = "../../modules/policy-grant/create_project"
+  domain_id      = module.domain.domain_id
+  domain_unit_id = module.domain.domain_root_unit_id
+  project_profile_ids = concat(
+    [for p in module.all_capabilities_project_profile : p.project_profile_id],
+    [for p in module.sql_analytics_project_profile : p.project_profile_id],
+    [for p in module.generative_ai_project_profile : p.project_profile_id],
+  )
+  all_users = true
   depends_on = [
-    module.blueprints
+    module.all_capabilities_project_profile,
+    module.sql_analytics_project_profile,
+    module.generative_ai_project_profile
   ]
 }
 
 
-# Create project using the project module
+#####################################################################################
+# 4. Project Module
+#    Creates a project from the profile with SSO user membership
+#####################################################################################
+
 module "project" {
+  count  = (var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai) ? 1 : 0
   source = "../../modules/project"
 
   domain_id           = module.domain.domain_id
-  project_name        = local.project_name_with_account
+  project_name        = local.project_name
   project_description = var.project_description
-  # Only pass project_profile_id if it's available and valid
-  project_profile_id = module.project_profiles.dynamic_profile_id != null && module.project_profiles.dynamic_profile_id != "" ? module.project_profiles.dynamic_profile_id : null
+  // pick first available project profile
+  project_profile_id = concat(module.all_capabilities_project_profile, module.sql_analytics_project_profile, module.generative_ai_project_profile)[0].project_profile_id
 
-  # Lake Formation permissions are now configured in the blueprints module
-  depends_on = [
-    module.blueprints,
-    module.project_profiles
-  ]
+  depends_on = [module.create_project_from_project_profile_grant]
 }
 
-# S3 Bucket Cleanup Resource
-# This resource empties ALL S3 buckets related to this SageMaker Unified Studio deployment
-# Includes both Terraform-managed buckets and service-created buckets
-resource "null_resource" "s3_cleanup" {
-  triggers = {
-    terraform_bucket = module.s3_bucket_tooling.s3_bucket_id
-    aws_region       = data.aws_region.current.name
-    domain_id        = module.domain.domain_id
-    project_id       = module.project.project_id
-    domain_name      = var.domain_name
-  }
+#####################################################################################
+# 5. SSO User and Project Membership (Req 9.8)
+#####################################################################################
 
-  # Cleanup script that runs on destroy
-  provisioner "local-exec" {
-    when        = destroy
-    interpreter = ["/bin/bash", "-c"]
-    command     = <<-EOT
-      set -e
-      
-      echo "=== S3 Bucket Cleanup for SageMaker Unified Studio ==="
-      echo "Domain ID: ${self.triggers.domain_id}"
-      echo "Project ID: ${self.triggers.project_id}"
-      echo "Domain Name: ${self.triggers.domain_name}"
-      echo "Region: ${self.triggers.aws_region}"
-      echo ""
-      
-      # Function to empty S3 bucket completely
-      empty_s3_bucket() {
-        local bucket_name="$1"
-        local bucket_region="$2"
-        
-        echo "Processing bucket: $bucket_name"
-        
-        # Check if bucket exists
-        if ! aws s3api head-bucket --bucket "$bucket_name" --region "$bucket_region" 2>/dev/null; then
-          echo "  Bucket does not exist or is not accessible, skipping..."
-          return 0
-        fi
-        
-        # Step 1: Delete all current objects
-        echo "  Deleting current objects..."
-        local object_count=$(aws s3 ls s3://"$bucket_name" --recursive --region "$bucket_region" | wc -l)
-        if [ "$object_count" -gt 0 ]; then
-          echo "    Found $object_count objects to delete"
-          aws s3 rm s3://"$bucket_name" --recursive --region "$bucket_region" || echo "    Warning: Some objects may not have been deleted"
-        else
-          echo "    No current objects found"
-        fi
-        
-        # Step 2: Handle versioned objects and delete markers
-        echo "  Cleaning up object versions and delete markers..."
-        local versions_json=$(aws s3api list-object-versions --bucket "$bucket_name" --region "$bucket_region" --max-items 1000 2>/dev/null || echo '{"Versions":[],"DeleteMarkers":[]}')
-        
-        # Delete object versions
-        local version_count=$(echo "$versions_json" | jq -r '.Versions | length' 2>/dev/null || echo "0")
-        if [ "$version_count" -gt 0 ]; then
-          echo "    Deleting $version_count object versions..."
-          echo "$versions_json" | jq '{Objects: .Versions | map({Key: .Key, VersionId: .VersionId})}' | \
-            aws s3api delete-objects --bucket "$bucket_name" --region "$bucket_region" --delete file:///dev/stdin >/dev/null 2>&1 || \
-            echo "    Warning: Some object versions may not have been deleted"
-        fi
-        
-        # Delete delete markers
-        local marker_count=$(echo "$versions_json" | jq -r '.DeleteMarkers | length' 2>/dev/null || echo "0")
-        if [ "$marker_count" -gt 0 ]; then
-          echo "    Deleting $marker_count delete markers..."
-          echo "$versions_json" | jq '{Objects: .DeleteMarkers | map({Key: .Key, VersionId: .VersionId})}' | \
-            aws s3api delete-objects --bucket "$bucket_name" --region "$bucket_region" --delete file:///dev/stdin >/dev/null 2>&1 || \
-            echo "    Warning: Some delete markers may not have been removed"
-        fi
-        
-        # Step 3: Verify bucket is empty
-        local remaining_objects=$(aws s3 ls s3://"$bucket_name" --recursive --region "$bucket_region" | wc -l)
-        if [ "$remaining_objects" -eq 0 ]; then
-          echo "  ✅ Bucket $bucket_name is now empty and ready for deletion"
-        else
-          echo "  ⚠️  Warning: Bucket $bucket_name may still contain $remaining_objects objects"
-        fi
-      }
-      
-      # Collect all S3 buckets to clean up
-      declare -a buckets_to_clean
-      
-      # 1. Add Terraform-managed bucket
-      echo "1. Adding Terraform-managed bucket:"
-      echo "  - ${self.triggers.terraform_bucket}"
-      buckets_to_clean+=("${self.triggers.terraform_bucket}")
-      
-      # 2. Find service-created buckets using blueprint patterns
-      echo ""
-      echo "2. Discovering service-created S3 buckets..."
-      
-      # Search for common SageMaker/DataZone patterns
-      echo "  Searching for SageMaker/DataZone pattern buckets..."
-      pattern_buckets=$(aws s3api list-buckets --region "${self.triggers.aws_region}" --query "Buckets[?contains(Name, 'sagemaker') || contains(Name, 'datazone') || contains(Name, 'mlflow') || contains(Name, 'studio') || contains(Name, 'redshift')].Name" --output text 2>/dev/null | tr '\t' '\n' || echo "")
-      
-      # Add discovered buckets to cleanup list (avoiding duplicates)
-      for bucket in $pattern_buckets; do
-        if [ -n "$bucket" ] && [[ ! " $${buckets_to_clean[@]} " =~ " $bucket " ]]; then
-          echo "    Found: $bucket"
-          buckets_to_clean+=("$bucket")
-        fi
-      done
-      
-      # 3. Clean up all discovered buckets
-      echo ""
-      echo "3. Cleaning up $${#buckets_to_clean[@]} S3 bucket(s):"
-      
-      if [ $${#buckets_to_clean[@]} -eq 0 ]; then
-        echo "  No buckets found to clean up"
-      else
-        for bucket in "$${buckets_to_clean[@]}"; do
-          empty_s3_bucket "$bucket" "${self.triggers.aws_region}"
-          echo ""
-        done
-      fi
-      
-      echo "=== S3 cleanup completed successfully! ==="
-    EOT
-  }
-
-  depends_on = [
-    module.s3_bucket_tooling,
-    module.project
-  ]
-}
-
-# Add explicit timeouts for destroy operations
-resource "time_sleep" "destroy_wait" {
-  depends_on = [
-    module.project,
-    null_resource.s3_cleanup
-  ]
-
-  destroy_duration = "15m" # 15 minute timeout for destroy operations
-}
-
-# Add SSO users to the created domain
 resource "aws_datazone_user_profile" "sso_users" {
-  for_each = toset(var.sso_users)
+  for_each          = toset(var.sso_users)
   domain_identifier = module.domain.domain_id
-  user_identifier = each.key
-  user_type = "SSO_USER"
+  user_identifier   = each.key
+  user_type         = "SSO_USER"
 }
 
-# Add users as owners of the created project
 resource "awscc_datazone_project_membership" "project_membership" {
   for_each           = toset(var.sso_users)
   domain_identifier  = module.domain.domain_id
-  project_identifier = module.project.project_id
+  project_identifier = module.project[0].project_id
   member = {
     user_identifier = each.key
   }
