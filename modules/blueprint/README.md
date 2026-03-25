@@ -55,15 +55,15 @@ module "blueprints" {
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.28.0 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.68.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.37.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.76.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.28.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.68.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.76.0 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 | <a name="provider_time"></a> [time](#provider\_time) | n/a |
 
@@ -101,7 +101,7 @@ No modules.
 | <a name="input_global_parameters"></a> [global\_parameters](#input\_global\_parameters) | Map of the global parameters to attach to the project. | `map(string)` | `{}` | no |
 | <a name="input_manage_access_role_arn"></a> [manage\_access\_role\_arn](#input\_manage\_access\_role\_arn) | ARN of existing ManageAccess role. If not provided, the role is looked up by name. If neither is found, the module will fail — use the bootstrap submodule to create roles first. | `string` | `null` | no |
 | <a name="input_provisioning_role_arn"></a> [provisioning\_role\_arn](#input\_provisioning\_role\_arn) | ARN of existing Provisioning role. If not provided, the role is looked up by name. If neither is found, the module will fail — use the bootstrap submodule to create roles first. | `string` | `null` | no |
-| <a name="input_regional_parameters"></a> [regional\_parameters](#input\_regional\_parameters) | Map of AWS regions to their infrastructure parameters (vpc\_id, subnet\_ids, s3\_bucket\_uri). Keys become enabled\_regions. Leave empty for blueprints that don't require regional parameters (e.g., QuickSight, Bedrock, MLflowApp, LakehouseAdmin). | <pre>map(object({<br>    vpc_id     = string<br>    subnet_ids = list(string)<br>    s3_uri     = string<br>  }))</pre> | `{}` | no |
+| <a name="input_regional_parameters"></a> [regional\_parameters](#input\_regional\_parameters) | Map of AWS regions to their infrastructure parameters (vpc\_id, subnet\_ids, s3\_bucket\_uri). Keys become enabled\_regions. Leave empty for blueprints that don't require regional parameters (e.g., QuickSight, Bedrock, MLflowApp, LakehouseAdmin). | <pre>map(object({<br/>    vpc_id     = string<br/>    subnet_ids = list(string)<br/>    s3_uri     = string<br/>  }))</pre> | `{}` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to all resources created by this module | `map(string)` | `{}` | no |
 
 ## Outputs

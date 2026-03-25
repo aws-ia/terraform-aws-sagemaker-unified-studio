@@ -5,11 +5,10 @@ This submodule creates the foundational IAM roles and Lake Formation settings re
 
 ## What it does
 
-- Creates the `AmazonSageMakerProvisioning` IAM role (trusted by `datazone.amazonaws.com`)
-- Creates the `AmazonSageMakerManageAccess` IAM role with policies for Glue, Redshift, and SageMaker access
+- Creates the **[AmazonSageMakerProvisioning](https://docs.aws.amazon.com/sagemaker-unified-studio/latest/adminguide/AmazonSageMakerProvisioning.html) IAM role** that mirrors the default managed IAM role created by the console. The role is used by Amazon SageMaker Unified Studio to provision and manage resources defined in the selected blueprints in your account.
+- Creates the **[AmazonSageMakerManageAccess](https://docs.aws.amazon.com/sagemaker-unified-studio/latest/adminguide/AmazonSageMakerManageAccess.html) IAM role** that mirrors the default managed IAM role created by the console. The role grants Amazon SageMaker Unified Studio permissions to publish, grant access, and revoke access to Amazon SageMaker Lakehouse, AWS Glue Data Catalog and Amazon Redshift data. It also grants Amazon SageMaker Unified Studio access to publish and manage subscriptions on Amazon SageMaker Catalog data and AI assets.
 - Creates a custom Redshift secret access policy scoped to the domain
-- Configures Lake Formation data lake settings with both roles as admins
-- Supports cross-account domains via `domain_account_id`
+- Configures **LakeFormation Data Lake Settings** to add the AmazonSageMakerProvisioning and AmazonSageMakerManageAccess roles as Lake Formation admins. This will allow the roles to manage access to created and shared data resources.
 
 ## When to use this submodule
 
