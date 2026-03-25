@@ -63,30 +63,39 @@ For example, if you only need SQL Analytics you can invoke the domain module, en
 
 ### Policy-grant error on subsequent `terraform apply`
 
-Running `terraform apply` a second time may produce an error indicating that the policy-grant resource already exists. This happens because the Terraform provider currently recreates the policy-grant resource rather than updating it in place, which conflicts with the existing grant.
+The `awscc_datazone_policy_grant` resource has a known issue where updating a policy grant that shares the same domain unit and principal as an existing grant will successfully replace the policy content but then return an `AlreadyExists` error. One policy grant is used to grant access to multiple project profiles. We are actively working with the service team to resolve this behavior.
 
-This error does not affect the actual deployment — all other resources will still be created or updated safely. The policy-grant itself remains intact from the initial apply.
+**Workaround**: Remove any existing CREATE\_PROJECT\_FROM\_PROJECT\_PROFILE policy grants that share the same domain unit and principal before running the `policy-grant/create_project` module. You can do this via the AWS Console or CLI:
 
-We are actively working with the engineering team to resolve this behavior in the provider.
+```bash
+aws datazone delete-policy-grant \
+  --domain-identifier <domain-id> \
+  --entity-type DOMAIN_UNIT \
+  --entity-identifier <domain-unit-id> \
+  --policy-type CREATE_PROJECT_FROM_PROJECT_PROFILE \
+  --principal <principal>
+```
+
+Then re-run `terraform apply` to recreate the grants cleanly.
 
 ## Requirements
 
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.28.0 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.68.0 |
-| <a name="requirement_null"></a> [null](#requirement\_null) | >= 3.0 |
-| <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.1 |
-| <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.9 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.37.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.76.0 |
+| <a name="requirement_null"></a> [null](#requirement\_null) | >= 3.2.4 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.8.1 |
+| <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.13.1 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.28.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.68.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | >= 3.1 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.76.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1 |
 
 ## Modules
 
