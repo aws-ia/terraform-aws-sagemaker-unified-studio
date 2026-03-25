@@ -275,8 +275,6 @@ module "blueprints" {
   manage_access_role_arn = module.domain.manage_access_role_arn
   provisioning_role_arn  = module.domain.provisioning_role_arn
   tags                   = local.common_tags
-
-  depends_on = [module.domain]
 }
 
 #####################################################################################
@@ -297,7 +295,7 @@ module "sql_analytics_project_profile" {
   # and always first in the environment configurations
   blueprints = local.sql_analytics_blueprint_config
 
-  depends_on = [module.blueprints]
+  blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
 }
 
 module "generative_ai_project_profile" {
@@ -312,7 +310,7 @@ module "generative_ai_project_profile" {
   # and always first in the environment configurations
   blueprints = local.generative_ai_blueprint_config
 
-  depends_on = [module.blueprints]
+  blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
 }
 
 module "all_capabilities_project_profile" {
@@ -327,7 +325,7 @@ module "all_capabilities_project_profile" {
   # and always first in the environment configurations
   blueprints = local.all_capabilities_blueprint_config
 
-  depends_on = [module.blueprints]
+  blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
 }
 
 module "create_project_from_project_profile_grant" {

@@ -324,8 +324,6 @@ module "tooling_blueprint" {
   manage_access_role_arn = local.manage_access_role_arn
   provisioning_role_arn  = local.provisioning_role_arn
   tags                   = var.tags
-
-  depends_on = [module.bootstrap]
 }
 
 # Deploy hidden project and project profile used to govern/enable bedrock models

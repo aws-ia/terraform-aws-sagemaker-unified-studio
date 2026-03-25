@@ -80,8 +80,17 @@ fi
 
 #********** Terraform Docs *************
 echo 'Starting terraform-docs'
-TDOCS="$(terraform-docs --config "${PROJECT_PATH}/.config/.terraform-docs.yaml" --lockfile=false ./)"
-git add -N README.md
+
+# Run terraform-docs on root, all examples, and all modules
+TDOCS_FAILED=0
+for dir in ./ examples/*/ modules/*/; do
+    if [ -f "${dir}main.tf" ] || [ -f "${dir}variables.tf" ]; then
+        echo "Running terraform-docs on ${dir}"
+        terraform-docs --config "${PROJECT_PATH}/.config/.terraform-docs.yaml" --lockfile=false "${dir}"
+    fi
+done
+
+git add -N README.md examples/*/README.md modules/*/README.md
 GDIFF="$(git diff --compact-summary)"
 if [ -z "$GDIFF" ]
 then
