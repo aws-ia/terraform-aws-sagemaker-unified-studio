@@ -185,6 +185,23 @@ The `validate.sh` script performs comprehensive validation:
 
 ## Troubleshooting
 
+### Known Issues
+
+The `awscc_datazone_policy_grant` resource has a known issue where updating a policy grant that shares the same domain unit and principal as an existing grant will successfully replace the policy content but then return an `AlreadyExists` error. One policy grant is used to grant access to multiple project profiles. We are working with the service team to resolve this.
+
+**Workaround**: Remove any existing CREATE_PROJECT_FROM_PROJECT_PROFILE policy grants that share the same domain unit and principal before running the `policy-grant/create_project` module. You can do this via the AWS Console or CLI:
+
+```bash
+aws datazone delete-policy-grant \
+  --domain-identifier <domain-id> \
+  --entity-type DOMAIN_UNIT \
+  --entity-identifier <domain-unit-id> \
+  --policy-type CREATE_PROJECT_FROM_PROJECT_PROFILE \
+  --principal <principal>
+```
+
+Then re-run `terraform apply` to recreate the grants cleanly.
+
 ### Common Issues
 
 1. **Domain Creation Fails**:
