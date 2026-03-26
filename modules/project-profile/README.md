@@ -47,15 +47,15 @@ Each blueprint entry accepts:
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.28.0 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.68.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.37.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.76.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.28.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.68.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.76.0 |
 
 ## Modules
 
@@ -76,7 +76,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_blueprints"></a> [blueprints](#input\_blueprints) | Map of blueprints to include in this project profile.<br>Key = blueprint name (e.g., "Tooling", "DataLake", "RedshiftServerless").<br>The blueprint ID is resolved internally via data lookup.<br><br>Tooling must always be included and automatically gets deployment\_order = 1.<br>Note: For EmrOnEks, you must provide eksClusterArn in parameter\_overrides.<br><br>Example:<br>  blueprints = {<br>    Tooling            = {}<br>    DataLake           = { region = "us-west-2", parameter\_overrides = { glueDbName = { value = "my\_db" } } }<br>    RedshiftServerless = {<br>      deployment\_mode = "ON\_DEMAND"<br>      region          = "eu-west-1"<br>      parameter\_overrides = {<br>        redshiftBaseCapacity = { value = "256", is\_editable = true }<br>      }<br>    }<br>  } | <pre>map(object({<br>    description     = optional(string)<br>    deployment_mode = optional(string, "ON_CREATE")<br>    region          = optional(string)<br>    parameter_overrides = optional(map(object({<br>      value       = string<br>      is_editable = optional(bool, false)<br>    })), {})<br>  }))</pre> | n/a | yes |
+| <a name="input_blueprints"></a> [blueprints](#input\_blueprints) | Map of blueprints to include in this project profile.<br/>Key = blueprint name (e.g., "Tooling", "DataLake", "RedshiftServerless").<br/>The blueprint ID is resolved internally via data lookup.<br/><br/>Tooling must always be included and automatically gets deployment\_order = 1.<br/>Note: For EmrOnEks, you must provide eksClusterArn in parameter\_overrides.<br/><br/>Example:<br/>  blueprints = {<br/>    Tooling            = {}<br/>    DataLake           = { region = "us-west-2", parameter\_overrides = { glueDbName = { value = "my\_db" } } }<br/>    RedshiftServerless = {<br/>      deployment\_mode = "ON\_DEMAND"<br/>      region          = "eu-west-1"<br/>      parameter\_overrides = {<br/>        redshiftBaseCapacity = { value = "256", is\_editable = true }<br/>      }<br/>    }<br/>  } | <pre>map(object({<br/>    description     = optional(string)<br/>    deployment_mode = optional(string, "ON_CREATE")<br/>    region          = optional(string)<br/>    parameter_overrides = optional(map(object({<br/>      value       = string<br/>      is_editable = optional(bool, false)<br/>    })), {})<br/>  }))</pre> | n/a | yes |
 | <a name="input_domain_id"></a> [domain\_id](#input\_domain\_id) | The ID of the SageMaker Unified Studio domain | `string` | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Name of the project profile | `string` | n/a | yes |
 | <a name="input_blueprint_dependencies"></a> [blueprint\_dependencies](#input\_blueprint\_dependencies) | List of blueprint entity IDs to ensure they are created before the profile. Pass the entity\_id output from each blueprint module. This prevents race conditions when blueprints and profiles are deployed in the same apply. | `list(string)` | `[]` | no |

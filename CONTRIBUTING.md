@@ -110,3 +110,36 @@ go test -timeout 45m
 # from the root of the repository
 terraform-docs --config ${PROJECT_PATH}/.config/.terraform-docs.yaml --lockfile=false ./
 ```
+
+# Providing Feedback
+
+We welcome feedback from anyone testing or using this module. Your input helps us improve reliability, documentation, and coverage across different deployment scenarios.
+
+## How to Submit Feedback
+
+Open a [GitHub Issue](https://github.com/aws-ia/terraform-aws-sagemaker-unified-studio/issues) using the appropriate label from the list below. Please include:
+
+- A clear description of the problem or suggestion
+- Steps to reproduce (for bugs)
+- Relevant Terraform version, provider versions, and region
+- Sanitized snippets of your configuration or plan output, if applicable
+
+## Contributing Code
+
+If you would like to contribute code or specifications as a pull request, please create a GitHub issue first to discuss the proposed change. This lets us align on a generalized API and best practices before implementation begins.
+
+## Issue Labels
+
+When opening an issue, apply the label that best matches your feedback:
+
+| Label | Description | Examples |
+|---|---|---|
+| `broken link` | Broken link in the guides | Dead URLs in README or examples |
+| `bug` | Something isn't working | Entering invalid states during deployment, duplicated resources, issues when deleting or recreating resources |
+| `display and design` | Display and design issues in the guides | Formatting problems, rendering issues |
+| `documentation` | Improvements or additions to documentation | Unclear resource descriptions, confusion around deployment order or how resources integrate with each other |
+| `enhancement` | New feature or request | Module parameter missing a configuration needed for your environment, auto-created resources that should be optional, unsupported SageMaker Unified Studio features |
+| `grammar or spelling` | Grammar or spelling issues in the guides | Typos, grammatical errors |
+| `inaccurate content` | Inaccurate content in the guides | Parameters that don't behave as documented, incorrect default values |
+| `invalid` | Something doesn't seem right | Missing validations, role permissions that are too permissive, created resources that are misconfigured or missing a field |
+| `question` | Further information is requested | Issues with deployment, brownfield deployment incompatibilities (deploying into an existing SageMaker Unified Studio domain) |

@@ -42,13 +42,13 @@ This requires the AWS CLI to be available and configured with appropriate permis
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.37.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 5.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
 | <a name="provider_awscc"></a> [awscc](#provider\_awscc) | n/a |
 | <a name="provider_null"></a> [null](#provider\_null) | n/a |
 
@@ -82,7 +82,7 @@ No modules.
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to the project | `map(string)` | `{}` | no |
 | <a name="input_user_designation"></a> [user\_designation](#input\_user\_designation) | Designation for users in the user\_list | `string` | `"PROJECT_OWNER"` | no |
 | <a name="input_user_list"></a> [user\_list](#input\_user\_list) | List of user identifiers to add as project owners | `list(string)` | `[]` | no |
-| <a name="input_user_parameters"></a> [user\_parameters](#input\_user\_parameters) | User parameters for environment configurations | <pre>list(object({<br>    environment_configuration_name = string<br>    environment_parameters = list(object({<br>      name  = string<br>      value = string<br>    }))<br>  }))</pre> | `[]` | no |
+| <a name="input_user_parameters"></a> [user\_parameters](#input\_user\_parameters) | User parameters for environment configurations | <pre>list(object({<br/>    environment_configuration_name = string<br/>    environment_parameters = list(object({<br/>      name  = string<br/>      value = string<br/>    }))<br/>  }))</pre> | `[]` | no |
 
 ## Outputs
 

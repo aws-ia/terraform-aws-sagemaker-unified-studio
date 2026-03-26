@@ -47,14 +47,14 @@ module "metadata_form" {
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.70.0 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.60.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.37.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.76.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 5.70.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
 
 ## Modules
 
@@ -73,7 +73,7 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_domain_identifier"></a> [domain\_identifier](#input\_domain\_identifier) | The ID of the Amazon DataZone domain in which this metadata form type is created. | `string` | n/a | yes |
-| <a name="input_fields"></a> [fields](#input\_fields) | fields of the metadata form | <pre>list(object({<br>    display_name   = optional(string, "")<br>    technical_name = string<br>    description    = optional(string, "")<br>    field_type     = string<br>    searchable     = optional(bool, false)  // only enable if field_type is string or glossary<br>    min            = optional(number, null) // only enable if not date<br>    max            = optional(number, null) // only enable if not date or glossary<br>    glossary_id    = optional(string, "")   // only enable if field type set to glossary<br>    requirement    = optional(list(string), [])<br>  }))</pre> | n/a | yes |
+| <a name="input_fields"></a> [fields](#input\_fields) | fields of the metadata form | <pre>list(object({<br/>    display_name   = optional(string, "")<br/>    technical_name = string<br/>    description    = optional(string, "")<br/>    field_type     = string<br/>    searchable     = optional(bool, false)  // only enable if field_type is string or glossary<br/>    min            = optional(number, null) // only enable if not date<br/>    max            = optional(number, null) // only enable if not date or glossary<br/>    glossary_id    = optional(string, "")   // only enable if field type set to glossary<br/>    requirement    = optional(list(string), [])<br/>  }))</pre> | n/a | yes |
 | <a name="input_owning_project_identifier"></a> [owning\_project\_identifier](#input\_owning\_project\_identifier) | The ID of the Amazon DataZone project that owns this metadata form type. | `string` | n/a | yes |
 | <a name="input_technical_name"></a> [technical\_name](#input\_technical\_name) | This name will be used when working with APIs. | `string` | n/a | yes |
 | <a name="input_description"></a> [description](#input\_description) | The description of this Amazon DataZone metadata form type. | `string` | `""` | no |
