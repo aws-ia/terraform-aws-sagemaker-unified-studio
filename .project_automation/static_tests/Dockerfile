@@ -24,6 +24,6 @@ RUN pip3 install checkov
 
 RUN gem install mdl
 
-ENV TERRAFORM_DOCS_VERSION=v0.16.0
+ENV TERRAFORM_DOCS_VERSION=v0.20.0
 RUN wget https://github.com/terraform-docs/terraform-docs/releases/download/${TERRAFORM_DOCS_VERSION}/terraform-docs-${TERRAFORM_DOCS_VERSION}-linux-amd64.tar.gz && \
     tar -C /usr/local/bin -xzf terraform-docs-${TERRAFORM_DOCS_VERSION}-linux-amd64.tar.gz && chmod +x /usr/local/bin/terraform-docs
