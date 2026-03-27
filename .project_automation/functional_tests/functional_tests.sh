@@ -11,7 +11,7 @@ cd ${PROJECT_PATH}
 #********** Terraform Test **********
 
 # Look up the mandatory test file
-MANDATORY_TEST_PATH="./tests/01_mandatory.tftest.hcl"
+MANDATORY_TEST_PATH="tests/01_mandatory.tftest.hcl"
 if test -f ${MANDATORY_TEST_PATH}; then
     echo "File ${MANDATORY_TEST_PATH} is found, resuming test"
     # Run Terraform test
