@@ -1,13 +1,21 @@
-## NOTE: This is the minimum mandatory test
-# run at least one test using the ./examples directory as your module source
-# create additional *.tftest.hcl for your own unit / integration tests
-# use tests/*.auto.tfvars to add non-default variables
+## Mandatory CI test — mock providers, no real AWS resources.
+## Validates the full quick-setup module graph without needing credentials.
 
+mock_provider "aws" {}
+mock_provider "awscc" {}
+mock_provider "random" {}
+mock_provider "time" {}
+mock_provider "null" {}
 
 run "mandatory_plan_basic" {
   command = plan
   module {
     source = "./examples/quick-setup"
+  }
+
+  variables {
+    vpc_id     = "vpc-abc123"
+    subnet_ids = ["subnet-abc123"]
   }
 }
 
@@ -15,5 +23,10 @@ run "mandatory_apply_basic" {
   command = apply
   module {
     source = "./examples/quick-setup"
+  }
+
+  variables {
+    vpc_id     = "vpc-abc123"
+    subnet_ids = ["subnet-abc123"]
   }
 }
