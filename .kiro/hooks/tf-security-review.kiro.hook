@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Terraform Security Review",
+  "description": "Before writing Terraform files, reviews the changes for common security misconfigurations like open security groups, missing encryption, or overly permissive IAM policies",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [
+      "write"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check if the file being written has a .tf extension. If it does NOT end in .tf, respond with 'No action needed - not a Terraform file' and allow the write to proceed. If it IS a .tf file, review the content for security issues: check for overly permissive IAM policies, open security groups (0.0.0.0/0), missing encryption at rest or in transit, public S3 buckets, and missing logging. If issues are found, fix them before writing."
+  }
+}
