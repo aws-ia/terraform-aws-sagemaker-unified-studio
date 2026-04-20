@@ -24,71 +24,65 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr diff ${{ github.event.pull_request.number }} > pr-diff.txt
 
-      - name: Load review config
-        id: config
+      - name: Build prompt
         run: |
+          CONFIG=""
           if [ -f .kiro-review.yml ]; then
-            {
-              echo 'review_config<<EOF'
-              cat .kiro-review.yml
-              echo 'EOF'
-            } >> $GITHUB_OUTPUT
-          else
-            echo "review_config=" >> $GITHUB_OUTPUT
+            CONFIG=$(cat .kiro-review.yml)
           fi
+          cat > /tmp/prompt.txt << 'PROMPT_END'
+          You are a production-grade Terraform PR review agent.
+
+          INSTRUCTIONS:
+          1. Read the file pr-diff.txt — it contains the full git diff for this PR.
+          2. If a file .kiro-review.yml exists in the current directory, read it for review configuration (ignore patterns, severity threshold, custom instructions).
+          3. Apply the ignore patterns from the config — skip files matching those globs.
+          4. Only report findings at or above the severity_threshold in the config.
+          5. Focus on the checks enabled in the config.
+          6. Follow any custom instructions from the config.
+
+          OUTPUT FORMAT (output ONLY this markdown, nothing else):
+
+          ## Walkthrough
+          One short paragraph summarizing what the PR does.
+
+          ## Changes
+
+          | File | Summary |
+          |------|---------|
+          | `path/to/file` | Brief description |
+
+          <details>
+          <summary>🔍 Findings (N issues: X critical, Y warnings, Z suggestions)</summary>
+
+          ### Security
+          - 🔴/🟡/🟢 `file`: description
+
+          ### Breaking Changes
+          - 🔴/🟡/🟢 description
+
+          ### Module Conventions
+          - 🔴/🟡/🟢 description
+
+          ### Terraform Anti-Patterns
+          - 🔴/🟡/🟢 description
+
+          </details>
+
+          Rules:
+          - Output ONLY the markdown. No tool logs, no preamble.
+          - One line per finding max. Be succinct.
+          - Use backticks for code references.
+          - If a section has no findings, write 'No issues found.'
+          - If changes look good, say so in the Walkthrough.
+          PROMPT_END
 
       - name: Run Kiro review
         env:
           KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
         run: |
-          kiro-cli chat --no-interactive --trust-tools=read,grep \
-            "You are a production-grade Terraform PR review agent.
-
-            REVIEW CONFIG (from .kiro-review.yml):
-            ${{ steps.config.outputs.review_config }}
-
-            INSTRUCTIONS:
-            1. Read the file pr-diff.txt — it contains the full git diff for this PR.
-            2. Apply the ignore patterns from the config — skip files matching those globs.
-            3. Only report findings at or above the severity_threshold in the config.
-            4. Focus on the checks enabled in the config.
-            5. Follow any custom instructions from the config.
-
-            OUTPUT FORMAT (output ONLY this markdown, nothing else):
-
-            ## Walkthrough
-            One short paragraph summarizing what the PR does.
-
-            ## Changes
-
-            | File | Summary |
-            |------|---------|
-            | \`path/to/file\` | Brief description |
-
-            <details>
-            <summary>🔍 Findings (N issues: X critical, Y warnings, Z suggestions)</summary>
-
-            ### Security
-            - 🔴/🟡/🟢 \`file\`: description
-
-            ### Breaking Changes
-            - 🔴/🟡/🟢 description
-
-            ### Module Conventions
-            - 🔴/🟡/🟢 description
-
-            ### Terraform Anti-Patterns
-            - 🔴/🟡/🟢 description
-
-            </details>
-
-            Rules:
-            - Output ONLY the markdown. No tool logs, no preamble.
-            - One line per finding max. Be succinct.
-            - Use backticks for code references.
-            - If a section has no findings, write 'No issues found.'
-            - If changes look good, say so in the Walkthrough." \
-            > /tmp/review-output.txt
+          PROMPT=$(cat /tmp/prompt.txt)
+          kiro-cli chat --no-interactive --trust-tools=read,grep "$PROMPT" > /tmp/review-output.txt
 
       - name: Post review comment
         env:
