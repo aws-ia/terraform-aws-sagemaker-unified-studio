@@ -20,16 +20,18 @@ jobs:
         run: curl -fsSL https://cli.kiro.dev/install | bash
 
       - name: Get PR diff
-        run: |
-          git diff origin/${{ github.event.pull_request.base.ref }}...HEAD > /tmp/pr-diff.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr diff ${{ github.event.pull_request.number }} > pr-diff.txt
 
       - name: Run Kiro review
         env:
           KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
         run: |
-          cat /tmp/pr-diff.txt | kiro-cli chat --no-interactive --trust-tools=read,grep \
-            "You are a senior Terraform code reviewer for an AWS infrastructure module.
-            Review this PR diff and provide feedback on:
+          kiro-cli chat --no-interactive --trust-tools=read,grep \
+            "Read the file pr-diff.txt in the current directory. It contains the full git diff for this PR.
+            You are a senior Terraform code reviewer for an AWS infrastructure module.
+            Review the diff and provide feedback on:
             1. **Security**: IAM least privilege, missing encryption, public access, hardcoded secrets
             2. **Breaking changes**: variable/output renames or removals, type changes, default changes
             3. **Module conventions**: missing variable descriptions, validation blocks, naming consistency
@@ -45,10 +47,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          sed 's/\x1b\[[0-9;]*m//g' /tmp/review-output.txt > /tmp/review-clean.txt
           {
             echo "## 🤖 Kiro AI Review"
             echo ""
-            cat /tmp/review-output.txt
+            cat /tmp/review-clean.txt
             echo ""
             echo "---"
             echo "*Automated review by [Kiro CLI](https://kiro.dev) in headless mode*"
