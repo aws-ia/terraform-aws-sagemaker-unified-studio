@@ -1,0 +1,56 @@
+name: Kiro PR Review
+
+on:
+  pull_request:
+    branches: [dev-test] # change to [dev] after testing
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Kiro CLI
+        run: curl -fsSL https://cli.kiro.dev/install | bash
+
+      - name: Get PR diff
+        run: |
+          git diff origin/${{ github.event.pull_request.base.ref }}...HEAD > /tmp/pr-diff.txt
+
+      - name: Run Kiro review
+        env:
+          KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
+        run: |
+          cat /tmp/pr-diff.txt | kiro-cli chat --no-interactive --trust-tools=read,grep \
+            "You are a senior Terraform code reviewer for an AWS infrastructure module.
+            Review this PR diff and provide feedback on:
+            1. **Security**: IAM least privilege, missing encryption, public access, hardcoded secrets
+            2. **Breaking changes**: variable/output renames or removals, type changes, default changes
+            3. **Module conventions**: missing variable descriptions, validation blocks, naming consistency
+            4. **Documentation**: new variables/outputs missing from README or examples
+            5. **Terraform anti-patterns**: count vs for_each misuse, missing lifecycle blocks, loose provider constraints
+
+            Format your response as a structured review with sections. For each finding, indicate severity (🔴 critical, 🟡 warning, 🟢 suggestion).
+            If the changes look good, say so briefly.
+            Do NOT repeat the diff back. Focus only on actionable findings." \
+            > /tmp/review-output.txt
+
+      - name: Post review comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          {
+            echo "## 🤖 Kiro AI Review"
+            echo ""
+            cat /tmp/review-output.txt
+            echo ""
+            echo "---"
+            echo "*Automated review by [Kiro CLI](https://kiro.dev) in headless mode*"
+          } > /tmp/comment-body.txt
+          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/comment-body.txt
