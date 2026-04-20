@@ -10,18 +10,18 @@ permissions:
 
 jobs:
   handle-command:
-    # Only run on PR comments that mention @kiro
+    # Only run on PR comments starting with /kiro
     if: >
       github.event.issue.pull_request &&
-      contains(github.event.comment.body, '@kiro')
+      startsWith(github.event.comment.body, '/kiro')
     runs-on: ubuntu-latest
     steps:
       - name: Extract command
         id: command
         run: |
           COMMENT="${{ github.event.comment.body }}"
-          # Extract everything after @kiro
-          CMD=$(echo "$COMMENT" | grep -oP '@kiro\s+\K.*' | head -1)
+          # Extract everything after /kiro
+          CMD=$(echo "$COMMENT" | grep -oP '/kiro\s+\K.*' | head -1)
           echo "cmd=$CMD" >> $GITHUB_OUTPUT
           echo "Extracted command: $CMD"
 
@@ -127,6 +127,6 @@ jobs:
             cat /tmp/response-clean.txt
             echo ""
             echo "---"
-            echo "<sub>Triggered by \`@kiro ${{ steps.command.outputs.cmd }}\`</sub>"
+            echo "<sub>Triggered by \`/kiro ${{ steps.command.outputs.cmd }}\`</sub>"
           } > /tmp/response-body.txt
           gh pr comment ${{ github.event.issue.number }} --body-file /tmp/response-body.txt
