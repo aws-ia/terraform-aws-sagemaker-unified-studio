@@ -72,7 +72,7 @@ jobs:
           Rules:
           - Output ONLY the markdown. No tool logs, no preamble.
           - One line per finding max. Be succinct.
-          - Use backticks for code references.
+          - Use backticks for ALL code references including version constraints, provider names, file paths, variable names, and resource types.
           - If a section has no findings, write 'No issues found.'
           - If changes look good, say so in the Walkthrough.
           PROMPT_END
@@ -116,7 +116,7 @@ jobs:
           $(cat /tmp/review-clean.txt)
 
           ---
-          *Automated review by [Kiro CLI](https://kiro.dev) in headless mode*"
+          _Automated review by [Kiro CLI](https://kiro.dev) in headless mode_"
 
           # Submit as a PR review (COMMENT event — never approves or requests changes)
           gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
