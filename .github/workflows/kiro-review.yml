@@ -31,23 +31,64 @@ jobs:
           kiro-cli chat --no-interactive --trust-tools=read,grep \
             "Read the file pr-diff.txt in the current directory. It contains the full git diff for this PR.
             You are a senior Terraform code reviewer for an AWS infrastructure module.
-            Review the diff and provide feedback on:
-            1. **Security**: IAM least privilege, missing encryption, public access, hardcoded secrets
-            2. **Breaking changes**: variable/output renames or removals, type changes, default changes
-            3. **Module conventions**: missing variable descriptions, validation blocks, naming consistency
-            4. **Documentation**: new variables/outputs missing from README or examples
-            5. **Terraform anti-patterns**: count vs for_each misuse, missing lifecycle blocks, loose provider constraints
 
-            Format your response as a structured review with sections. For each finding, indicate severity (🔴 critical, 🟡 warning, 🟢 suggestion).
-            If the changes look good, say so briefly.
-            Do NOT repeat the diff back. Focus only on actionable findings." \
+            After analyzing the diff, output ONLY the final review in this EXACT GitHub markdown format (no tool logs, no thinking, just the final markdown):
+
+            ## Walkthrough
+            One short paragraph summarizing what the PR does.
+
+            ## Changes
+
+            | File | Summary |
+            |------|---------|
+            | \`path/to/file\` | Brief description |
+
+            <details>
+            <summary>🔍 Findings (N issues: X critical, Y warnings, Z suggestions)</summary>
+
+            ### Security
+            - 🔴/🟡/🟢 Finding in \`file\`: description
+
+            ### Breaking Changes
+            - 🔴/🟡/🟢 Finding description
+
+            ### Module Conventions
+            - 🔴/🟡/🟢 Finding description
+
+            ### Terraform Anti-Patterns
+            - 🔴/🟡/🟢 Finding description
+
+            </details>
+
+            Rules:
+            - Output ONLY the markdown review. No preamble, no explanation of your process.
+            - Be succinct. One line per finding max.
+            - Use backticks for file/variable references.
+            - If a section has no findings, write 'No issues found.'
+            - If the changes look good overall, say so in the Walkthrough." \
             > /tmp/review-output.txt
 
       - name: Post review comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          sed 's/\x1b\[[0-9;]*m//g' /tmp/review-output.txt > /tmp/review-clean.txt
+          # Strip ANSI codes and Kiro tool-use logs
+          sed 's/\x1b\[[0-9;]*m//g' /tmp/review-output.txt \
+            | sed '/^Reading file:/d' \
+            | sed '/^Batch fs_read/d' \
+            | sed '/^↱ Operation/d' \
+            | sed '/^ ✓ /d' \
+            | sed '/^ ⋮/d' \
+            | sed '/^- Summary:/d' \
+            | sed '/^ - Completed/d' \
+            | sed '/^Searching:/d' \
+            | sed '/^Getting symbols/d' \
+            | sed '/^Failed to get/d' \
+            | sed '/^> /d' \
+            | sed '/^━/d' \
+            | sed '/^\[?25/d' \
+            | sed '/^$/N;/^\n$/d' \
+            > /tmp/review-clean.txt
           {
             echo "## 🤖 Kiro AI Review"
             echo ""
