@@ -1,0 +1,132 @@
+name: Kiro Commands
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  handle-command:
+    # Only run on PR comments that mention @kiro
+    if: >
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@kiro')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract command
+        id: command
+        run: |
+          COMMENT="${{ github.event.comment.body }}"
+          # Extract everything after @kiro
+          CMD=$(echo "$COMMENT" | grep -oP '@kiro\s+\K.*' | head -1)
+          echo "cmd=$CMD" >> $GITHUB_OUTPUT
+          echo "Extracted command: $CMD"
+
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
+          fetch-depth: 0
+
+      - name: Install Kiro CLI
+        run: curl -fsSL https://cli.kiro.dev/install | bash
+
+      - name: Get PR context
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the diff
+          gh pr diff ${{ github.event.issue.number }} > pr-diff.txt
+
+          # Get previous bot comments for context
+          gh pr view ${{ github.event.issue.number }} --comments --json comments \
+            --jq '[.comments[] | select(.author.login == "github-actions[bot]") | .body] | last // ""' \
+            > /tmp/previous-review.txt
+
+      - name: Load review config
+        id: config
+        run: |
+          if [ -f .kiro-review.yml ]; then
+            {
+              echo 'review_config<<EOF'
+              cat .kiro-review.yml
+              echo 'EOF'
+            } >> $GITHUB_OUTPUT
+          else
+            echo "review_config=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run Kiro command
+        env:
+          KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
+        run: |
+          CMD="${{ steps.command.outputs.cmd }}"
+          CONFIG="${{ steps.config.outputs.review_config }}"
+
+          # Build the prompt based on the command
+          case "$CMD" in
+            review)
+              PROMPT="Read pr-diff.txt and perform a full PR review following the config. Config: $CONFIG"
+              ;;
+            security*)
+              PROMPT="Read pr-diff.txt and review ONLY for security issues. Be thorough on IAM, encryption, public access, secrets. Config: $CONFIG"
+              ;;
+            breaking*)
+              PROMPT="Read pr-diff.txt and check ONLY for breaking changes — variable/output removals, type changes, default changes, deleted modules."
+              ;;
+            explain*)
+              TARGET=$(echo "$CMD" | sed 's/explain\s*//')
+              PROMPT="Read the file $TARGET and explain what it does, its purpose in the module, and any notable patterns or concerns."
+              ;;
+            *)
+              PROMPT="The user asked: $CMD. Read pr-diff.txt for context. Respond helpfully and concisely. Config: $CONFIG"
+              ;;
+          esac
+
+          # Add previous review context
+          PREV_REVIEW=$(cat /tmp/previous-review.txt)
+          if [ -n "$PREV_REVIEW" ] && [ "$PREV_REVIEW" != "" ]; then
+            PROMPT="$PROMPT
+
+            PREVIOUS REVIEW (for context):
+            $PREV_REVIEW"
+          fi
+
+          # Add output format instructions
+          PROMPT="$PROMPT
+
+          OUTPUT FORMAT: Respond in clean GitHub markdown. Be succinct. No tool logs, no preamble. Just the answer."
+
+          kiro-cli chat --no-interactive --trust-tools=read,grep "$PROMPT" > /tmp/command-output.txt
+
+      - name: Post response
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sed 's/\x1b\[[0-9;]*m//g' /tmp/command-output.txt \
+            | sed 's/\x1b\[?25[hl]//g' \
+            | sed '/^Reading file:/d' \
+            | sed '/^Batch fs_read/d' \
+            | sed '/^↱ Operation/d' \
+            | sed '/^ ✓ /d' \
+            | sed '/^ ⋮/d' \
+            | sed '/^- Summary:/d' \
+            | sed '/^ - Completed/d' \
+            | sed '/^Searching:/d' \
+            | sed '/^Getting symbols/d' \
+            | sed '/^Failed to get/d' \
+            | sed '/^> /d' \
+            | sed '/^━/d' \
+            | sed '/^$/N;/^\n$/d' \
+            > /tmp/response-clean.txt
+          {
+            echo "### 🤖 Kiro"
+            echo ""
+            cat /tmp/response-clean.txt
+            echo ""
+            echo "---"
+            echo "<sub>Triggered by \`@kiro ${{ steps.command.outputs.cmd }}\`</sub>"
+          } > /tmp/response-body.txt
+          gh pr comment ${{ github.event.issue.number }} --body-file /tmp/response-body.txt

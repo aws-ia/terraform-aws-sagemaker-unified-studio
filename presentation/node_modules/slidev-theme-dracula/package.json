@@ -1,0 +1,65 @@
+{
+  "name": "slidev-theme-dracula",
+  "version": "0.2.0",
+  "description": "Dracula theme for Slidev",
+  "author": "JD Solanki <https://github.com/jd-solanki>",
+  "funding": "https://github.com/sponsors/jd-solanki",
+  "homepage": "https://jd-solanki.github.io/slidev-theme-dracula/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jd-solanki/slidev-theme-dracula.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jd-solanki/slidev-theme-dracula/issues"
+  },
+  "keywords": [
+    "slidev theme",
+    "slidev",
+    "dracula",
+    "dracula theme",
+    "dark theme",
+    "theme"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0",
+    "slidev": ">=0.19.3"
+  },
+  "dependencies": {
+    "@slidev/types": "^0.42.5",
+    "codemirror-theme-vars": "^0.1.2",
+    "prism-theme-vars": "^0.2.4",
+    "theme-vitesse": "^0.7.2"
+  },
+  "devDependencies": {
+    "@iconify-json/iconoir": "^1.1.29",
+    "@iconify-json/logos": "^1.1.33",
+    "@slidev/cli": "^0.42.5",
+    "@types/node": "^20.4.2",
+    "bumpp": "^9.1.1",
+    "globby": "^13.2.2",
+    "serve": "^14.2.0",
+    "tsx": "^3.12.7"
+  },
+  "//": "Learn more: https://sli.dev/themes/write-a-theme.html",
+  "slidev": {
+    "colorSchema": "dark",
+    "highlighter": "shiki",
+    "defaults": {
+      "fonts": {
+        "sans": "Nunito Sans",
+        "mono": "JetBrains Mono"
+      },
+      "hightlighter": "shiki"
+    }
+  },
+  "scripts": {
+    "build": "slidev build slides/example.md",
+    "gen:demos": "tsx scripts/build.ts",
+    "dev": "slidev slides/example.md --open",
+    "dev:layouts": "slidev slides/layouts.md --open",
+    "export": "slidev export slides/example.md",
+    "screenshot": "slidev export slides/example.md --format png",
+    "release": "bumpp package.json"
+  }
+}
