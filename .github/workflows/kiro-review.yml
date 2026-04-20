@@ -24,15 +24,37 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr diff ${{ github.event.pull_request.number }} > pr-diff.txt
 
+      - name: Load review config
+        id: config
+        run: |
+          if [ -f .kiro-review.yml ]; then
+            {
+              echo 'review_config<<EOF'
+              cat .kiro-review.yml
+              echo 'EOF'
+            } >> $GITHUB_OUTPUT
+          else
+            echo "review_config=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run Kiro review
         env:
           KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
         run: |
           kiro-cli chat --no-interactive --trust-tools=read,grep \
-            "Read the file pr-diff.txt in the current directory. It contains the full git diff for this PR.
-            You are a senior Terraform code reviewer for an AWS infrastructure module.
+            "You are a production-grade Terraform PR review agent.
 
-            After analyzing the diff, output ONLY the final review in this EXACT GitHub markdown format (no tool logs, no thinking, just the final markdown):
+            REVIEW CONFIG (from .kiro-review.yml):
+            ${{ steps.config.outputs.review_config }}
+
+            INSTRUCTIONS:
+            1. Read the file pr-diff.txt — it contains the full git diff for this PR.
+            2. Apply the ignore patterns from the config — skip files matching those globs.
+            3. Only report findings at or above the severity_threshold in the config.
+            4. Focus on the checks enabled in the config.
+            5. Follow any custom instructions from the config.
+
+            OUTPUT FORMAT (output ONLY this markdown, nothing else):
 
             ## Walkthrough
             One short paragraph summarizing what the PR does.
@@ -47,33 +69,34 @@ jobs:
             <summary>🔍 Findings (N issues: X critical, Y warnings, Z suggestions)</summary>
 
             ### Security
-            - 🔴/🟡/🟢 Finding in \`file\`: description
+            - 🔴/🟡/🟢 \`file\`: description
 
             ### Breaking Changes
-            - 🔴/🟡/🟢 Finding description
+            - 🔴/🟡/🟢 description
 
             ### Module Conventions
-            - 🔴/🟡/🟢 Finding description
+            - 🔴/🟡/🟢 description
 
             ### Terraform Anti-Patterns
-            - 🔴/🟡/🟢 Finding description
+            - 🔴/🟡/🟢 description
 
             </details>
 
             Rules:
-            - Output ONLY the markdown review. No preamble, no explanation of your process.
-            - Be succinct. One line per finding max.
-            - Use backticks for file/variable references.
+            - Output ONLY the markdown. No tool logs, no preamble.
+            - One line per finding max. Be succinct.
+            - Use backticks for code references.
             - If a section has no findings, write 'No issues found.'
-            - If the changes look good overall, say so in the Walkthrough." \
+            - If changes look good, say so in the Walkthrough." \
             > /tmp/review-output.txt
 
       - name: Post review comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Strip ANSI codes and Kiro tool-use logs
+          # Strip ANSI codes and tool-use logs
           sed 's/\x1b\[[0-9;]*m//g' /tmp/review-output.txt \
+            | sed 's/\x1b\[?25[hl]//g' \
             | sed '/^Reading file:/d' \
             | sed '/^Batch fs_read/d' \
             | sed '/^↱ Operation/d' \
@@ -86,7 +109,6 @@ jobs:
             | sed '/^Failed to get/d' \
             | sed '/^> /d' \
             | sed '/^━/d' \
-            | sed '/^\[?25/d' \
             | sed '/^$/N;/^\n$/d' \
             > /tmp/review-clean.txt
           {

@@ -1,0 +1,43 @@
+# .kiro-review.yml — Configuration for Kiro PR Review Agent
+
+review:
+  # Review focus areas (enabled by default, set false to disable)
+  checks:
+    security: true
+    breaking_changes: true
+    module_conventions: true
+    terraform_anti_patterns: true
+    documentation: true
+
+  # Custom instructions appended to the review prompt
+  instructions: |
+    This is a public AWS Terraform module published via aws-ia.
+    Pay special attention to:
+    - IAM least privilege and overly broad Resource: "*" policies
+    - S3 bucket security (encryption, public access blocks, TLS enforcement)
+    - Breaking changes to variable/output interfaces that affect downstream consumers
+    - Provider version constraint consistency across root and sub-modules
+    Ignore formatting-only changes in generated README.md files.
+
+  # Files/patterns to exclude from review
+  ignore:
+    - "presentation/**"
+    - ".project_automation/**"
+    - "*.md"
+    - ".github/**"
+
+  # Minimum severity to report: critical, warning, suggestion
+  severity_threshold: warning
+
+  # Output format options
+  output:
+    walkthrough: true
+    changes_table: true
+    findings_toggle: true
+
+# Commands available via @kiro in PR comments
+commands:
+  review: "Re-run the full PR review"
+  explain: "Explain a specific file or section (usage: @kiro explain <path>)"
+  security: "Run a security-focused review only"
+  breaking: "Check for breaking changes only"
