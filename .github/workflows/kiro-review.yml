@@ -21,6 +21,19 @@ jobs:
       - name: Install Kiro CLI
         run: curl -fsSL https://cli.kiro.dev/install | bash
 
+      - name: Configure Kiro model
+        run: |
+          MODEL="claude-opus-4.6-1m"
+          if [ -f .kiro-review.yml ]; then
+            CONFIGURED=$(grep '^model:' .kiro-review.yml | awk '{print $2}' || true)
+            if [ -n "$CONFIGURED" ]; then
+              MODEL="$CONFIGURED"
+            fi
+          fi
+          mkdir -p ~/.kiro/settings
+          echo "{\"chat.defaultModel\":\"$MODEL\"}" > ~/.kiro/settings/cli.json
+          echo "Using model: $MODEL"
+
       - name: Get PR diff
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

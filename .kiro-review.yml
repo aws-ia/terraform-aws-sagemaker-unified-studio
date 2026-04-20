@@ -1,5 +1,8 @@
 # .kiro-review.yml — Configuration for Kiro PR Review Agent
 
+# Model to use for reviews (see https://kiro.dev/docs/cli/models/)
+model: claude-opus-4.6-1m
+
 review:
   # Review focus areas (enabled by default, set false to disable)
   checks:
