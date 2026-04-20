@@ -1,0 +1,80 @@
+name: Kiro PR Review
+
+on:
+  pull_request:
+    branches: [dev-test] # change to [dev] after testing
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Kiro CLI
+        run: curl -fsSL https://cli.kiro.dev/install | bash
+
+      - name: Get PR diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr diff ${{ github.event.pull_request.number }} > pr-diff.txt
+
+      - name: Run Kiro review
+        env:
+          KIRO_API_KEY: ${{ secrets.KIRO_API_KEY }}
+        run: |
+          kiro-cli chat --no-interactive --trust-tools=read,grep \
+            "Read the file pr-diff.txt in the current directory. It contains the full git diff for this PR.
+            You are a senior Terraform code reviewer for an AWS infrastructure module.
+
+            Review the diff and produce a GitHub PR comment using this EXACT markdown structure:
+
+            ## Walkthrough
+            One short paragraph summarizing what the PR does.
+
+            ## Changes
+            A markdown table with columns: File | Summary (one row per changed file, be succinct)
+
+            <details>
+            <summary>🔍 Findings</summary>
+
+            ### Security
+            List findings with 🔴 🟡 🟢 severity. If none, write 'No issues found.'
+
+            ### Breaking Changes
+            List findings. If none, write 'No issues found.'
+
+            ### Module Conventions
+            List findings. If none, write 'No issues found.'
+
+            ### Terraform Anti-Patterns
+            List findings. If none, write 'No issues found.'
+
+            </details>
+
+            Rules:
+            - Be succinct. One line per finding.
+            - Do NOT repeat the diff.
+            - Use backticks for code references.
+            - If the changes look good overall, say so in the Walkthrough." \
+            > /tmp/review-output.txt
+
+      - name: Post review comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sed 's/\x1b\[[0-9;]*m//g' /tmp/review-output.txt > /tmp/review-clean.txt
+          {
+            echo "## 🤖 Kiro AI Review"
+            echo ""
+            cat /tmp/review-clean.txt
+            echo ""
+            echo "---"
+            echo "*Automated review by [Kiro CLI](https://kiro.dev) in headless mode*"
+          } > /tmp/comment-body.txt
+          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/comment-body.txt
