@@ -84,7 +84,7 @@ jobs:
           PROMPT=$(cat /tmp/prompt.txt)
           kiro-cli chat --no-interactive --trust-tools=read,grep "$PROMPT" > /tmp/review-output.txt
 
-      - name: Post review comment
+      - name: Submit review
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -103,14 +103,23 @@ jobs:
             | sed '/^Failed to get/d' \
             | sed '/^> /d' \
             | sed '/^━/d' \
+            | sed '/^Let me /d' \
             | sed '/^$/N;/^\n$/d' \
             > /tmp/review-clean.txt
-          {
-            echo "## 🤖 Kiro AI Review"
-            echo ""
-            cat /tmp/review-clean.txt
-            echo ""
-            echo "---"
-            echo "*Automated review by [Kiro CLI](https://kiro.dev) in headless mode*"
-          } > /tmp/comment-body.txt
-          gh pr comment ${{ github.event.pull_request.number }} --body-file /tmp/comment-body.txt
+
+          REVIEW_BODY=$(cat <<'EOF'
+          ## 🤖 Kiro AI Review
+
+          EOF
+          )
+          REVIEW_BODY="${REVIEW_BODY}
+          $(cat /tmp/review-clean.txt)
+
+          ---
+          *Automated review by [Kiro CLI](https://kiro.dev) in headless mode*"
+
+          # Submit as a PR review (COMMENT event — never approves or requests changes)
+          gh api repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews \
+            --method POST \
+            --field body="$REVIEW_BODY" \
+            --field event="COMMENT"
