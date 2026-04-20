@@ -35,9 +35,9 @@ review:
     changes_table: true
     findings_toggle: true
 
-# Commands available via /kiro in PR comments
+# Commands available via @kiro in PR comments
 commands:
   review: "Re-run the full PR review"
-  explain: "Explain a specific file or section (usage: /kiro explain <path>)"
+  explain: "Explain a specific file or section (usage: @kiro explain <path>)"
   security: "Run a security-focused review only"
   breaking: "Check for breaking changes only"
