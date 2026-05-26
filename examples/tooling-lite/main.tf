@@ -283,8 +283,8 @@ module "default_project" {
   source = "../../modules/project"
 
   domain_id           = module.domain.domain_id
-  project_name        = "Test Project"
-  project_description = "Test Project"
+  project_name        = var.project_name
+  project_description = var.project_description
   // pick first available project profile
   project_profile_id = module.default_project_profile.project_profile_id
   project_role       = aws_iam_role.project_iam_role.arn
