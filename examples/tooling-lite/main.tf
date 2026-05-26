@@ -73,54 +73,6 @@ locals {
 
   # Build the map of blueprints to enable based on toggle variables
   blueprint_configs = merge(
-    (var.enable_generative_ai || var.enable_all_capabilities) ? {
-      amazon_bedrock_chat_agent = {
-        blueprint_name = "AmazonBedrockChatAgent"
-      }
-      amazon_bedrock_evaluation = {
-        blueprint_name = "AmazonBedrockEvaluation"
-      }
-      amazon_bedrock_flow = {
-        blueprint_name = "AmazonBedrockFlow"
-      }
-      amazon_bedrock_function = {
-        blueprint_name = "AmazonBedrockFunction"
-      }
-      amazon_bedrock_guardrail = {
-        blueprint_name = "AmazonBedrockGuardrail"
-      }
-      amazon_bedrock_knowledge_base = {
-        blueprint_name = "AmazonBedrockKnowledgeBase"
-      }
-      amazon_bedrock_prompt = {
-        blueprint_name = "AmazonBedrockPrompt"
-      }
-    } : {},
-    (var.enable_sql_analytics || var.enable_all_capabilities) ? {
-      lakehouse_database = {
-        blueprint_name = "DataLake"
-      }
-      lakehouse_catalog = {
-        blueprint_name = "LakehouseCatalog"
-      }
-      redshift_serverless = {
-        blueprint_name = "RedshiftServerless"
-      }
-    } : {},
-    (var.enable_all_capabilities) ? {
-      emr_serverless = {
-        blueprint_name = "EmrServerless"
-      }
-      emr_on_ec2 = {
-        blueprint_name = "EmrOnEc2"
-      }
-      ml_experiments = {
-        blueprint_name = "MLExperiments"
-      }
-      workflows = {
-        blueprint_name = "Workflows"
-      }
-    } : {},
     // blueprints for bring your own role
     {
       tooling_lite = {
@@ -134,102 +86,6 @@ locals {
       }
     }
   )
-
-  sql_analytics_blueprint_config = {
-    "DataLake" = {
-      deployment_mode = "ON_CREATE"
-      parameter_overrides = {
-        "glueDbName" = {
-          value       = "glue_db"
-          is_editable = true
-        }
-      }
-    }
-    "RedshiftServerless" = {
-      deployment_mode = "ON_CREATE"
-      parameter_overrides = {
-        "connectToRMSCatalog" = {
-          value       = "true"
-          is_editable = false
-        }
-        "redshiftDbName" = {
-          value       = "dev"
-          is_editable = true
-        }
-        "redshiftMaxCapacity" = {
-          value       = "512"
-          is_editable = false
-        }
-      }
-    }
-    "LakehouseCatalog" = {
-      deployment_mode = "ON_DEMAND"
-      parameter_overrides = {
-        "catalogDescription" = {
-          value       = "RMS catalog"
-          is_editable = true
-        }
-        "catalogName" = {
-          value       = ""
-          is_editable = true
-        }
-      }
-    }
-    "RedshiftServerless" = {
-      deployment_mode = "ON_DEMAND"
-      parameter_overrides = {
-        "connectionName" = {
-          value       = "redshift.serverless"
-          is_editable = true
-        }
-        "connectToRMSCatalog" = {
-          value       = "false"
-          is_editable = false
-        }
-        "redshiftBaseCapacity" = {
-          value       = "128"
-          is_editable = true
-        }
-        "redshiftDbName" = {
-          value       = "dev"
-          is_editable = true
-        }
-        "redshiftMaxCapacity" = {
-          value       = "512"
-          is_editable = true
-        }
-        "redshiftWorkgroupName" = {
-          value       = "redshift-serverless-workgroup"
-          is_editable = true
-        }
-      }
-    }
-  }
-
-  generative_ai_blueprint_config = {
-    "AmazonBedrockEvaluation" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockPrompt" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockFlow" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockFunction" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockGuardrail" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockKnowledgeBase" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockChatAgent" = {
-      deployment_mode = "ON_DEMAND"
-    }
-  }
-
   default_blueprint_config = {
     "S3Bucket" = {
       deployment_mode = "ON_DEMAND"
@@ -255,7 +111,6 @@ locals {
     }
   }
 
-  all_capabilities_blueprint_config = merge(local.sql_analytics_blueprint_config, local.generative_ai_blueprint_config)
   # Build the regional parameters for each blueprint (same VPC/subnets/S3 for all)
   regional_parameters = {
     (local.region) = {
@@ -320,51 +175,6 @@ module "blueprints" {
 #                  Tooling blueprint integration from domain output (Req 9.3)
 #####################################################################################
 
-module "sql_analytics_project_profile" {
-  count  = var.enable_sql_analytics ? 1 : 0
-  source = "../../modules/project-profile"
-
-  domain_id   = module.domain.domain_id
-  name        = "SQL analytics"
-  description = "Analyze your data in SageMaker Lakehouse using SQL"
-
-  # Compose blueprints into the profile — Tooling is automatically included
-  # and always first in the environment configurations
-  blueprints = local.sql_analytics_blueprint_config
-
-  blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
-}
-
-module "generative_ai_project_profile" {
-  count  = var.enable_generative_ai ? 1 : 0
-  source = "../../modules/project-profile"
-
-  domain_id   = module.domain.domain_id
-  name        = "Generative AI application development"
-  description = "Build generative AI applications powered by Amazon Bedrock"
-
-  # Compose blueprints into the profile — Tooling is automatically included
-  # and always first in the environment configurations
-  blueprints = local.generative_ai_blueprint_config
-
-  blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
-}
-
-module "all_capabilities_project_profile" {
-  count  = var.enable_all_capabilities ? 1 : 0
-  source = "../../modules/project-profile"
-
-  domain_id   = module.domain.domain_id
-  name        = "All capabilities"
-  description = "Analyze data and build machine learning and generative AI models and applications powered by Amazon Bedrock, Amazon EMR, AWS Glue, Amazon Athena, Amazon SageMaker AI and Amazon SageMaker Lakehouse"
-
-  # Compose blueprints into the profile — Tooling is automatically included
-  # and always first in the environment configurations
-  blueprints = local.all_capabilities_blueprint_config
-
-  blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
-}
-
 // BYOR Project Profile
 module "default_project_profile" {
   source = "../../modules/project-profile"
@@ -380,21 +190,12 @@ module "default_project_profile" {
 }
 
 module "create_project_from_project_profile_grant" {
-  count          = (var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai) ? 1 : 0
   source         = "../../modules/policy-grant/create_project"
   domain_id      = module.domain.domain_id
   domain_unit_id = module.domain.domain_root_unit_id
-  project_profile_ids = concat(
-    [for p in module.all_capabilities_project_profile : p.project_profile_id],
-    [for p in module.sql_analytics_project_profile : p.project_profile_id],
-    [for p in module.generative_ai_project_profile : p.project_profile_id],
-    [module.default_project_profile.project_profile_id]
-  )
+  project_profile_ids = [module.default_project_profile.project_profile_id]
   all_users = true
-  depends_on = [
-    module.all_capabilities_project_profile,
-    module.sql_analytics_project_profile,
-    module.generative_ai_project_profile
+  depends_on = [module.default_project_profile
   ]
 }
 
@@ -404,17 +205,69 @@ module "create_project_from_project_profile_grant" {
 #    Creates a project from the profile with SSO user membership
 #####################################################################################
 
-module "project" {
-  count  = (var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai) ? 1 : 0
+
+resource "random_string" "project_suffix" {
+  length  = 8
+  special = false
+}
+resource "aws_iam_role" "project_iam_role" {
+  name = "SMUSProjectIAMExecutionRole_${random_string.project_suffix.result}"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = [
+            "datazone.amazonaws.com",
+            "sagemaker.amazonaws.com",
+            "glue.amazonaws.com",
+            "bedrock.amazonaws.com",
+            "scheduler.amazonaws.com",
+            "lakeformation.amazonaws.com",
+            "airflow-serverless.amazonaws.com",
+            "athena.amazonaws.com",
+            "redshift.amazonaws.com",
+            "emr-serverless.amazonaws.com"
+          ]
+        }
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession",
+          "sts:SetContext",
+          "sts:SetSourceIdentity"
+        ]
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
+      }
+    ]
+  })
+}
+resource "aws_iam_role_policy_attachment" "project_iam_role_policy_attachment" {
+  role       = aws_iam_role.project_iam_role.name
+  policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioUserIAMDefaultExecutionPolicy"
+}
+// Wait after role deployment for state to synchronize between aws and awscc
+resource "time_sleep" "wait_after_project_role_creation" {
+  depends_on      = [aws_iam_role.project_iam_role, aws_iam_role_policy_attachment.project_iam_role_policy_attachment]
+  create_duration = "10s"
+}
+
+
+module "default_project" {
   source = "../../modules/project"
 
   domain_id           = module.domain.domain_id
-  project_name        = local.project_name
-  project_description = var.project_description
+  project_name        = "Test Project"
+  project_description = "Test Project"
   // pick first available project profile
-  project_profile_id = concat(module.all_capabilities_project_profile, module.sql_analytics_project_profile, module.generative_ai_project_profile)[0].project_profile_id
-
-  depends_on = [module.create_project_from_project_profile_grant]
+  project_profile_id = module.default_project_profile.project_profile_id
+  project_role = aws_iam_role.project_iam_role.arn
+  
+  depends_on = [module.create_project_from_project_profile_grant, time_sleep.wait_after_project_role_creation]
 }
 
 #####################################################################################
@@ -431,7 +284,7 @@ resource "aws_datazone_user_profile" "sso_users" {
 resource "awscc_datazone_project_membership" "project_membership" {
   for_each           = toset(var.sso_users)
   domain_identifier  = module.domain.domain_id
-  project_identifier = module.project[0].project_id
+  project_identifier = module.default_project.project_id
   member = {
     user_identifier = each.key
   }

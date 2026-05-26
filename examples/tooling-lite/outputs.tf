@@ -57,9 +57,6 @@ output "blueprint_names" {
 output "project_profile_ids" {
   description = "List of all enabled project profile IDs"
   value = concat(
-    [for p in module.all_capabilities_project_profile : p.project_profile_id],
-    [for p in module.sql_analytics_project_profile : p.project_profile_id],
-    [for p in module.generative_ai_project_profile : p.project_profile_id],
     [module.default_project_profile.project_profile_id]
   )
 }
@@ -70,17 +67,17 @@ output "project_profile_ids" {
 
 output "project_id" {
   description = "ID of the created project"
-  value       = length(module.project) > 0 ? module.project[0].project_id : null
+  value       =  module.default_project.project_id
 }
 
 output "project_name" {
   description = "Name of the created project"
-  value       = length(module.project) > 0 ? module.project[0].project_name : null
+  value       =  module.default_project.project_name
 }
 
 output "project_url" {
   description = "URL to access the project in SageMaker Unified Studio"
-  value       = length(module.project) > 0 ? module.project[0].project_url : null
+  value       =  module.default_project.project_url
 }
 
 #####################################################################################

@@ -49,7 +49,7 @@ locals {
   region     = data.aws_region.current.id
 
   # Tooling blueprint name — switches between "Tooling" and "ToolingLite"
-  tooling_blueprint_name = var.toolinglite_blueprint ? "ToolingLite" : "Tooling"
+  tooling_blueprint_name = var.toolinglite ? "ToolingLite" : "Tooling"
 
   # Separate Tooling from other blueprints
   non_tooling_names = sort([for name in keys(var.blueprints) : name if name != local.tooling_blueprint_name])
@@ -70,7 +70,7 @@ locals {
       aws_region = {
         region_name = local.region
       }
-      configuration_parameters = var.toolinglite_blueprint ? {
+      configuration_parameters = var.toolinglite ? {
         parameter_overrides = [{
           name        = "s3BucketLocation"
           value       = ""

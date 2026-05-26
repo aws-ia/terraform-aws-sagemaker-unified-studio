@@ -178,6 +178,12 @@ variable "sso_users" {
   default     = []
 }
 
+variable "iam_roles" {
+  description = "A list of IAM roles to add as members to the created domain and project"
+  type        = list(string)
+  default     = []
+}
+
 #####################################################################################
 # Environment and Tagging
 #####################################################################################
