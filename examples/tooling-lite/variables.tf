@@ -178,7 +178,7 @@ variable "sso_users" {
   default     = []
 }
 
-variable "iam_roles" {
+variable "iam_users" {
   description = "A list of IAM roles to add as members to the created domain and project"
   type        = list(string)
   default     = []

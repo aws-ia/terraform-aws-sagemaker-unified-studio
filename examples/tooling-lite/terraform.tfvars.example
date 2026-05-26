@@ -1,0 +1,34 @@
+# SageMaker Unified Studio Quick-Setup Example Configuration
+# Copy this file to terraform.tfvars and customize the values
+
+# AWS Configuration
+aws_region = "us-west-2" # Change to your preferred region
+
+# Domain Configuration
+domain_name        = "my-unified-studio"
+domain_description = "SageMaker Unified Studio domain with modular blueprint and profile setup"
+
+# Project Configuration
+project_name        = "my-analytics-project"
+project_description = "Quick-setup project for data science and ML workloads"
+
+# Project Profile Selection -- controls which profiles and blueprints are enabled
+enable_sql_analytics    = true  # SQL analytics profile (DataLake, LakehouseCatalog, RedshiftServerless)
+enable_generative_ai    = true  # Generative AI profile (Bedrock blueprints)
+enable_all_capabilities = false # All capabilities profile (combines SQL + GenAI + EMR + ML)
+
+# VPC and Network Configuration (null = use default VPC)
+# vpc_id     = "vpc-xxx"
+# subnet_ids = ["subnet-xxx", "subnet-xxx"]
+
+# S3 Bucket Configuration (null = auto-create)
+# s3_bucket_name = "my-existing-bucket"
+
+# SSO Configuration
+enable_sso = true
+sso_users  = ["user@example.com"]
+iam_users  = ["arn:aws:iam::<account_id>:role/<role>"]
+
+# Environment and Tagging
+environment = "test"
+owner       = "data-team"

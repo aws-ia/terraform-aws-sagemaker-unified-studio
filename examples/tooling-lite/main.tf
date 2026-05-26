@@ -91,7 +91,7 @@ locals {
       deployment_mode = "ON_DEMAND"
       parameter_overrides = {
         "bucketName" = {
-          value = ""
+          value       = ""
           is_editable = true
         }
       }
@@ -149,6 +149,27 @@ module "domain" {
 }
 
 #####################################################################################
+# 1a. Provisioning Role — additional inline policy
+#     ToolingLite uses bring-your-own-role and creates the project S3 bucket at
+#     project-creation time. The default provisioning role policy doesn't grant
+#     s3:CreateBucket on amazon-sagemaker* buckets, so we attach an inline policy
+#     here to fill that gap.
+#####################################################################################
+
+# The domain module exposes the provisioning role ARN; aws_iam_role_policy needs
+# the role name, which is the last segment of the ARN (after stripping path).
+locals {
+  provisioning_role_name = reverse(split("/", module.domain.provisioning_role_arn))[0]
+}
+
+
+
+resource "aws_iam_role_policy_attachment" "provisioning_admin_policy_attachment" {
+  role       = local.provisioning_role_name
+  policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioAdminIAMDefaultExecutionPolicy"
+}
+
+#####################################################################################
 # 2. Blueprint Module (singular, invoked per blueprint)
 #    Demonstrates: multiple blueprint invocations (Req 9.1),
 #                  VPC configuration parameters (Req 9.4)
@@ -186,15 +207,15 @@ module "default_project_profile" {
   blueprints = local.default_blueprint_config
 
   blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
-  toolinglite = true
+  toolinglite            = true
 }
 
 module "create_project_from_project_profile_grant" {
-  source         = "../../modules/policy-grant/create_project"
-  domain_id      = module.domain.domain_id
-  domain_unit_id = module.domain.domain_root_unit_id
+  source              = "../../modules/policy-grant/create_project"
+  domain_id           = module.domain.domain_id
+  domain_unit_id      = module.domain.domain_root_unit_id
   project_profile_ids = [module.default_project_profile.project_profile_id]
-  all_users = true
+  all_users           = true
   depends_on = [module.default_project_profile
   ]
 }
@@ -250,6 +271,7 @@ resource "aws_iam_role_policy_attachment" "project_iam_role_policy_attachment" {
   role       = aws_iam_role.project_iam_role.name
   policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioUserIAMDefaultExecutionPolicy"
 }
+
 // Wait after role deployment for state to synchronize between aws and awscc
 resource "time_sleep" "wait_after_project_role_creation" {
   depends_on      = [aws_iam_role.project_iam_role, aws_iam_role_policy_attachment.project_iam_role_policy_attachment]
@@ -265,9 +287,9 @@ module "default_project" {
   project_description = "Test Project"
   // pick first available project profile
   project_profile_id = module.default_project_profile.project_profile_id
-  project_role = aws_iam_role.project_iam_role.arn
-  
-  depends_on = [module.create_project_from_project_profile_grant, time_sleep.wait_after_project_role_creation]
+  project_role       = aws_iam_role.project_iam_role.arn
+
+  depends_on = [module.create_project_from_project_profile_grant, aws_iam_role_policy_attachment.provisioning_admin_policy_attachment, time_sleep.wait_after_project_role_creation]
 }
 
 #####################################################################################
@@ -289,4 +311,14 @@ resource "awscc_datazone_project_membership" "project_membership" {
     user_identifier = each.key
   }
   designation = "PROJECT_OWNER"
+}
+
+module "project_membership" {
+  for_each = toset(var.iam_users)
+  source   = "../../modules/project/membership"
+
+  domain_id   = module.domain.domain_id
+  project_id  = module.default_project.project_id
+  identifier  = each.key
+  member_type = "IAM"
 }
