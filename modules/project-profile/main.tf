@@ -22,17 +22,26 @@ data "aws_datazone_environment_blueprint" "this" {
   managed   = true
 }
 
+# Marker resource that forces the blueprint configuration data source below to
+# wait until all upstream blueprint modules have finished applying. The output
+# value itself is unused — we only care about the dependency chain.
+resource "terraform_data" "blueprint_dependencies" {
+  input = var.blueprint_dependencies
+}
+
 # Verify ALL referenced blueprints are configured (enabled) for this domain.
 # Blueprint IDs always resolve (managed blueprints exist in every domain), but that
 # does NOT mean they are configured with VPC, roles, and enabled regions.
 # Without this check, a project profile could reference an unconfigured blueprint,
 # causing environment creation failures at project time.
 #
-# The join() on blueprint_dependencies creates an implicit dependency so Terraform
-# waits for blueprint modules to finish before reading configs.
+# depends_on on the terraform_data marker defers this read until after the
+# blueprint module resources have been applied.
 data "awscc_datazone_environment_blueprint_configuration" "this" {
   for_each = data.aws_datazone_environment_blueprint.this
-  id       = "${var.domain_id}|${each.value.id}${join("", var.blueprint_dependencies) == "" ? "" : ""}"
+  id       = "${var.domain_id}|${each.value.id}"
+
+  depends_on = [terraform_data.blueprint_dependencies]
 }
 
 locals {
