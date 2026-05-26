@@ -6,20 +6,35 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
+# Fetch the project profile to inspect its environment configurations.
+# Used to determine whether the profile contains the ToolingLite blueprint,
+# which requires a project_role to be supplied.
+data "awscc_datazone_project_profile" "this" {
+  count = var.project_profile_id != null && var.project_profile_id != "" ? 1 : 0
+  id    = "${var.domain_id}|${var.project_profile_id}"
+}
+
 # Local values
 locals {
   aws_region = var.aws_region != null ? var.aws_region : data.aws_region.current.id
+
+  # Detect whether the resolved project profile uses the ToolingLite blueprint.
+  # When true, var.project_role must be a valid IAM role ARN (bring-your-own-role).
+  uses_tooling_lite = length(data.awscc_datazone_project_profile.this) > 0 ? anytrue([
+    for cfg in data.awscc_datazone_project_profile.this[0].environment_configurations :
+    cfg.name == "ToolingLite"
+  ]) : false
 }
 
 # Main Project Resource using awscc provider
 resource "awscc_datazone_project" "main" {
-  domain_identifier   = var.domain_id
-  name               = var.project_name
-  description        = var.project_description
-  
+  domain_identifier = var.domain_id
+  name              = var.project_name
+  description       = var.project_description
+
   # Only set project_profile_id if it's provided and not empty
   project_profile_id = var.project_profile_id != null && var.project_profile_id != "" ? var.project_profile_id : null
-  
+  project_execution_role = var.project_role
   # User parameters for environment configurations
   # Transform the input variable to match awscc provider's expected structure
   user_parameters = [
@@ -33,12 +48,23 @@ resource "awscc_datazone_project" "main" {
       ]
     }
   ]
-  
+
   # Lifecycle rule to handle AWSCC provider issues
   lifecycle {
     # Continue deployment even if AWSCC provider fails to track completion
     # The resource might be created successfully even if the provider times out
     ignore_changes = []
+
+    # Require a valid IAM role ARN when the project profile uses ToolingLite.
+    # ToolingLite is a bring-your-own-role blueprint and the project will fail
+    # to provision its environment without one.
+    precondition {
+      condition = !local.uses_tooling_lite || (
+        var.project_role != null &&
+        can(regex("^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/.+$", var.project_role))
+      )
+      error_message = "The project profile '${var.project_profile_id}' includes the ToolingLite blueprint, which requires var.project_role to be set to a valid IAM role ARN (e.g. 'arn:aws:iam::123456789012:role/MyProjectRole')."
+    }
   }
 }
 
@@ -124,20 +150,20 @@ resource "null_resource" "cleanup_environments" {
       echo "Environment cleanup completed"
     EOT
   }
-  
+
   depends_on = [awscc_datazone_project.main]
 }
 
 # Project profile cleanup: Delete project profiles during destroy
 resource "null_resource" "cleanup_project_profiles" {
   count = var.enable_profile_cleanup ? 1 : 0
-  
+
   # This resource runs during destroy to clean up project profiles
   triggers = {
-    domain_id      = var.domain_id
-    aws_region     = local.aws_region
-    project_name   = var.project_name
-    module_path    = path.module
+    domain_id    = var.domain_id
+    aws_region   = local.aws_region
+    project_name = var.project_name
+    module_path  = path.module
   }
 
   provisioner "local-exec" {
@@ -193,7 +219,7 @@ resource "null_resource" "cleanup_project_profiles" {
       fi
     EOT
   }
-  
+
   depends_on = [null_resource.cleanup_environments]
 }
 
@@ -201,29 +227,29 @@ resource "null_resource" "cleanup_project_profiles" {
 # Create memberships for all specified users
 resource "awscc_datazone_project_membership" "members" {
   for_each = toset(var.user_list)
-  
-  domain_identifier   = var.domain_id
-  project_identifier  = awscc_datazone_project.main.project_id
+
+  domain_identifier  = var.domain_id
+  project_identifier = awscc_datazone_project.main.project_id
   designation        = var.user_designation
-  
+
   member = {
     user_identifier = each.value
   }
-  
+
   depends_on = [awscc_datazone_project.main]
 }
 
 # Optional: Create additional memberships with different designations
 resource "awscc_datazone_project_membership" "contributors" {
   for_each = toset(var.contributor_list)
-  
-  domain_identifier   = var.domain_id
-  project_identifier  = awscc_datazone_project.main.project_id
+
+  domain_identifier  = var.domain_id
+  project_identifier = awscc_datazone_project.main.project_id
   designation        = "PROJECT_CONTRIBUTOR"
-  
+
   member = {
     user_identifier = each.value
   }
-  
+
   depends_on = [awscc_datazone_project.main]
 }

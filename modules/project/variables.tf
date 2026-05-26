@@ -42,6 +42,17 @@ variable "project_profile_id" {
   }
 }
 
+variable "project_role" {
+  description = "Specify the project role if the project profile is defined with ToolingLite."
+  type        = string
+  default     = null
+
+  validation {
+    condition = var.project_role == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.project_role))
+    error_message = "Project role ARN must be a valid IAM role ARN."
+  }
+}
+
 variable "user_list" {
   description = "List of user identifiers to add as project owners"
   type        = list(string)
