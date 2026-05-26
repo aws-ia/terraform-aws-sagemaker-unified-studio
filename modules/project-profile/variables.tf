@@ -101,7 +101,7 @@ variable "blueprint_dependencies" {
   default     = []
 }
 
-variable "toolinglite_blueprint" {
+variable "toolinglite" {
   description = "When set to true, the project profile will be deployed with ToolingLite (bring your own role) instead of the Tooling blueprint which creates a new project role for each project. The ToolingLite blueprint is required to be enabled before setting this configuration."
   type        = bool
   default     = false
