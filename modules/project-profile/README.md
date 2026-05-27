@@ -3,14 +3,17 @@
 
 This module creates a single project profile for an Amazon SageMaker Unified Studio domain. A project profile defines which environment blueprints are available when creating a project, along with their deployment order and configuration parameters.
 
+For the special "Default Project Profile" used for bring-your-own-role (BYOR) projects with the ToolingLite blueprint, see `modules/project-profile/default` instead.
+
 ## What it does
 
 - Creates one `awscc_datazone_project_profile` per invocation
-- Automatically includes Tooling as the first environment (deployment\_order = 1)
-- Orders remaining blueprints alphabetically starting at deployment\_order = 2
+- Automatically includes Tooling as the first environment (`deployment_order = 1`)
+- Orders remaining blueprints alphabetically starting at `deployment_order = 2`
 - Resolves blueprint IDs internally from blueprint names via data source lookup
 - Validates that all referenced blueprints are configured (enabled) for the domain before creating the profile
 - Supports per-blueprint region overrides and parameter overrides
+- Supports a `blueprint_dependencies` input that establishes a real dependency edge to upstream blueprint modules so the profile is created after blueprints are configured
 
 ## Usage
 
@@ -29,33 +32,42 @@ module "sql_analytics_profile" {
     RedshiftServerless = { deployment_mode = "ON_DEMAND" }
   }
 
+  # Pass through entity_id from each upstream blueprint module so the profile
+  # waits for blueprint configurations to be applied first.
   blueprint_dependencies = [for bp in module.blueprints : bp.entity_id]
 }
 ```
 
 ## Blueprint configuration
 
-Each blueprint entry accepts:
+Each entry in `blueprints` accepts:
 
 - `description` — optional description for the environment configuration
 - `deployment_mode` — `ON_CREATE` (default) or `ON_DEMAND`
-- `region` — override the AWS region for this blueprint (defaults to current region)
+- `region` — override the AWS region for this blueprint (defaults to the current region)
 - `parameter_overrides` — map of parameter name to `{ value, is_editable }` for customizing blueprint defaults
+
+Tooling is always added at `deployment_order = 1`. Other blueprints are placed in alphabetical order starting at `deployment_order = 2`.
+
+## Output behavior
+
+The `project_profile_id` output declares `depends_on` on the underlying `awscc_datazone_project_profile` resource. Downstream modules that reference this output will automatically wait for the profile to be fully created before being evaluated, which prevents unknown-value plan errors and "AWS Data Source Not Found" race conditions.
 
 ## Requirements
 
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.37.0 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.76.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.46.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.85.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.76.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.46.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.85.0 |
+| <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Modules
 
@@ -66,6 +78,7 @@ No modules.
 | Name | Type |
 |------|------|
 | [awscc_datazone_project_profile.this](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_profile) | resource |
+| [terraform_data.blueprint_dependencies](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_datazone_domain.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/datazone_domain) | data source |
 | [aws_datazone_environment_blueprint.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/datazone_environment_blueprint) | data source |
@@ -83,6 +96,7 @@ No modules.
 | <a name="input_description"></a> [description](#input\_description) | Description of the project profile | `string` | `null` | no |
 | <a name="input_domain_unit_id"></a> [domain\_unit\_id](#input\_domain\_unit\_id) | The domain unit ID that owns the project profile. If not provided, the module will use the root domain unit. | `string` | `null` | no |
 | <a name="input_status"></a> [status](#input\_status) | Status of the project profile (ENABLED or DISABLED) | `string` | `"ENABLED"` | no |
+| <a name="input_toolinglite"></a> [toolinglite](#input\_toolinglite) | When set to true, the project profile will be deployed with ToolingLite (bring your own role) instead of the Tooling blueprint which creates a new project role for each project. The ToolingLite blueprint is required to be enabled before setting this configuration. | `bool` | `false` | no |
 
 ## Outputs
 

@@ -1,17 +1,19 @@
 <!-- BEGIN_TF_DOCS -->
 # SageMaker Unified Studio Project Module
 
-This module creates a single Amazon SageMaker Unified Studio project and manages user memberships within it.
+This module creates a single Amazon SageMaker Unified Studio project from a project profile. Membership management lives in the `membership` submodule (`modules/project/membership`); this module focuses on the project resource itself.
 
 ## What it does
 
-- Creates a DataZone project, optionally linked to a project profile
-- Supports user parameters for environment configuration overrides
-- Manages project memberships for owners and contributors
+- Creates an `awscc_datazone_project` resource bound to the given `domain_id` and `project_profile_id`
+- Auto-injects `project_role` as a `projectRoleArn` user parameter on the ToolingLite environment configuration when the role is provided (required for bring-your-own-role / ToolingLite project profiles)
+- Merges any caller-supplied `user_parameters` with the auto-generated ToolingLite entry. Caller-provided ToolingLite entries take precedence
 - Handles environment cleanup on destroy (deletes all environments before removing the project)
-- Optionally cleans up associated project profiles on destroy
+- Optionally cleans up the linked project profile on destroy when `enable_profile_cleanup = true`
 
 ## Usage
+
+Standard project (no ToolingLite):
 
 ```hcl
 module "project" {
@@ -20,11 +22,39 @@ module "project" {
   domain_id          = module.domain.domain_id
   project_name       = "my-analytics-project"
   project_profile_id = module.sql_analytics_profile.project_profile_id
-
-  user_list        = ["user1@example.com"]
-  contributor_list = ["user2@example.com"]
 }
 ```
+
+Bring-your-own-role project on a ToolingLite profile:
+
+```hcl
+module "project" {
+  source = "./modules/project"
+
+  domain_id          = module.domain.domain_id
+  project_name       = "my-byor-project"
+  project_profile_id = module.default_project_profile.project_profile_id
+  project_role       = aws_iam_role.project_iam_role.arn
+}
+```
+
+## Adding members
+
+Use the `membership` submodule to add SSO users, SSO groups, or IAM principals to the project after creation:
+
+```hcl
+module "project_owner" {
+  source = "./modules/project/membership"
+
+  domain_id    = module.domain.domain_id
+  project_id   = module.project.project_id
+  member_type  = "IAM"
+  identifier   = "arn:aws:iam::123456789012:role/MyAdmin"
+  project_role = "PROJECT_OWNER"
+}
+```
+
+The membership submodule validates the identifier format per `member_type` and verifies SSO user/group profiles exist in the domain before attempting to add them.
 
 ## Destroy behavior
 
@@ -33,23 +63,24 @@ On `terraform destroy`, the module automatically:
 1. Lists and deletes all environments in the project
 2. Waits for environment deletion to complete (up to 5 minutes)
 3. Attempts force-cleanup of any environments stuck in `DELETE_FAILED` state
-4. Optionally cleans up project profiles when `enable_profile_cleanup = true`
+4. Optionally cleans up the linked project profile when `enable_profile_cleanup = true`
 
-This requires the AWS CLI to be available and configured with appropriate permissions.
+This requires the AWS CLI to be available and configured with appropriate permissions on the system running `terraform destroy`.
 
 ## Requirements
 
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.37.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.46.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.85.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | n/a |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.46.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.85.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | n/a |
 
 ## Modules
@@ -67,6 +98,7 @@ No modules.
 | [null_resource.cleanup_project_profiles](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
+| [awscc_datazone_project_profile.this](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/data-sources/datazone_project_profile) | data source |
 
 ## Inputs
 
@@ -74,11 +106,12 @@ No modules.
 |------|-------------|------|---------|:--------:|
 | <a name="input_domain_id"></a> [domain\_id](#input\_domain\_id) | The ID of the SageMaker Unified Studio domain | `string` | n/a | yes |
 | <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Name of the project | `string` | n/a | yes |
+| <a name="input_project_profile_id"></a> [project\_profile\_id](#input\_project\_profile\_id) | ID of the project profile to use for this project | `string` | n/a | yes |
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS region for API calls during cleanup | `string` | `null` | no |
 | <a name="input_contributor_list"></a> [contributor\_list](#input\_contributor\_list) | List of user identifiers to add as project contributors | `list(string)` | `[]` | no |
 | <a name="input_enable_profile_cleanup"></a> [enable\_profile\_cleanup](#input\_enable\_profile\_cleanup) | Enable project profile cleanup during destroy | `bool` | `false` | no |
 | <a name="input_project_description"></a> [project\_description](#input\_project\_description) | Description of the project | `string` | `"SageMaker Unified Studio project created with Terraform"` | no |
-| <a name="input_project_profile_id"></a> [project\_profile\_id](#input\_project\_profile\_id) | ID of the project profile to use for this project (optional for V2 domains) | `string` | `null` | no |
+| <a name="input_project_role"></a> [project\_role](#input\_project\_role) | Specify the project role if the project profile is defined with ToolingLite. | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to the project | `map(string)` | `{}` | no |
 | <a name="input_user_designation"></a> [user\_designation](#input\_user\_designation) | Designation for users in the user\_list | `string` | `"PROJECT_OWNER"` | no |
 | <a name="input_user_list"></a> [user\_list](#input\_user\_list) | List of user identifiers to add as project owners | `list(string)` | `[]` | no |

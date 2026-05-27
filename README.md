@@ -76,7 +76,7 @@ If you skip the first step, the destroy will fail on the S3 bucket resource. Sim
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.37.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.46.0 |
 | <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.76.0 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.8.1 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.13.1 |
@@ -85,7 +85,7 @@ If you skip the first step, the destroy will fail on the S3 bucket resource. Sim
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.46.0 |
 | <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.76.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1 |
 
