@@ -29,8 +29,8 @@ resource "awscc_datazone_project_membership" "this" {
   designation        = var.project_role
 
   member = {
-    user_identifier  = var.member_type == "SSO_USER" || var.member_type == "IAM" ? var.identifier : null
-    group_identifier = var.member_type == "SSO_GROUP" ? var.identifier : null
+    user_identifier  = var.member_type == "SSO_USER" ? var.identifier : null
+    group_identifier = var.member_type == "SSO_GROUP" || var.member_type == "IAM" ? var.identifier : null
   }
 
   lifecycle {
