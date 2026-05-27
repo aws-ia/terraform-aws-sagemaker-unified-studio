@@ -35,7 +35,7 @@ output "tooling_blueprint_id" {
   description = "ID of the Tooling blueprint (created by the domain module)"
   value       = module.domain.tooling_blueprint_id
 }
-
+/*
 #####################################################################################
 # Blueprint Outputs
 #####################################################################################
@@ -79,7 +79,7 @@ output "project_url" {
   description = "URL to access the project in SageMaker Unified Studio"
   value       =  module.default_project.project_url
 }
-
+*/
 #####################################################################################
 # IAM Role Outputs
 #####################################################################################

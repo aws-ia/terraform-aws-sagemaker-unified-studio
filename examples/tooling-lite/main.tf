@@ -70,55 +70,6 @@ locals {
     Owner       = var.owner
     CreatedBy   = "terraform-quick-setup-example"
   }
-
-  # Build the map of blueprints to enable based on toggle variables
-  blueprint_configs = merge(
-    // blueprints for bring your own role
-    {
-      tooling_lite = {
-        blueprint_name = "ToolingLite"
-      }
-      s3_table_catalog = {
-        blueprint_name = "S3TableCatalog"
-      }
-      s3_bucket = {
-        blueprint_name = "S3Bucket"
-      }
-    }
-  )
-  default_blueprint_config = {
-    "S3Bucket" = {
-      deployment_mode = "ON_DEMAND"
-      parameter_overrides = {
-        "bucketName" = {
-          value       = ""
-          is_editable = true
-        }
-      }
-    }
-    "S3TableCatalog" = {
-      deployment_mode = "ON_DEMAND"
-      parameter_overrides = {
-        "catalogName" = {
-          value       = ""
-          is_editable = true
-        }
-        "databaseName" = {
-          value       = ""
-          is_editable = true
-        }
-      }
-    }
-  }
-
-  # Build the regional parameters for each blueprint (same VPC/subnets/S3 for all)
-  regional_parameters = {
-    (local.region) = {
-      vpc_id     = local.vpc_id
-      subnet_ids = local.subnet_ids
-      s3_uri     = "s3://${module.domain.s3_bucket_name}"
-    }
-  }
 }
 
 resource "random_id" "project_suffix" {
@@ -148,47 +99,25 @@ module "domain" {
   tags = local.common_tags
 }
 
-#####################################################################################
-# 1a. Provisioning Role — additional inline policy
-#     ToolingLite uses bring-your-own-role and creates the project S3 bucket at
-#     project-creation time. The default provisioning role policy doesn't grant
-#     s3:CreateBucket on amazon-sagemaker* buckets, so we attach an inline policy
-#     here to fill that gap.
-#####################################################################################
 
-# The domain module exposes the provisioning role ARN; aws_iam_role_policy needs
-# the role name, which is the last segment of the ARN (after stripping path).
-locals {
-  provisioning_role_name = reverse(split("/", module.domain.provisioning_role_arn))[0]
+
+# Admin Project
+
+module "admin_project" {
+  source    = "../../modules/project/admin"
+  domain_id = module.domain.domain_id
 }
 
+module "admin_project_membership" {
+  for_each = toset(var.iam_users)
+  source   = "../../modules/project/membership"
 
-
-resource "aws_iam_role_policy_attachment" "provisioning_admin_policy_attachment" {
-  role       = local.provisioning_role_name
-  policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioAdminIAMDefaultExecutionPolicy"
+  domain_id   = module.domain.domain_id
+  project_id  = module.admin_project.project_id
+  identifier  = each.key
+  member_type = "IAM"
 }
 
-#####################################################################################
-# 2. Blueprint Module (singular, invoked per blueprint)
-#    Demonstrates: multiple blueprint invocations (Req 9.1),
-#                  VPC configuration parameters (Req 9.4)
-#####################################################################################
-
-module "blueprints" {
-  source   = "../../modules/blueprint"
-  for_each = local.blueprint_configs
-
-  domain_id      = module.domain.domain_id
-  blueprint_name = each.value.blueprint_name
-
-  regional_parameters = local.regional_parameters
-
-  # Reuse roles created by the domain module
-  manage_access_role_arn = module.domain.manage_access_role_arn
-  provisioning_role_arn  = module.domain.provisioning_role_arn
-  tags                   = local.common_tags
-}
 
 #####################################################################################
 # 3. Project Profile Module (singular)
@@ -197,17 +126,16 @@ module "blueprints" {
 #####################################################################################
 
 // BYOR Project Profile
+
 module "default_project_profile" {
-  source = "../../modules/project-profile"
+  source = "../../modules/project-profile/default"
 
-  domain_id   = module.domain.domain_id
-  name        = "Default Project Profile"
-  description = "Default project profile with tooling capabilities"
-
-  blueprints = local.default_blueprint_config
-
-  blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
-  toolinglite            = true
+  domain_id             = module.domain.domain_id
+  provisioning_role_arn = module.domain.provisioning_role_arn
+  vpc_id                = var.vpc_id
+  subnet_ids            = var.subnet_ids
+  using_admin_project   = true
+  depends_on            = [module.admin_project]
 }
 
 module "create_project_from_project_profile_grant" {
@@ -216,8 +144,7 @@ module "create_project_from_project_profile_grant" {
   domain_unit_id      = module.domain.domain_root_unit_id
   project_profile_ids = [module.default_project_profile.project_profile_id]
   all_users           = true
-  depends_on = [module.default_project_profile
-  ]
+  depends_on          = [module.default_project_profile]
 }
 
 
@@ -289,7 +216,7 @@ module "default_project" {
   project_profile_id = module.default_project_profile.project_profile_id
   project_role       = aws_iam_role.project_iam_role.arn
 
-  depends_on = [module.create_project_from_project_profile_grant, aws_iam_role_policy_attachment.provisioning_admin_policy_attachment, time_sleep.wait_after_project_role_creation]
+  depends_on = [module.create_project_from_project_profile_grant, time_sleep.wait_after_project_role_creation]
 }
 
 #####################################################################################
@@ -319,23 +246,6 @@ module "project_membership" {
 
   domain_id   = module.domain.domain_id
   project_id  = module.default_project.project_id
-  identifier  = each.key
-  member_type = "IAM"
-}
-
-# Admin Project
-
-module "admin_project" {
-  source    = "../../modules/project/admin"
-  domain_id = module.domain.domain_id
-}
-
-module "admin_project_membership" {
-  for_each = toset(var.iam_users)
-  source   = "../../modules/project/membership"
-
-  domain_id   = module.domain.domain_id
-  project_id  = module.admin_project.project_id
   identifier  = each.key
   member_type = "IAM"
 }

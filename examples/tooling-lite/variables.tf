@@ -210,3 +210,29 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+/*
+variable "project_owners" {
+  type = map(object({
+    sso_users  = optional(list(string))
+    sso_groups = optional(list(string))
+    iam        = optional(list(string))
+  }))
+}
+
+variable "project_contributors" {
+  type = map(object({
+    sso_users  = optional(list(string))
+    sso_groups = optional(list(string))
+    iam        = optional(list(string))
+  }))
+}
+
+variable "domain_admins" {
+  type = map(object({
+    sso_users  = optional(list(string))
+    sso_groups = optional(list(string))
+    iam        = optional(list(string))
+  }))
+}
+*/
