@@ -322,3 +322,20 @@ module "project_membership" {
   identifier  = each.key
   member_type = "IAM"
 }
+
+# Admin Project
+
+module "admin_project" {
+  source    = "../../modules/project/admin"
+  domain_id = module.domain.domain_id
+}
+
+module "admin_project_membership" {
+  for_each = toset(var.iam_users)
+  source   = "../../modules/project/membership"
+
+  domain_id   = module.domain.domain_id
+  project_id  = module.admin_project.project_id
+  identifier  = each.key
+  member_type = "IAM"
+}
