@@ -26,8 +26,22 @@ enable_all_capabilities = false # All capabilities profile (combines SQL + GenAI
 
 # SSO Configuration
 enable_sso = true
-sso_users  = ["user@example.com"]
-iam_users  = ["arn:aws:iam::<account_id>:role/<role>"]
+
+# Membership wiring. Each principal set accepts any combination of SSO users,
+# SSO groups, and IAM ARNs. Empty maps are valid.
+domain_admins = {
+  sso_users = ["admin@example.com"]
+  iam       = ["arn:aws:iam::<account_id>:role/<admin_role>"]
+}
+
+project_owners = {
+  sso_users = ["owner@example.com"]
+}
+
+project_contributors = {
+  sso_users  = ["contributor@example.com"]
+  sso_groups = ["12345678-1234-1234-1234-123456789012"]
+}
 
 # Environment and Tagging
 environment = "test"

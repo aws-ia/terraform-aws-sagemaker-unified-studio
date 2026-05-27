@@ -120,28 +120,6 @@ variable "model_consumption_role_arn" {
 }
 
 #####################################################################################
-# Blueprint Selection
-#####################################################################################
-
-variable "enable_generative_ai" {
-  description = "Enable the Generative AI application development default project profile. Enabling this will create the project profile and enable the selected blueprints."
-  type        = bool
-  default     = true
-}
-
-variable "enable_sql_analytics" {
-  description = "Enable the SQL analytics default project profile. Enabling this will create the project profile and enable the selected blueprints."
-  type        = bool
-  default     = true
-}
-
-variable "enable_all_capabilities" {
-  description = "Enable the All capabilities default project profile. Enabling this will create the project profile and enable the selected blueprints."
-  type        = bool
-  default     = true
-}
-
-#####################################################################################
 # Project Configuration
 #####################################################################################
 
@@ -154,6 +132,12 @@ variable "project_name" {
     condition     = length(var.project_name) > 0 && length(var.project_name) <= 64
     error_message = "Project name must be between 1 and 64 characters."
   }
+}
+
+variable "create_admin_portal" {
+  description = "When set to true, the new project and domain management experience will be enabled an and Adminstrator project will be created and used for bring-your-own-role project provisioning. When set to false the admin portal will not be created and bring-your-role projects will be created by the provisioning role."
+  type        = bool
+  default     = false
 }
 
 variable "project_description" {
@@ -172,16 +156,40 @@ variable "enable_sso" {
   default     = false
 }
 
-variable "sso_users" {
-  description = "A list of SSO user identifiers to add as members to the created domain and project"
-  type        = list(string)
-  default     = []
+# Principal grouping used by the membership wiring below. Each variable accepts
+# any combination of SSO users, SSO groups, and IAM ARNs. Empty lists are fine.
+#
+# - domain_admins        : added to the admin project (when create_admin_portal = true) as PROJECT_OWNER
+# - project_owners       : added to the default project as PROJECT_OWNER
+# - project_contributors : added to the default project as PROJECT_CONTRIBUTOR
+variable "domain_admins" {
+  description = "Principals to add to the admin project as owners. Only used when create_admin_portal = true."
+  type = object({
+    sso_users  = optional(list(string), [])
+    sso_groups = optional(list(string), [])
+    iam        = optional(list(string), [])
+  })
+  default = {}
 }
 
-variable "iam_users" {
-  description = "A list of IAM roles to add as members to the created domain and project"
-  type        = list(string)
-  default     = []
+variable "project_owners" {
+  description = "Principals to add to the default project as PROJECT_OWNER."
+  type = object({
+    sso_users  = optional(list(string), [])
+    sso_groups = optional(list(string), [])
+    iam        = optional(list(string), [])
+  })
+  default = {}
+}
+
+variable "project_contributors" {
+  description = "Principals to add to the default project as PROJECT_CONTRIBUTOR."
+  type = object({
+    sso_users  = optional(list(string), [])
+    sso_groups = optional(list(string), [])
+    iam        = optional(list(string), [])
+  })
+  default = {}
 }
 
 #####################################################################################
@@ -210,29 +218,3 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
-
-/*
-variable "project_owners" {
-  type = map(object({
-    sso_users  = optional(list(string))
-    sso_groups = optional(list(string))
-    iam        = optional(list(string))
-  }))
-}
-
-variable "project_contributors" {
-  type = map(object({
-    sso_users  = optional(list(string))
-    sso_groups = optional(list(string))
-    iam        = optional(list(string))
-  }))
-}
-
-variable "domain_admins" {
-  type = map(object({
-    sso_users  = optional(list(string))
-    sso_groups = optional(list(string))
-    iam        = optional(list(string))
-  }))
-}
-*/

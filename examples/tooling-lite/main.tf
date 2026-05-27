@@ -104,18 +104,91 @@ module "domain" {
 # Admin Project
 
 module "admin_project" {
+  count     = var.create_admin_portal ? 1 : 0
   source    = "../../modules/project/admin"
   domain_id = module.domain.domain_id
 }
 
+#####################################################################################
+# 2. Membership wiring
+#
+# Three principal sets feed three target projects:
+#   - domain_admins        -> admin project (PROJECT_OWNER), only when create_admin_portal = true
+#   - project_owners       -> default project (PROJECT_OWNER)
+#   - project_contributors -> default project (PROJECT_CONTRIBUTOR)
+#
+# Each set accepts SSO users, SSO groups, and IAM ARNs. SSO users are
+# registered as user profiles in the domain so they can be added as members.
+#####################################################################################
+
+locals {
+  # Flatten each principal set into [{ key, member_type, identifier, role }] tuples
+  # so we can drive a single for_each per role.
+  domain_admin_members = concat(
+    [for u in var.domain_admins.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
+    [for g in var.domain_admins.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
+    [for a in var.domain_admins.iam : { key = "iam.${a}", member_type = "IAM", identifier = a }],
+  )
+
+  project_owner_members = concat(
+    [for u in var.project_owners.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
+    [for g in var.project_owners.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
+    [for a in var.project_owners.iam : { key = "iam.${a}", member_type = "IAM", identifier = a }],
+  )
+
+  project_contributor_members = concat(
+    [for u in var.project_contributors.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
+    [for g in var.project_contributors.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
+    [for a in var.project_contributors.iam : { key = "iam.${a}", member_type = "IAM", identifier = a }],
+  )
+
+  # Union of every SSO user across the three principal sets. Each unique user
+  # needs an aws_datazone_user_profile created so they can be added as a
+  # project member.
+  all_sso_users = toset(concat(
+    var.domain_admins.sso_users,
+    var.project_owners.sso_users,
+    var.project_contributors.sso_users,
+  ))
+}
+
+# Register each SSO user as a domain user profile.
+resource "aws_datazone_user_profile" "sso_users" {
+  for_each          = local.all_sso_users
+  domain_identifier = module.domain.domain_id
+  user_identifier   = each.key
+  user_type         = "SSO_USER"
+}
+
+# Validation: domain_admins memberships only make sense when the admin portal
+# is enabled. Without this guard, indexing into module.admin_project[0] would
+# fail with a less helpful error.
+resource "terraform_data" "admin_project_membership_precondition" {
+  count = length(local.domain_admin_members) > 0 ? 1 : 0
+
+  lifecycle {
+    precondition {
+      condition     = var.create_admin_portal
+      error_message = "domain_admins may only be set when create_admin_portal = true. Either enable the admin portal, or move these principals into project_owners / project_contributors."
+    }
+  }
+}
+
+# Admin project memberships (PROJECT_OWNER on the admin project).
 module "admin_project_membership" {
-  for_each = toset(var.iam_users)
+  for_each = var.create_admin_portal ? { for m in local.domain_admin_members : m.key => m } : {}
   source   = "../../modules/project/membership"
 
-  domain_id   = module.domain.domain_id
-  project_id  = module.admin_project.project_id
-  identifier  = each.key
-  member_type = "IAM"
+  domain_id    = module.domain.domain_id
+  project_id   = module.admin_project[0].project_id
+  member_type  = each.value.member_type
+  identifier   = each.value.identifier
+  project_role = "PROJECT_OWNER"
+
+  depends_on = [
+    terraform_data.admin_project_membership_precondition,
+    aws_datazone_user_profile.sso_users,
+  ]
 }
 
 
@@ -134,7 +207,7 @@ module "default_project_profile" {
   provisioning_role_arn = module.domain.provisioning_role_arn
   vpc_id                = var.vpc_id
   subnet_ids            = var.subnet_ids
-  using_admin_project   = true
+  using_admin_project   = var.create_admin_portal
   depends_on            = [module.admin_project]
 }
 
@@ -220,32 +293,31 @@ module "default_project" {
 }
 
 #####################################################################################
-# 5. SSO User and Project Membership (Req 9.8)
+# 5. Default project memberships
 #####################################################################################
 
-resource "aws_datazone_user_profile" "sso_users" {
-  for_each          = toset(var.sso_users)
-  domain_identifier = module.domain.domain_id
-  user_identifier   = each.key
-  user_type         = "SSO_USER"
-}
-
-resource "awscc_datazone_project_membership" "project_membership" {
-  for_each           = toset(var.sso_users)
-  domain_identifier  = module.domain.domain_id
-  project_identifier = module.default_project.project_id
-  member = {
-    user_identifier = each.key
-  }
-  designation = "PROJECT_OWNER"
-}
-
-module "project_membership" {
-  for_each = toset(var.iam_users)
+module "project_owner_membership" {
+  for_each = { for m in local.project_owner_members : m.key => m }
   source   = "../../modules/project/membership"
 
-  domain_id   = module.domain.domain_id
-  project_id  = module.default_project.project_id
-  identifier  = each.key
-  member_type = "IAM"
+  domain_id    = module.domain.domain_id
+  project_id   = module.default_project.project_id
+  member_type  = each.value.member_type
+  identifier   = each.value.identifier
+  project_role = "PROJECT_OWNER"
+
+  depends_on = [aws_datazone_user_profile.sso_users]
+}
+
+module "project_contributor_membership" {
+  for_each = { for m in local.project_contributor_members : m.key => m }
+  source   = "../../modules/project/membership"
+
+  domain_id    = module.domain.domain_id
+  project_id   = module.default_project.project_id
+  member_type  = each.value.member_type
+  identifier   = each.value.identifier
+  project_role = "PROJECT_CONTRIBUTOR"
+
+  depends_on = [aws_datazone_user_profile.sso_users]
 }
