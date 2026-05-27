@@ -5,6 +5,12 @@
 output "project_profile_id" {
   description = "The ID of the created default project profile"
   value       = awscc_datazone_project_profile.this.project_profile_id
+
+  # Force consumers (e.g. project module) to wait until the project profile
+  # resource has been fully applied. Without this, downstream resources or
+  # data sources that reference the profile can race the apply and fail
+  # with "AWS Data Source Not Found" or unknown-value plan errors.
+  depends_on = [awscc_datazone_project_profile.this]
 }
 
 # Blueprint IDs for the three managed blueprints. Useful for downstream modules

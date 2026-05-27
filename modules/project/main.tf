@@ -10,7 +10,6 @@ data "aws_region" "current" {}
 # Used to determine whether the profile contains the ToolingLite blueprint,
 # which requires a project_role to be supplied.
 data "awscc_datazone_project_profile" "this" {
-  count = var.project_profile_id != null && var.project_profile_id != "" ? 1 : 0
   id    = "${var.domain_id}|${var.project_profile_id}"
 }
 
@@ -20,10 +19,10 @@ locals {
 
   # Detect whether the resolved project profile uses the ToolingLite blueprint.
   # When true, var.project_role must be a valid IAM role ARN (bring-your-own-role).
-  uses_tooling_lite = length(data.awscc_datazone_project_profile.this) > 0 ? anytrue([
-    for cfg in data.awscc_datazone_project_profile.this[0].environment_configurations :
+  uses_tooling_lite = anytrue([
+    for cfg in data.awscc_datazone_project_profile.this.environment_configurations :
     cfg.name == "ToolingLite"
-  ]) : false
+  ])
 }
 
 # Main Project Resource using awscc provider

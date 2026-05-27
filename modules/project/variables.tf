@@ -32,13 +32,12 @@ variable "project_description" {
 }
 
 variable "project_profile_id" {
-  description = "ID of the project profile to use for this project (optional for V2 domains)"
+  description = "ID of the project profile to use for this project"
   type        = string
-  default     = null
   
   validation {
-    condition     = var.project_profile_id == null || length(var.project_profile_id) > 0
-    error_message = "Project profile ID must be either null or a non-empty string."
+    condition     = length(var.project_profile_id) > 0
+    error_message = "Project profile ID must be a non-empty string."
   }
 }
 
