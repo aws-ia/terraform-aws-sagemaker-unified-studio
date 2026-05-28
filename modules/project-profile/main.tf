@@ -16,7 +16,7 @@ data "aws_datazone_domain" "main" {
 
 # Resolve blueprint IDs from names
 data "aws_datazone_environment_blueprint" "this" {
-  for_each  = toset(concat([local.tooling_blueprint_name], keys(var.blueprints)))
+  for_each  = toset(concat(["Tooling"], keys(var.blueprints)))
   domain_id = var.domain_id
   name      = each.key
   managed   = true
@@ -48,20 +48,17 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
 
-  # Tooling blueprint name — switches between "Tooling" and "ToolingLite"
-  tooling_blueprint_name = var.toolinglite ? "ToolingLite" : "Tooling"
-
   # Separate Tooling from other blueprints
-  non_tooling_names = sort([for name in keys(var.blueprints) : name if name != local.tooling_blueprint_name])
+  non_tooling_names = sort([for name in keys(var.blueprints) : name if name != "Tooling"])
 
   # Build environment_configurations: Tooling first (order 1), rest alphabetical (order 2+)
   environment_configurations = concat(
     # Tooling — always first
     [{
-      name                     = local.tooling_blueprint_name
-      environment_blueprint_id = data.aws_datazone_environment_blueprint.this[local.tooling_blueprint_name].id
+      name                     = "Tooling"
+      environment_blueprint_id = data.aws_datazone_environment_blueprint.this["Tooling"].id
       // description and deployment mode always set by default
-      description      = "Configuration for the ${local.tooling_blueprint_name}"
+      description      = "Configuration for the Tooling"
       deployment_mode  = "ON_CREATE"
       deployment_order = 1
       aws_account = {
@@ -70,15 +67,9 @@ locals {
       aws_region = {
         region_name = local.region
       }
-      configuration_parameters = var.toolinglite ? {
-        parameter_overrides = [{
-          name        = "s3BucketLocation"
-          value       = ""
-          is_editable = true
-        }]
-        } : (contains(keys(var.blueprints), local.tooling_blueprint_name) && length(var.blueprints[local.tooling_blueprint_name].parameter_overrides) > 0 ? {
+      configuration_parameters =  (contains(keys(var.blueprints), "Tooling") && length(var.blueprints["Tooling"].parameter_overrides) > 0 ? {
           parameter_overrides = [
-            for k, v in var.blueprints[local.tooling_blueprint_name].parameter_overrides : {
+            for k, v in var.blueprints["Tooling"].parameter_overrides : {
               name        = k
               value       = v.value
               is_editable = v.is_editable
@@ -123,8 +114,8 @@ resource "awscc_datazone_project_profile" "this" {
 
   lifecycle {
     precondition {
-      condition     = contains(data.awscc_datazone_environment_blueprint_configuration.this[local.tooling_blueprint_name].enabled_regions, local.region)
-      error_message = "${local.tooling_blueprint_name} blueprint is not configured for this domain in the current region (${local.region}). Enable the ${local.tooling_blueprint_name} blueprint before creating a project profile."
+      condition     = contains(data.awscc_datazone_environment_blueprint_configuration.this["Tooling"].enabled_regions, local.region)
+      error_message = "Tooling blueprint is not configured for this domain in the current region (${local.region}). Enable the Tooling blueprint before creating a project profile."
     }
 
     precondition {

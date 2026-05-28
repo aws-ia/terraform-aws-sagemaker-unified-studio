@@ -96,7 +96,6 @@ No modules.
 | <a name="input_description"></a> [description](#input\_description) | Description of the project profile | `string` | `null` | no |
 | <a name="input_domain_unit_id"></a> [domain\_unit\_id](#input\_domain\_unit\_id) | The domain unit ID that owns the project profile. If not provided, the module will use the root domain unit. | `string` | `null` | no |
 | <a name="input_status"></a> [status](#input\_status) | Status of the project profile (ENABLED or DISABLED) | `string` | `"ENABLED"` | no |
-| <a name="input_toolinglite"></a> [toolinglite](#input\_toolinglite) | When set to true, the project profile will be deployed with ToolingLite (bring your own role) instead of the Tooling blueprint which creates a new project role for each project. The ToolingLite blueprint is required to be enabled before setting this configuration. | `bool` | `false` | no |
 
 ## Outputs
 
