@@ -1,0 +1,47 @@
+# SageMaker Unified Studio Cross-Account Example Configuration
+# Copy this file to terraform.tfvars and customize the values.
+
+#####################################################################################
+# AWS Provider Configuration
+#
+# This example uses two AWS providers:
+#   - source        : the account that owns the SageMaker Unified Studio domain
+#   - destination   : the account being associated with the domain via RAM share
+#
+# Set source_profile / destination_profile to AWS named profiles configured in
+# ~/.aws/credentials or ~/.aws/config. Set to null to use the default credential
+# chain (env vars, instance role, etc.).
+#####################################################################################
+
+source_profile      = "domain-account"
+destination_profile = "associated-account"
+
+source_region      = "us-east-1"
+destination_region = "us-east-1" # must match source_region for cross-account DataZone
+
+# Set to true if both accounts are in the same AWS Organization (skips the
+# manual RAM share-accept step in the destination).
+using_organizations = false
+
+# Domain Configuration
+domain_name        = "my-unified-studio"
+domain_description = "SageMaker Unified Studio domain shared cross-account"
+
+# Project Configuration
+project_name        = "my-cross-account-project"
+project_description = "Cross-account project"
+
+# VPC and Network Configuration (null = use default VPC)
+# vpc_id     = "vpc-xxx"
+# subnet_ids = ["subnet-xxx", "subnet-xxx"]
+
+# S3 Bucket Configuration (null = auto-create)
+# s3_bucket_name = "my-existing-bucket"
+
+# SSO Configuration
+enable_sso = true
+sso_users  = ["user@example.com"]
+
+# Environment and Tagging
+environment = "test"
+owner       = "data-team"
