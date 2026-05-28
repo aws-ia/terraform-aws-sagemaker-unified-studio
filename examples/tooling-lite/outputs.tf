@@ -35,51 +35,6 @@ output "tooling_blueprint_id" {
   description = "ID of the Tooling blueprint (created by the domain module)"
   value       = module.domain.tooling_blueprint_id
 }
-/*
-#####################################################################################
-# Blueprint Outputs
-#####################################################################################
-
-output "blueprint_ids" {
-  description = "Map of blueprint logical names to their resolved blueprint IDs"
-  value       = { for key, bp in module.blueprints : key => bp.blueprint_id }
-}
-
-output "blueprint_names" {
-  description = "Map of blueprint logical names to their blueprint names"
-  value       = { for key, bp in module.blueprints : key => bp.blueprint_name }
-}
-
-#####################################################################################
-# Project Profile Outputs
-#####################################################################################
-
-output "project_profile_ids" {
-  description = "List of all enabled project profile IDs"
-  value = concat(
-    [module.default_project_profile.project_profile_id]
-  )
-}
-
-#####################################################################################
-# Project Outputs
-#####################################################################################
-
-output "project_id" {
-  description = "ID of the created project"
-  value       =  module.default_project.project_id
-}
-
-output "project_name" {
-  description = "Name of the created project"
-  value       =  module.default_project.project_name
-}
-
-output "project_url" {
-  description = "URL to access the project in SageMaker Unified Studio"
-  value       =  module.default_project.project_url
-}
-*/
 #####################################################################################
 # IAM Role Outputs
 #####################################################################################
