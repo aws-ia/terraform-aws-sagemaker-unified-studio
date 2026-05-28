@@ -46,7 +46,7 @@ data "awscc_datazone_environment_blueprint_configuration" "this" {
 
 locals {
   account_id = data.aws_caller_identity.current.account_id
-  region     = data.aws_region.current.id
+  region     = data.aws_region.current.region
 
   # Tooling blueprint name — switches between "Tooling" and "ToolingLite"
   tooling_blueprint_name = var.toolinglite ? "ToolingLite" : "Tooling"

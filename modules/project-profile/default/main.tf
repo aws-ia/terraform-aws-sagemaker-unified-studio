@@ -47,7 +47,7 @@ data "aws_iam_roles" "provisioning_role" {
 
 locals {
   account_id = data.aws_caller_identity.current.account_id
-  region     = data.aws_region.current.id
+  region     = data.aws_region.current.region
 
   # Whether VPC + subnets were both provided. When true, ToolingLite is
   # configured with the same VPC/Subnets regional parameters used by the

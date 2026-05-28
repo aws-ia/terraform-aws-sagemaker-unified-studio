@@ -19,7 +19,7 @@ output "project_description" {
 # Project URLs and Access
 output "project_url" {
   description = "URL to access the project in SageMaker Unified Studio"
-  value       = "https://${var.domain_id}.datazone.${data.aws_region.current.id}.on.aws/projects/${awscc_datazone_project.admin_project.project_id}"
+  value       = "https://${var.domain_id}.datazone.${data.aws_region.current.region}.on.aws/projects/${awscc_datazone_project.admin_project.project_id}"
 }
 
 # Configuration Details
@@ -30,7 +30,7 @@ output "domain_id" {
 
 output "region" {
   description = "AWS region where project is created"
-  value       = data.aws_region.current.id
+  value       = data.aws_region.current.region
 }
 
 output "account_id" {

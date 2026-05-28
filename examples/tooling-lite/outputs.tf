@@ -85,5 +85,5 @@ output "account_id" {
 
 output "region" {
   description = "AWS region where resources are created"
-  value       = data.aws_region.current.id
+  value       = data.aws_region.current.region
 }

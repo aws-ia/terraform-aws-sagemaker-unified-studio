@@ -40,8 +40,8 @@ resource "awscc_datazone_project" "admin_project" {
 
   lifecycle {
     precondition {
-      condition     = contains(data.awscc_datazone_environment_blueprint_configuration.tooling.enabled_regions, data.aws_region.current.id)
-      error_message = "Tooling blueprint is not configured for domain '${var.domain_id}' in region '${data.aws_region.current.id}'. Enable the Tooling blueprint via the blueprint module before creating the admin project."
+      condition     = contains(data.awscc_datazone_environment_blueprint_configuration.tooling.enabled_regions, data.aws_region.current.region)
+      error_message = "Tooling blueprint is not configured for domain '${var.domain_id}' in region '${data.aws_region.current.region}'. Enable the Tooling blueprint via the blueprint module before creating the admin project."
     }
   }
 }

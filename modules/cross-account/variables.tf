@@ -13,3 +13,9 @@ variable "using_organizations" {
   type        = bool
   default     = false
 }
+
+variable "bootstrap" {
+  description = "When set to true, this will create the provisioning and manage access roles in the destination account with the correct cross-account trust policy. These will be used for blueprint setup and cross-account resource provisioning."
+  type        = bool
+  default     = true
+}

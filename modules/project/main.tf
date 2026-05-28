@@ -15,7 +15,7 @@ data "awscc_datazone_project_profile" "this" {
 
 # Local values
 locals {
-  aws_region = var.aws_region != null ? var.aws_region : data.aws_region.current.id
+  aws_region = var.aws_region != null ? var.aws_region : data.aws_region.current.region
 
   # Detect whether the resolved project profile uses the ToolingLite blueprint.
   # When true, var.project_role must be a valid IAM role ARN (bring-your-own-role).

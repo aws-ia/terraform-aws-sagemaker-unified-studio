@@ -46,8 +46,8 @@ data "aws_datazone_domain" "main" {
 resource "terraform_data" "region_consistency_validation" {
   lifecycle {
     precondition {
-      condition     = data.aws_region.current.id == data.aws_region.alternate.id
-      error_message = "Source provider region (${data.aws_region.current.id}) must match destination provider region (${data.aws_region.alternate.id}). Configure both aws.source and aws.destination providers with the same region."
+      condition     = data.aws_region.current.region == data.aws_region.alternate.region
+      error_message = "Source provider region (${data.aws_region.current.region}) must match destination provider region (${data.aws_region.alternate.region}). Configure both aws.source and aws.destination providers with the same region."
     }
   }
 }

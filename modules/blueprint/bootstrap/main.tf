@@ -14,7 +14,7 @@ data "aws_region" "current" {}
 
 locals {
   account_id        = data.aws_caller_identity.current.account_id
-  region            = data.aws_region.current.id
+  region            = data.aws_region.current.region
   domain_id_suffix  = replace(var.domain_id, "/^dzd-/", "")
   domain_account_id = var.domain_account_id != null ? var.domain_account_id : local.account_id
 

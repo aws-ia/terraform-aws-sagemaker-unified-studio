@@ -33,7 +33,7 @@ output "account_id" {
 
 output "region" {
   description = "AWS Region where the domain is created"
-  value       = data.aws_region.current.id
+  value       = data.aws_region.current.region
 }
 
 output "domain_execution_role_arn" {

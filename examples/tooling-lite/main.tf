@@ -59,7 +59,7 @@ data "aws_subnets" "default" {
 locals {
   vpc_id     = var.vpc_id != null ? var.vpc_id : data.aws_vpc.default[0].id
   subnet_ids = var.subnet_ids != null ? var.subnet_ids : data.aws_subnets.default[0].ids
-  region     = data.aws_region.current.id
+  region     = data.aws_region.current.region
 
   # Dynamic project name with random suffix for uniqueness
   project_name = "${var.project_name}-${random_id.project_suffix.hex}"
