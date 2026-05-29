@@ -51,6 +51,3 @@ variable "subnet_ids" {
     error_message = "subnet_ids must contain at least one subnet when provided."
   }
 }
-
-# Cross-variable validation lives in main.tf as a precondition because Terraform
-# variable validation can't reference other variables.

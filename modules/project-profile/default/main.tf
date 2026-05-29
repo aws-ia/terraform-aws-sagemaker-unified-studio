@@ -33,10 +33,10 @@ data "aws_datazone_domain" "main" {
 
 # Look up the bootstrap-created provisioning role by name. The bootstrap
 # submodule creates this role under the path /service-role/ with name
-# AmazonSageMakerProvisioning-<account_id>-<domain_id>. Only used when the
-# caller hasn't passed an explicit ARN AND admin project mode is off.
+# AmazonSageMakerProvisioning-<account_id>-<domain_id>. The lookup always
+# runs; the result is only used when the caller hasn't passed an explicit
+# ARN AND admin project mode is off.
 data "aws_iam_roles" "provisioning_role" {
-  count       = var.using_admin_project || var.provisioning_role_arn != null ? 0 : 1
   name_regex  = "^AmazonSageMakerProvisioning-${data.aws_caller_identity.current.account_id}-${var.domain_id}$"
   path_prefix = "/service-role/"
 }
@@ -70,8 +70,8 @@ locals {
   resolved_provisioning_role_arn = (
     var.using_admin_project ? null :
     var.provisioning_role_arn != null ? var.provisioning_role_arn :
-    length(data.aws_iam_roles.provisioning_role) > 0 && length(data.aws_iam_roles.provisioning_role[0].arns) > 0 ?
-    tolist(data.aws_iam_roles.provisioning_role[0].arns)[0] :
+    length(data.aws_iam_roles.provisioning_role.arns) > 0 ?
+    tolist(data.aws_iam_roles.provisioning_role.arns)[0] :
     null
   )
 
