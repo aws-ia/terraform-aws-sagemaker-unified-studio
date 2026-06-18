@@ -296,6 +296,8 @@ module "sql_analytics_project_profile" {
   blueprints = local.sql_analytics_blueprint_config
 
   blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
+
+  depends_on = [module.blueprints]
 }
 
 module "generative_ai_project_profile" {
@@ -311,6 +313,8 @@ module "generative_ai_project_profile" {
   blueprints = local.generative_ai_blueprint_config
 
   blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
+
+  depends_on = [module.blueprints]
 }
 
 module "all_capabilities_project_profile" {
@@ -326,6 +330,8 @@ module "all_capabilities_project_profile" {
   blueprints = local.all_capabilities_blueprint_config
 
   blueprint_dependencies = [for k, bp in module.blueprints : bp.entity_id]
+
+  depends_on = [module.blueprints]
 }
 
 module "create_project_from_project_profile_grant" {
