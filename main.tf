@@ -10,7 +10,7 @@
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-resource "random_string" "role_name_suffix" {
+resource "random_string" "suffix" {
   length  = 8
   special = false
 }
@@ -23,8 +23,8 @@ locals {
   domain_name = var.domain_name != null ? var.domain_name : "domain-${formatdate("MM-DD-YYYY-HHmmss", timestamp())}"
 
   # Default role names for SageMaker Unified Studio
-  default_domain_execution_role_name = "AmazonSageMakerDomainExecution${random_string.role_name_suffix.result}"
-  default_domain_service_role_name   = "AmazonSageMakerDomainService${random_string.role_name_suffix.result}"
+  default_domain_execution_role_name = "AmazonSageMakerDomainExecution${random_string.suffix.result}"
+  default_domain_service_role_name   = "AmazonSageMakerDomainService${random_string.suffix.result}"
 
   # Role creation: count driven by variable only (not data source) to avoid flip-flop.
   # Data sources are used only for ARN resolution when role pre-exists outside Terraform.
@@ -150,7 +150,7 @@ resource "aws_iam_role_policy_attachment" "domain_service_policy" {
 resource "aws_iam_role" "query_execution" {
   count = var.query_execution_role_arn == null ? 1 : 0
 
-  name = "AmazonSageMakerQueryExecution${random_string.role_name_suffix.result}"
+  name = "AmazonSageMakerQueryExecution${random_string.suffix.result}"
   path = "/service-role/"
 
   assume_role_policy = jsonencode({
@@ -250,7 +250,7 @@ locals {
 #checkov:skip=CKV_AWS_144:Cross-region replication not required for tooling storage
 resource "aws_s3_bucket" "domain" {
   count  = var.s3_bucket_name == null ? 1 : 0
-  bucket = "sagemaker-studio-${local.account_id}-${local.region}"
+  bucket = lower("sagemaker-studio-${local.account_id}-${local.region}-${random_string.suffix.result}")
 
   #checkov:skip=CKV2_AWS_61:Lifecycle configuration not required for tooling storage
   #checkov:skip=CKV2_AWS_62:Event notifications not required for tooling storage
