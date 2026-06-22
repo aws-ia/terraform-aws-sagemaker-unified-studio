@@ -28,10 +28,11 @@ enable_all_capabilities = false # All capabilities profile (combines SQL + GenAI
 enable_sso = true
 
 # Membership wiring. Each principal set accepts any combination of SSO users,
-# SSO groups, and IAM ARNs. Empty maps are valid.
+# SSO groups, IAM users, and IAM roles. Empty maps are valid.
 domain_admins = {
   sso_users = ["admin@example.com"]
-  iam       = ["arn:aws:iam::<account_id>:role/<admin_role>"]
+  iam_roles = ["arn:aws:iam::<account_id>:role/<admin_role>"]
+  iam_users = ["arn:aws:iam::<account_id>:user/<admin_user>"]
 }
 
 project_owners = {

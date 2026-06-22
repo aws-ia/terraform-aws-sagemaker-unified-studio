@@ -117,7 +117,8 @@ module "admin_project" {
 #   - project_owners       -> default project (PROJECT_OWNER)
 #   - project_contributors -> default project (PROJECT_CONTRIBUTOR)
 #
-# Each set accepts SSO users, SSO groups, and IAM ARNs. SSO users are
+# Each set accepts SSO users, SSO groups, IAM users, and IAM roles. IAM user ARNs
+# are mapped to member_type IAM_USER and IAM role ARNs to IAM_ROLE. SSO users are
 # registered as user profiles in the domain so they can be added as members.
 #####################################################################################
 
@@ -127,19 +128,22 @@ locals {
   domain_admin_members = concat(
     [for u in var.domain_admins.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
     [for g in var.domain_admins.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
-    [for a in var.domain_admins.iam : { key = "iam.${a}", member_type = "IAM", identifier = a }],
+    [for a in var.domain_admins.iam_users : { key = "iam_user.${a}", member_type = "IAM_USER", identifier = a }],
+    [for a in var.domain_admins.iam_roles : { key = "iam_role.${a}", member_type = "IAM_ROLE", identifier = a }],
   )
 
   project_owner_members = concat(
     [for u in var.project_owners.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
     [for g in var.project_owners.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
-    [for a in var.project_owners.iam : { key = "iam.${a}", member_type = "IAM", identifier = a }],
+    [for a in var.project_owners.iam_users : { key = "iam_user.${a}", member_type = "IAM_USER", identifier = a }],
+    [for a in var.project_owners.iam_roles : { key = "iam_role.${a}", member_type = "IAM_ROLE", identifier = a }],
   )
 
   project_contributor_members = concat(
     [for u in var.project_contributors.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
     [for g in var.project_contributors.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
-    [for a in var.project_contributors.iam : { key = "iam.${a}", member_type = "IAM", identifier = a }],
+    [for a in var.project_contributors.iam_users : { key = "iam_user.${a}", member_type = "IAM_USER", identifier = a }],
+    [for a in var.project_contributors.iam_roles : { key = "iam_role.${a}", member_type = "IAM_ROLE", identifier = a }],
   )
 
   # Union of every SSO user across the three principal sets. Each unique user
@@ -232,7 +236,8 @@ resource "random_string" "project_suffix" {
   special = false
 }
 resource "aws_iam_role" "project_iam_role" {
-  name = "SMUSProjectIAMExecutionRole_${random_string.project_suffix.result}"
+  count = var.project_role_arn == null ? 1 : 0
+  name  = "SMUSProjectIAMExecutionRole_${random_string.project_suffix.result}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -268,14 +273,57 @@ resource "aws_iam_role" "project_iam_role" {
   })
 }
 resource "aws_iam_role_policy_attachment" "project_iam_role_policy_attachment" {
-  role       = aws_iam_role.project_iam_role.name
+  count      = var.project_role_arn == null ? 1 : 0
+  role       = aws_iam_role.project_iam_role[0].name
   policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioUserIAMDefaultExecutionPolicy"
+}
+
+# Allow the project execution role to be passed to the SMUS-integrated services.
+resource "aws_iam_role_policy" "project_iam_role_pass_role" {
+  count = var.project_role_arn == null ? 1 : 0
+  name  = "PassRole"
+  role  = aws_iam_role.project_iam_role[0].name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "PassRole"
+        Effect   = "Allow"
+        Action   = ["iam:PassRole"]
+        Resource = aws_iam_role.project_iam_role[0].arn
+        Condition = {
+          StringEquals = {
+            "aws:ResourceAccount" = "$${aws:PrincipalAccount}"
+            "iam:PassedToService" = [
+              "bedrock.amazonaws.com",
+              "glue.amazonaws.com",
+              "lakeformation.amazonaws.com",
+              "sagemaker.amazonaws.com",
+              "scheduler.amazonaws.com",
+              "emr-serverless.amazonaws.com",
+              "elasticmapreduce.amazonaws.com",
+              "redshift.amazonaws.com",
+              "airflow-serverless.amazonaws.com"
+            ]
+          }
+        }
+      }
+    ]
+  })
 }
 
 // Wait after role deployment for state to synchronize between aws and awscc
 resource "time_sleep" "wait_after_project_role_creation" {
-  depends_on      = [aws_iam_role.project_iam_role, aws_iam_role_policy_attachment.project_iam_role_policy_attachment]
+  count           = var.project_role_arn == null ? 1 : 0
+  depends_on      = [aws_iam_role.project_iam_role, aws_iam_role_policy_attachment.project_iam_role_policy_attachment, aws_iam_role_policy.project_iam_role_pass_role]
   create_duration = "10s"
+}
+
+locals {
+  # Bring-your-own-role: when project_role_arn is provided, use it as-is.
+  # Otherwise fall back to the IAM role created by this example.
+  project_role_arn = var.project_role_arn != null ? var.project_role_arn : aws_iam_role.project_iam_role[0].arn
 }
 
 
@@ -287,7 +335,7 @@ module "default_project" {
   project_description = var.project_description
   // pick first available project profile
   project_profile_id = module.default_project_profile.project_profile_id
-  project_role       = aws_iam_role.project_iam_role.arn
+  project_role       = local.project_role_arn
 
   depends_on = [module.create_project_from_project_profile_grant, time_sleep.wait_after_project_role_creation]
 }

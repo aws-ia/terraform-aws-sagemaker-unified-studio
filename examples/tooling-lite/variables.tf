@@ -146,6 +146,17 @@ variable "project_description" {
   default     = "Quick-setup project created with Terraform for SageMaker Unified Studio"
 }
 
+variable "project_role_arn" {
+  description = "Bring-your-own-role: ARN of an existing IAM role to use as the project execution role. When null (default), the example creates and manages its own project execution role."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.project_role_arn == null || can(regex("^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/[\\w+=,.@/-]+$", var.project_role_arn))
+    error_message = "project_role_arn must be null or a valid IAM role ARN (e.g. arn:aws:iam::123456789012:role/MyRole)."
+  }
+}
+
 #####################################################################################
 # SSO and User Configuration
 #####################################################################################
@@ -157,7 +168,8 @@ variable "enable_sso" {
 }
 
 # Principal grouping used by the membership wiring below. Each variable accepts
-# any combination of SSO users, SSO groups, and IAM ARNs. Empty lists are fine.
+# any combination of SSO users, SSO groups, IAM users, and IAM roles. Empty lists
+# are fine.
 #
 # - domain_admins        : added to the admin project (when create_admin_portal = true) as PROJECT_OWNER
 # - project_owners       : added to the default project as PROJECT_OWNER
@@ -167,7 +179,8 @@ variable "domain_admins" {
   type = object({
     sso_users  = optional(list(string), [])
     sso_groups = optional(list(string), [])
-    iam        = optional(list(string), [])
+    iam_users  = optional(list(string), [])
+    iam_roles  = optional(list(string), [])
   })
   default = {}
 }
@@ -177,7 +190,8 @@ variable "project_owners" {
   type = object({
     sso_users  = optional(list(string), [])
     sso_groups = optional(list(string), [])
-    iam        = optional(list(string), [])
+    iam_users  = optional(list(string), [])
+    iam_roles  = optional(list(string), [])
   })
   default = {}
 }
@@ -187,7 +201,8 @@ variable "project_contributors" {
   type = object({
     sso_users  = optional(list(string), [])
     sso_groups = optional(list(string), [])
-    iam        = optional(list(string), [])
+    iam_users  = optional(list(string), [])
+    iam_roles  = optional(list(string), [])
   })
   default = {}
 }
