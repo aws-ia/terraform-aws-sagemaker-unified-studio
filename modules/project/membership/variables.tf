@@ -1,18 +1,20 @@
 variable "member_type" {
-  description = "Type of project member. One of: SSO_USER, SSO_GROUP, or IAM (covers both IAM users and IAM roles)."
+  description = "Type of project member. One of: SSO_USER, SSO_GROUP, IAM_USER, or IAM_ROLE."
   type        = string
 
   validation {
-    condition     = contains(["SSO_USER", "SSO_GROUP", "IAM"], var.member_type)
-    error_message = "member_type must be one of: SSO_USER, SSO_GROUP, IAM."
+    condition     = contains(["SSO_USER", "SSO_GROUP", "IAM_USER", "IAM_ROLE"], var.member_type)
+    error_message = "member_type must be one of: SSO_USER, SSO_GROUP, IAM_USER, IAM_ROLE."
   }
 }
 
 variable "identifier" {
   description = <<-EOT
     Identifier of the project member.
-    - For member_type = "IAM": full IAM user or role ARN
-      (e.g. arn:aws:iam::123456789012:role/MyRole, arn:aws:iam::123456789012:user/alice).
+    - For member_type = "IAM_USER": full IAM user ARN
+      (e.g. arn:aws:iam::123456789012:user/alice).
+    - For member_type = "IAM_ROLE": full IAM role ARN
+      (e.g. arn:aws:iam::123456789012:role/MyRole).
     - For member_type = "SSO_USER": identity store user ID (UUID) or SSO username.
     - For member_type = "SSO_GROUP": identity store group ID (UUID).
   EOT
@@ -24,13 +26,21 @@ variable "identifier" {
   }
 
   validation {
-    # IAM members must be a valid IAM user or role ARN. Other member types
-    # are validated separately (length + existence lookup in main.tf).
-    condition = var.member_type != "IAM" || can(regex(
-      "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:(role|user)/[\\w+=,.@/-]+$",
+    # IAM_USER members must be a valid IAM user ARN.
+    condition = var.member_type != "IAM_USER" || can(regex(
+      "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:user/[\\w+=,.@/-]+$",
       var.identifier
     ))
-    error_message = "When member_type is IAM, identifier must be a valid IAM user or role ARN (e.g. arn:aws:iam::123456789012:role/MyRole)."
+    error_message = "When member_type is IAM_USER, identifier must be a valid IAM user ARN (e.g. arn:aws:iam::123456789012:user/alice)."
+  }
+
+  validation {
+    # IAM_ROLE members must be a valid IAM role ARN.
+    condition = var.member_type != "IAM_ROLE" || can(regex(
+      "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/[\\w+=,.@/-]+$",
+      var.identifier
+    ))
+    error_message = "When member_type is IAM_ROLE, identifier must be a valid IAM role ARN (e.g. arn:aws:iam::123456789012:role/MyRole)."
   }
 
   validation {

@@ -3,6 +3,10 @@
 # Adds a single user (SSO_USER, SSO_GROUP, or IAM principal) to a project with a
 # specified role.
 #
+# Member types:
+# - IAM_ROLE: mapped to group_identifier (the role ARN).
+# - IAM_USER: mapped to user_identifier (the IAM user ARN).
+#
 # Validations:
 # - Variable-level: member_type, project_role, identifier format (see variables.tf).
 # - SSO_USER / SSO_GROUP: existence of the corresponding DataZone user/group profile
@@ -29,8 +33,8 @@ resource "awscc_datazone_project_membership" "this" {
   designation        = var.project_role
 
   member = {
-    user_identifier  = var.member_type == "SSO_USER" ? var.identifier : null
-    group_identifier = var.member_type == "SSO_GROUP" || var.member_type == "IAM" ? var.identifier : null
+    user_identifier  = var.member_type == "SSO_USER" || var.member_type == "IAM_USER" ? var.identifier : null
+    group_identifier = var.member_type == "SSO_GROUP" || var.member_type == "IAM_ROLE" ? var.identifier : null
   }
 
   lifecycle {
