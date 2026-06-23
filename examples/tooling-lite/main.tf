@@ -107,6 +107,7 @@ module "admin_project" {
   count     = var.create_admin_portal ? 1 : 0
   source    = "../../modules/project/admin"
   domain_id = module.domain.domain_id
+  depends_on = [module.domain]
 }
 
 #####################################################################################
@@ -333,7 +334,6 @@ module "default_project" {
   domain_id           = module.domain.domain_id
   project_name        = var.project_name
   project_description = var.project_description
-  // pick first available project profile
   project_profile_id = module.default_project_profile.project_profile_id
   project_role       = local.project_role_arn
 
