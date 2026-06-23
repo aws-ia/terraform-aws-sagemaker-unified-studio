@@ -74,15 +74,6 @@ locals {
     tolist(data.aws_iam_roles.provisioning_role.arns)[0] :
     null
   )
-
-  # Role name extracted from the ARN. IAM ARNs follow
-  # arn:aws:iam::<acct>:role/[<path>/]<name>; the role name is the final
-  # path segment. Used by the IAM policy attachment resource which requires
-  # a name, not an ARN.
-  provisioning_role_name = (
-    local.resolved_provisioning_role_arn == null ? null :
-    reverse(split("/", local.resolved_provisioning_role_arn))[0]
-  )
 }
 
 ######################################
@@ -132,20 +123,6 @@ resource "terraform_data" "provisioning_role_validation" {
       error_message = "No provisioning role available for the default project profile. Either pass var.provisioning_role_arn, or run modules/blueprint/bootstrap to create AmazonSageMakerProvisioning-${data.aws_caller_identity.current.account_id}-${var.domain_id}, or set var.using_admin_project = true."
     }
   }
-}
-
-######################################
-# Provisioning role: extra permissions
-######################################
-
-# When the admin project is not in use, the provisioning role needs additional
-# permissions to set up default projects.
-resource "aws_iam_role_policy_attachment" "provisioning_admin_policy_attachment" {
-  count      = var.using_admin_project ? 0 : 1
-  role       = local.provisioning_role_name
-  policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioAdminIAMDefaultExecutionPolicy"
-
-  depends_on = [terraform_data.provisioning_role_validation]
 }
 
 ######################################
@@ -367,6 +344,5 @@ resource "awscc_datazone_project_profile" "this" {
     awscc_datazone_policy_grant.tooling_lite_policy_grant,
     awscc_datazone_policy_grant.s3_bucket_policy_grant,
     awscc_datazone_policy_grant.s3_table_catalog_policy_grant,
-    aws_iam_role_policy_attachment.provisioning_admin_policy_attachment,
   ]
 }

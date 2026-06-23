@@ -104,9 +104,9 @@ module "domain" {
 # Admin Project
 
 module "admin_project" {
-  count     = var.create_admin_portal ? 1 : 0
-  source    = "../../modules/project/admin"
-  domain_id = module.domain.domain_id
+  count      = var.create_admin_portal ? 1 : 0
+  source     = "../../modules/project/admin"
+  domain_id  = module.domain.domain_id
   depends_on = [module.domain]
 }
 
@@ -203,6 +203,19 @@ module "admin_project_membership" {
 #                  Tooling blueprint integration from domain output (Req 9.3)
 #####################################################################################
 
+
+# Provisioning role: extra permissions.
+# When the admin project is enabled, the admin project's execution role acts as
+# the provisioning role for the default project profile blueprints, so no extra
+# permissions are needed here. When the admin project is NOT created, the
+# provisioning role has to be elevated with admin permissions so it can create
+# the additional resources required to set up default projects.
+resource "aws_iam_role_policy_attachment" "provisioning_admin_policy_attachment" {
+  count      = var.create_admin_portal ? 0 : 1
+  role       = reverse(split("/", module.domain.provisioning_role_arn))[0]
+  policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioAdminIAMDefaultExecutionPolicy"
+}
+
 // BYOR Project Profile
 
 module "default_project_profile" {
@@ -213,8 +226,9 @@ module "default_project_profile" {
   vpc_id                = var.vpc_id
   subnet_ids            = var.subnet_ids
   using_admin_project   = var.create_admin_portal
-  depends_on            = [module.admin_project]
+  depends_on            = [module.admin_project, aws_iam_role_policy_attachment.provisioning_admin_policy_attachment]
 }
+
 
 module "create_project_from_project_profile_grant" {
   source              = "../../modules/policy-grant/create_project"
@@ -334,8 +348,8 @@ module "default_project" {
   domain_id           = module.domain.domain_id
   project_name        = var.project_name
   project_description = var.project_description
-  project_profile_id = module.default_project_profile.project_profile_id
-  project_role       = local.project_role_arn
+  project_profile_id  = module.default_project_profile.project_profile_id
+  project_role        = local.project_role_arn
 
   depends_on = [module.create_project_from_project_profile_grant, time_sleep.wait_after_project_role_creation]
 }
