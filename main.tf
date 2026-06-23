@@ -273,14 +273,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "domain" {
   }
 }
 
-resource "aws_s3_bucket_versioning" "domain" {
-  count  = var.s3_bucket_name == null ? 1 : 0
-  bucket = aws_s3_bucket.domain[0].id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
 resource "aws_s3_bucket_logging" "domain" {
   count         = var.s3_bucket_name == null ? 1 : 0
   bucket        = aws_s3_bucket.domain[0].id
