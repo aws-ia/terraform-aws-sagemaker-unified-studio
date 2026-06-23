@@ -42,13 +42,13 @@ This requires the AWS CLI to be available and configured with appropriate permis
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.37.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.51.0 |
 | <a name="provider_awscc"></a> [awscc](#provider\_awscc) | n/a |
 | <a name="provider_null"></a> [null](#provider\_null) | n/a |
 
@@ -64,7 +64,6 @@ No modules.
 | [awscc_datazone_project_membership.contributors](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_membership) | resource |
 | [awscc_datazone_project_membership.members](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_membership) | resource |
 | [null_resource.cleanup_environments](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
-| [null_resource.cleanup_project_profiles](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
 

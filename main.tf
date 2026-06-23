@@ -255,6 +255,7 @@ resource "aws_s3_bucket" "domain" {
   #checkov:skip=CKV2_AWS_61:Lifecycle configuration not required for tooling storage
   #checkov:skip=CKV2_AWS_62:Event notifications not required for tooling storage
   #checkov:skip=CKV_AWS_144:Cross-region replication not required for tooling storage
+  #checkov:skip=CKV_AWS_21:Versioning not required for tooling storage since data lakes will be stored
 
   tags = merge(var.tags, {
     Purpose = "SageMaker Unified Studio Domain Storage"
