@@ -124,7 +124,9 @@ This example is a reference implementation. The individual sub-modules can be co
 |------|------|
 | [aws_datazone_user_profile.sso_users](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/datazone_user_profile) | resource |
 | [aws_iam_role.project_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
+| [aws_iam_role_policy.project_iam_role_pass_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy_attachment.project_iam_role_policy_attachment](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_iam_role_policy_attachment.provisioning_admin_policy_attachment](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [random_id.project_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) | resource |
 | [random_string.project_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
 | [terraform_data.admin_project_membership_precondition](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
@@ -152,6 +154,7 @@ This example is a reference implementation. The individual sub-modules can be co
 | <a name="input_project_description"></a> [project\_description](#input\_project\_description) | Description of the project | `string` | `"Quick-setup project created with Terraform for SageMaker Unified Studio"` | no |
 | <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Name of the project to create | `string` | `"terraform-quick-setup-project"` | no |
 | <a name="input_project_owners"></a> [project\_owners](#input\_project\_owners) | Principals to add to the default project as PROJECT\_OWNER. | <pre>object({<br/>    sso_users  = optional(list(string), [])<br/>    sso_groups = optional(list(string), [])<br/>    iam_users  = optional(list(string), [])<br/>    iam_roles  = optional(list(string), [])<br/>  })</pre> | `{}` | no |
+| <a name="input_project_role_arn"></a> [project\_role\_arn](#input\_project\_role\_arn) | Bring-your-own-role: ARN of an existing IAM role to use as the project execution role. When null (default), the example creates and manages its own project execution role. | `string` | `null` | no |
 | <a name="input_s3_bucket_name"></a> [s3\_bucket\_name](#input\_s3\_bucket\_name) | Existing S3 bucket name for Tooling blueprint storage. If null, a dedicated bucket is created by the domain module. | `string` | `null` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | Subnet IDs for blueprint regional parameters. If null, subnets from the default VPC are used. | `list(string)` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Additional tags to apply to all resources | `map(string)` | `{}` | no |
