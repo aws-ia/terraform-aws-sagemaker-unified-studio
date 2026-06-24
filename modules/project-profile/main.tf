@@ -14,9 +14,12 @@ data "aws_datazone_domain" "main" {
   id = var.domain_id
 }
 
-# Resolve blueprint IDs from names
+# Resolve blueprint IDs from names.
+# Only entries WITHOUT an explicit blueprint ID need a name-based lookup. When the
+# `blueprint` parameter is supplied on an entry, its value is used directly as the
+# blueprint ID and the map key is treated purely as the configuration name.
 data "aws_datazone_environment_blueprint" "this" {
-  for_each  = toset(concat(["Tooling"], keys(var.blueprints)))
+  for_each  = local.names_to_lookup
   domain_id = var.domain_id
   name      = each.key
   managed   = true
@@ -31,13 +34,39 @@ data "aws_datazone_environment_blueprint" "this" {
 # The join() on blueprint_dependencies creates an implicit dependency so Terraform
 # waits for blueprint modules to finish before reading configs.
 data "awscc_datazone_environment_blueprint_configuration" "this" {
-  for_each = data.aws_datazone_environment_blueprint.this
-  id       = "${var.domain_id}|${each.value.id}${join("", var.blueprint_dependencies) == "" ? "" : ""}"
+  for_each = local.blueprint_ids
+  id       = "${var.domain_id}|${each.value}${join("", var.blueprint_dependencies) == "" ? "" : ""}"
 }
 
 locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
+
+  # Tooling entry as configured in var.blueprints (may be absent).
+  tooling_entry = try(var.blueprints["Tooling"], null)
+
+  # Whether the Tooling entry supplies an explicit blueprint ID.
+  tooling_has_id = local.tooling_entry != null && try(local.tooling_entry.blueprint, null) != null && try(local.tooling_entry.blueprint, "") != ""
+
+  # Configuration names (map keys) that still require a name-based blueprint lookup,
+  # i.e. those that did NOT provide an explicit blueprint ID. Tooling is always
+  # needed (and looked up by name) unless it provides its own blueprint ID.
+  names_to_lookup = toset(concat(
+    local.tooling_has_id ? [] : ["Tooling"],
+    [for name, bp in var.blueprints : name if name != "Tooling" && (bp.blueprint == null || bp.blueprint == "")]
+  ))
+
+  # Resolved blueprint ID per configuration name (key). Uses the explicit `blueprint`
+  # ID when provided, otherwise the ID resolved from the name lookup.
+  blueprint_ids = merge(
+    {
+      "Tooling" = local.tooling_has_id ? local.tooling_entry.blueprint : data.aws_datazone_environment_blueprint.this["Tooling"].id
+    },
+    {
+      for name, bp in var.blueprints : name => (bp.blueprint != null && bp.blueprint != "") ? bp.blueprint : data.aws_datazone_environment_blueprint.this[name].id
+      if name != "Tooling"
+    }
+  )
 
   # Separate Tooling from other blueprints
   non_tooling_names = sort([for name in keys(var.blueprints) : name if name != "Tooling"])
@@ -47,7 +76,7 @@ locals {
     # Tooling — always first
     [{
       name                     = "Tooling"
-      environment_blueprint_id = data.aws_datazone_environment_blueprint.this["Tooling"].id
+      environment_blueprint_id = local.blueprint_ids["Tooling"]
       // description and deployment mode always set by default
       description      = "Configuration for the Tooling"
       deployment_mode  = "ON_CREATE"
@@ -71,7 +100,7 @@ locals {
     # Other blueprints — alphabetical order starting at 2
     [for idx, name in local.non_tooling_names : {
       name                     = name
-      environment_blueprint_id = data.aws_datazone_environment_blueprint.this[name].id
+      environment_blueprint_id = local.blueprint_ids[name]
       description              = var.blueprints[name].description
       deployment_mode          = var.blueprints[name].deployment_mode
       deployment_order         = idx + 2

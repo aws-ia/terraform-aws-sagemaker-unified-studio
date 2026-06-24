@@ -133,23 +133,6 @@ locals {
         }
       }
     }
-    "RedshiftServerless" = {
-      deployment_mode = "ON_CREATE"
-      parameter_overrides = {
-        "connectToRMSCatalog" = {
-          value       = "true"
-          is_editable = false
-        }
-        "redshiftDbName" = {
-          value       = "dev"
-          is_editable = true
-        }
-        "redshiftMaxCapacity" = {
-          value       = "512"
-          is_editable = false
-        }
-      }
-    }
     "LakehouseCatalog" = {
       deployment_mode = "ON_DEMAND"
       parameter_overrides = {
@@ -193,6 +176,27 @@ locals {
       }
     }
   }
+
+  # Example: composing a profile from explicit blueprint IDs instead of names.
+  #
+  # By default the map key is the blueprint NAME and the ID is resolved by the
+  # project-profile module via a data lookup. If you already know the blueprint ID
+  # (for example a custom blueprint, or one output by the blueprint module), set the
+  # optional `blueprint` parameter to that ID. The key is then used only as the
+  # environment configuration name and is no longer looked up by name.
+  #
+  # explicit_id_blueprint_config = {
+  #   sql_tooling = {
+  #     blueprint = "4lp8sfafm3rk6c" # explicit blueprint ID; key is just the config name
+  #   }
+  #   custom_redshift = {
+  #     blueprint       = "9mq2tcbxn7yz1a"
+  #     deployment_mode = "ON_DEMAND"
+  #     parameter_overrides = {
+  #       redshiftBaseCapacity = { value = "128", is_editable = true }
+  #     }
+  #   }
+  # }
 
   generative_ai_blueprint_config = {
     "AmazonBedrockEvaluation" = {
@@ -335,7 +339,7 @@ module "all_capabilities_project_profile" {
 }
 
 module "create_project_from_project_profile_grant" {
-  count  = (var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai) ? 1 : 0
+  count          = (var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai) ? 1 : 0
   source         = "../../modules/policy-grant/create_project"
   domain_id      = module.domain.domain_id
   domain_unit_id = module.domain.domain_root_unit_id
