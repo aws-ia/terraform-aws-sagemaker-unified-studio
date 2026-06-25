@@ -268,6 +268,10 @@ resource "aws_s3_bucket" "domain" {
   count  = var.s3_bucket_name == null ? 1 : 0
   bucket = lower("sagemaker-studio-${local.account_id}-${local.region}-${random_string.suffix.result}")
 
+  # Allow Terraform to delete the bucket on destroy even when it still contains
+  # objects (and object versions). Without this, destroy fails with BucketNotEmpty.
+  force_destroy = true
+
   #checkov:skip=CKV2_AWS_61:Lifecycle configuration not required for tooling storage
   #checkov:skip=CKV2_AWS_62:Event notifications not required for tooling storage
   #checkov:skip=CKV_AWS_144:Cross-region replication not required for tooling storage
