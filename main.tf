@@ -229,6 +229,21 @@ resource "aws_datazone_domain" "main" {
     DomainVersion = "V2"
     Purpose       = "SageMaker-Unified-Studio"
   })
+
+  # Tie the domain execution/service roles (and their policy attachments) to the
+  # domain lifecycle. The domain already references the role ARNs implicitly, but
+  # the policy attachments do not — without this, Terraform could remove the
+  # attachments before destroying the domain. Declaring the dependency here forces:
+  #   - create: roles + policy attachments are fully provisioned BEFORE the domain
+  #   - destroy: the domain is deleted BEFORE its roles/attachments are removed
+  # No dependency cycle is created because the roles/attachments never reference
+  # the domain.
+  depends_on = [
+    aws_iam_role.domain_execution,
+    aws_iam_role.domain_service,
+    aws_iam_role_policy_attachment.domain_execution_policy,
+    aws_iam_role_policy_attachment.domain_service_policy,
+  ]
 }
 
 # Data source needed to get root domain unit
