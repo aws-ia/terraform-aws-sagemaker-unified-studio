@@ -48,26 +48,27 @@ variable "domain_unit_id" {
 
 variable "blueprints" {
   description = <<-EOT
-    Map of blueprints to include in this project profile.
-    Key = blueprint name (e.g., "Tooling", "DataLake", "RedshiftServerless") by default.
+    Map of environment configurations to include in this project profile.
 
-    By default the `blueprint` parameter is blank and the map key is used as the
-    blueprint name to look up the blueprint ID via data source. If the optional
-    `blueprint` parameter is set, it is used as the blueprint name for the lookup
-    instead and the map key is treated only as the environment configuration name.
+    Key = the environment configuration name (e.g., "OnDemand Redshift Serverless").
+    `blueprint` (required) = the managed blueprint name to resolve to a blueprint ID
+    via data lookup (e.g., "RedshiftServerless", "DataLake", "QuickSight").
 
-    Tooling must always be included and automatically gets deployment_order = 1.
+    The map key is always treated as the configuration name only; the blueprint is
+    always resolved from the `blueprint` attribute. This allows multiple configurations
+    to reference the same blueprint (e.g., an ON_CREATE and an ON_DEMAND Redshift).
+
+    Tooling is added automatically (deployment_order = 0) and does not need an entry.
     Note: For EmrOnEks, you must provide eksClusterArn in parameter_overrides.
 
     Example:
       blueprints = {
-        # Resolved by name (key) — default behavior
-        Tooling            = {}
-        DataLake           = { region = "us-west-2", parameter_overrides = { glueDbName = { value = "my_db" } } }
-
-        # Explicit blueprint name — key "custom_redshift" becomes the configuration name,
-        # while "RedshiftServerless" is the blueprint name resolved via data lookup
-        custom_redshift = {
+        "Lakehouse Database" = {
+          blueprint       = "DataLake"
+          deployment_mode = "ON_CREATE"
+          parameter_overrides = { glueDbName = { value = "glue_db", is_editable = true } }
+        }
+        "OnDemand Redshift Serverless" = {
           blueprint       = "RedshiftServerless"
           deployment_mode = "ON_DEMAND"
           region          = "eu-west-1"
@@ -78,7 +79,7 @@ variable "blueprints" {
       }
   EOT
   type = map(object({
-    blueprint       = optional(string)
+    blueprint       = string
     description     = optional(string)
     deployment_mode = optional(string, "ON_CREATE")
     region          = optional(string)
@@ -88,6 +89,13 @@ variable "blueprints" {
     })), {})
   }))
 
+
+  validation {
+    condition = alltrue([
+      for name, bp in var.blueprints : bp.blueprint != null && bp.blueprint != ""
+    ])
+    error_message = "Each entry must set a non-empty `blueprint` (the managed blueprint name to look up)."
+  }
 
   validation {
     condition = alltrue([

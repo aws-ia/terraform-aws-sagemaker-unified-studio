@@ -15,9 +15,8 @@ data "aws_datazone_domain" "main" {
 }
 
 # Resolve blueprint IDs from names.
-# By default the map key is the blueprint name to look up. When the `blueprint`
-# parameter is supplied on an entry, its value is used as the blueprint name for the
-# lookup instead and the map key is treated purely as the configuration name.
+# Each entry's `blueprint` attribute is the managed blueprint name; the map key is
+# only the environment configuration name. The blueprint ID is resolved here by name.
 data "aws_datazone_environment_blueprint" "this" {
   for_each  = local.blueprint_names_to_lookup
   domain_id = var.domain_id
@@ -42,16 +41,14 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
 
-  # The blueprint NAME to look up for each entry. Defaults to the map key; when the
-  # optional `blueprint` parameter is set it is used as the lookup name instead and
-  # the map key is treated purely as the environment configuration name.
+  # The managed blueprint NAME to look up for each entry. The map key is always the
+  # environment configuration name; the blueprint is always taken from `blueprint`.
   lookup_names = {
-    for name, bp in var.blueprints : name => (bp.blueprint != null && bp.blueprint != "") ? bp.blueprint : name
+    for name, bp in var.blueprints : name => bp.blueprint
   }
 
-  # Blueprint name used to resolve the Tooling configuration. Tooling may be absent
-  # from var.blueprints, in which case it defaults to the "Tooling" blueprint.
-  tooling_lookup_name = try(local.lookup_names["Tooling"], "Tooling")
+  # Tooling is added automatically and always resolves to the "Tooling" blueprint.
+  tooling_lookup_name = "Tooling"
 
   # Unique set of blueprint names that require a data lookup (always include Tooling).
   blueprint_names_to_lookup = toset(concat([local.tooling_lookup_name], values(local.lookup_names)))
