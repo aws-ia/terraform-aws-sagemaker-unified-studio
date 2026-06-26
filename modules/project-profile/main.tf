@@ -1,8 +1,8 @@
 #####################################################################################
 # Singular Project Profile Module
 # Creates exactly one project profile per invocation.
-# Tooling is always first (deployment_order = 1), other blueprints follow in
-# alphabetical order starting at 2.
+# Tooling is always first (deployment_order = 0). Other ON_CREATE blueprints get
+# deployment_order = 1; ON_DEMAND blueprints have no deployment order.
 # Blueprint IDs are resolved internally by name via data source lookup.
 #####################################################################################
 

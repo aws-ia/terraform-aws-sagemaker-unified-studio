@@ -1,0 +1,409 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  End-to-end SageMaker Unified Studio domain with ToolingLite default project profile
+  (admin project disabled). Creates domain, provisioning role, enables ToolingLite/S3Bucket/S3TableCatalog
+  blueprints, policy grants, default project profile, and a BYOR project.
+
+###############################################################################
+# Parameters
+###############################################################################
+Parameters:
+  DomainName:
+    Type: String
+    Description: Name for the SageMaker Unified Studio domain
+    Default: sagemaker-unified-studio-domain
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID for ToolingLite blueprint configuration
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnet IDs for ToolingLite blueprint configuration (must belong to VpcId)
+
+  ProjectExecutionRoleArn:
+    Type: String
+    Description: >
+      ARN of the IAM role to use as the project execution role (BYOR).
+      Leave empty to auto-create a role named SMUSProjectIAMExecutionRole_<StackName>.
+    Default: ""
+
+  ProjectOwnerIAMRoleArn:
+    Type: String
+    Description: >
+      IAM role ARN to add as a project owner.
+      IAM roles are added as group members in DataZone. Leave empty to skip.
+    Default: ""
+
+Conditions:
+  CreateProjectExecutionRole: !Equals [!Ref ProjectExecutionRoleArn, ""]
+  HasProjectOwner: !Not [!Equals [!Ref ProjectOwnerIAMRoleArn, ""]]
+
+###############################################################################
+# Resources
+###############################################################################
+Resources:
+
+  ##############################################
+  # Domain Execution Role
+  ##############################################
+  DomainExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "AmazonSageMakerDomainExecution-${AWS::StackName}"
+      Path: /service-role/
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: datazone.amazonaws.com
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+              - sts:SetContext
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              "ForAllValues:StringLike":
+                aws:TagKeys: "datazone*"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/SageMakerStudioDomainExecutionRolePolicy
+
+  ##############################################
+  # Domain Service Role
+  ##############################################
+  DomainServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "AmazonSageMakerDomainService-${AWS::StackName}"
+      Path: /service-role/
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: datazone.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/SageMakerStudioDomainServiceRolePolicy
+
+  ##############################################
+  # Domain
+  ##############################################
+  Domain:
+    Type: AWS::DataZone::Domain
+    Properties:
+      Name: !Ref DomainName
+      Description: SageMaker Unified Studio domain
+      DomainExecutionRole: !GetAtt DomainExecutionRole.Arn
+      DomainVersion: V2
+      ServiceRole: !GetAtt DomainServiceRole.Arn
+
+  ##############################################
+  # Provisioning Role
+  # Includes both the base provisioning policy and the admin default execution
+  # policy (required when admin project is disabled).
+  ##############################################
+  ProvisioningRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "AmazonSageMakerProvisioning-${AWS::AccountId}-${Domain.Id}"
+      Path: /service-role/
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: datazone.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/SageMakerStudioProjectProvisioningRolePolicy
+        # Admin default execution policy — needed when admin project is disabled
+        - arn:aws:iam::aws:policy/SageMakerStudioAdminIAMDefaultExecutionPolicy
+
+  ##############################################
+  # Project Execution Role (BYOR)
+  # Auto-created when ProjectExecutionRoleArn is not provided.
+  # Matches the SMUSProjectIAMExecutionRole_ naming convention.
+  ##############################################
+  ProjectExecutionRole:
+    Type: AWS::IAM::Role
+    Condition: CreateProjectExecutionRole
+    Properties:
+      RoleName: !Sub "SMUSProjectIAMExecutionRole_${AWS::StackName}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - datazone.amazonaws.com
+                - sagemaker.amazonaws.com
+                - glue.amazonaws.com
+                - bedrock.amazonaws.com
+                - scheduler.amazonaws.com
+                - lakeformation.amazonaws.com
+                - airflow-serverless.amazonaws.com
+                - athena.amazonaws.com
+                - redshift.amazonaws.com
+                - emr-serverless.amazonaws.com
+            Action:
+              - sts:AssumeRole
+              - sts:TagSession
+              - sts:SetContext
+              - sts:SetSourceIdentity
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/SageMakerStudioUserIAMDefaultExecutionPolicy
+
+  ##############################################
+  # ToolingLite Blueprint Configuration
+  # Enables ToolingLite with VPC/Subnet regional parameters
+  ##############################################
+  ToolingLiteBlueprintConfig:
+    Type: AWS::DataZone::EnvironmentBlueprintConfiguration
+    Properties:
+      DomainIdentifier: !GetAtt Domain.Id
+      EnvironmentBlueprintIdentifier: ToolingLite
+      ProvisioningRoleArn: !GetAtt ProvisioningRole.Arn
+      EnabledRegions:
+        - !Ref AWS::Region
+      RegionalParameters:
+        - Region: !Ref AWS::Region
+          Parameters:
+            VpcId: !Ref VpcId
+            Subnets: !Join [",", !Ref SubnetIds]
+
+  ##############################################
+  # S3Bucket Blueprint Configuration
+  ##############################################
+  S3BucketBlueprintConfig:
+    Type: AWS::DataZone::EnvironmentBlueprintConfiguration
+    DependsOn: ToolingLiteBlueprintConfig
+    Properties:
+      DomainIdentifier: !GetAtt Domain.Id
+      EnvironmentBlueprintIdentifier: S3Bucket
+      ProvisioningRoleArn: !GetAtt ProvisioningRole.Arn
+      EnabledRegions:
+        - !Ref AWS::Region
+
+  ##############################################
+  # S3TableCatalog Blueprint Configuration
+  ##############################################
+  S3TableCatalogBlueprintConfig:
+    Type: AWS::DataZone::EnvironmentBlueprintConfiguration
+    DependsOn: S3BucketBlueprintConfig
+    Properties:
+      DomainIdentifier: !GetAtt Domain.Id
+      EnvironmentBlueprintIdentifier: S3TableCatalog
+      ProvisioningRoleArn: !GetAtt ProvisioningRole.Arn
+      EnabledRegions:
+        - !Ref AWS::Region
+
+  ##############################################
+  # Policy Grants — CREATE_ENVIRONMENT_FROM_BLUEPRINT
+  # Grants all CONTRIBUTOR projects under the root domain unit
+  # permission to create environments from each blueprint.
+  ##############################################
+  ToolingLitePolicyGrant:
+    Type: AWS::DataZone::PolicyGrant
+    Properties:
+      DomainIdentifier: !GetAtt Domain.Id
+      EntityType: ENVIRONMENT_BLUEPRINT_CONFIGURATION
+      EntityIdentifier: !Sub "${AWS::AccountId}:${ToolingLiteBlueprintConfig.EnvironmentBlueprintId}"
+      PolicyType: CREATE_ENVIRONMENT_FROM_BLUEPRINT
+      Detail:
+        CreateEnvironmentFromBlueprint: {}
+      Principal:
+        Project:
+          ProjectDesignation: CONTRIBUTOR
+          ProjectGrantFilter:
+            DomainUnitFilter:
+              DomainUnit: !GetAtt Domain.RootDomainUnitId
+              IncludeChildDomainUnits: true
+
+  S3BucketPolicyGrant:
+    Type: AWS::DataZone::PolicyGrant
+    Properties:
+      DomainIdentifier: !GetAtt Domain.Id
+      EntityType: ENVIRONMENT_BLUEPRINT_CONFIGURATION
+      EntityIdentifier: !Sub "${AWS::AccountId}:${S3BucketBlueprintConfig.EnvironmentBlueprintId}"
+      PolicyType: CREATE_ENVIRONMENT_FROM_BLUEPRINT
+      Detail:
+        CreateEnvironmentFromBlueprint: {}
+      Principal:
+        Project:
+          ProjectDesignation: CONTRIBUTOR
+          ProjectGrantFilter:
+            DomainUnitFilter:
+              DomainUnit: !GetAtt Domain.RootDomainUnitId
+              IncludeChildDomainUnits: true
+
+  S3TableCatalogPolicyGrant:
+    Type: AWS::DataZone::PolicyGrant
+    Properties:
+      DomainIdentifier: !GetAtt Domain.Id
+      EntityType: ENVIRONMENT_BLUEPRINT_CONFIGURATION
+      EntityIdentifier: !Sub "${AWS::AccountId}:${S3TableCatalogBlueprintConfig.EnvironmentBlueprintId}"
+      PolicyType: CREATE_ENVIRONMENT_FROM_BLUEPRINT
+      Detail:
+        CreateEnvironmentFromBlueprint: {}
+      Principal:
+        Project:
+          ProjectDesignation: CONTRIBUTOR
+          ProjectGrantFilter:
+            DomainUnitFilter:
+              DomainUnit: !GetAtt Domain.RootDomainUnitId
+              IncludeChildDomainUnits: true
+
+  ##############################################
+  # Default Project Profile
+  # ToolingLite deploys ON_CREATE, S3Bucket and S3TableCatalog are ON_DEMAND
+  ##############################################
+  DefaultProjectProfile:
+    Type: AWS::DataZone::ProjectProfile
+    DependsOn:
+      - ToolingLitePolicyGrant
+      - S3BucketPolicyGrant
+      - S3TableCatalogPolicyGrant
+    Properties:
+      Name: Default Project Profile
+      Description: Default project profile with tooling capabilities
+      DomainIdentifier: !GetAtt Domain.Id
+      DomainUnitIdentifier: !GetAtt Domain.RootDomainUnitId
+      Status: ENABLED
+      EnvironmentConfigurations:
+        - Name: ToolingLite
+          EnvironmentBlueprintId: !GetAtt ToolingLiteBlueprintConfig.EnvironmentBlueprintId
+          DeploymentMode: ON_CREATE
+          DeploymentOrder: 0
+          AwsAccount:
+            AwsAccountId: !Ref AWS::AccountId
+          AwsRegion:
+            RegionName: !Ref AWS::Region
+          ConfigurationParameters:
+            ParameterOverrides:
+              - Name: s3BucketLocation
+                Value: ""
+                IsEditable: true
+        - Name: S3Bucket
+          EnvironmentBlueprintId: !GetAtt S3BucketBlueprintConfig.EnvironmentBlueprintId
+          DeploymentMode: ON_DEMAND
+          AwsAccount:
+            AwsAccountId: !Ref AWS::AccountId
+          AwsRegion:
+            RegionName: !Ref AWS::Region
+          ConfigurationParameters:
+            ParameterOverrides:
+              - Name: bucketName
+                IsEditable: true
+        - Name: S3TableCatalog
+          EnvironmentBlueprintId: !GetAtt S3TableCatalogBlueprintConfig.EnvironmentBlueprintId
+          DeploymentMode: ON_DEMAND
+          AwsAccount:
+            AwsAccountId: !Ref AWS::AccountId
+          AwsRegion:
+            RegionName: !Ref AWS::Region
+          ConfigurationParameters:
+            ParameterOverrides:
+              - Name: catalogName
+                Value: ""
+                IsEditable: true
+              - Name: databaseName
+                Value: ""
+                IsEditable: true
+
+  ##############################################
+  # Policy Grant — CREATE_PROJECT_FROM_PROJECT_PROFILE
+  # Allows all users to create projects from the default profile
+  ##############################################
+  CreateProjectFromProfileGrant:
+    Type: AWS::DataZone::PolicyGrant
+    Properties:
+      DomainIdentifier: !GetAtt Domain.Id
+      EntityType: DOMAIN_UNIT
+      EntityIdentifier: !GetAtt Domain.RootDomainUnitId
+      PolicyType: CREATE_PROJECT_FROM_PROJECT_PROFILE
+      Detail:
+        CreateProjectFromProjectProfile:
+          ProjectProfiles:
+            - !GetAtt DefaultProjectProfile.Id
+          IncludeChildDomainUnits: true
+      Principal:
+        User:
+          AllUsersGrantFilter: {}
+
+  ##############################################
+  # Project (BYOR — bring your own role)
+  ##############################################
+  Project:
+    Type: AWS::DataZone::Project
+    DependsOn: CreateProjectFromProfileGrant
+    Properties:
+      DomainIdentifier: !GetAtt Domain.Id
+      Name: default-project
+      Description: Default BYOR project created from the default project profile
+      ProjectProfileId: !GetAtt DefaultProjectProfile.Id
+      ProjectExecutionRole: !If
+        - CreateProjectExecutionRole
+        - !GetAtt ProjectExecutionRole.Arn
+        - !Ref ProjectExecutionRoleArn
+
+  ##############################################
+  # Project Membership — IAM Role Owner
+  # IAM roles are added as group members (GroupIdentifier) with PROJECT_OWNER
+  # designation.
+  ##############################################
+  ProjectOwnerMembership:
+    Type: AWS::DataZone::ProjectMembership
+    Condition: HasProjectOwner
+    Properties:
+      DomainIdentifier: !GetAtt Domain.Id
+      ProjectIdentifier: !Ref Project
+      Designation: PROJECT_OWNER
+      Member:
+        GroupIdentifier: !Ref ProjectOwnerIAMRoleArn
+
+###############################################################################
+# Outputs
+###############################################################################
+Outputs:
+  DomainId:
+    Description: ID of the SageMaker Unified Studio domain
+    Value: !GetAtt Domain.Id
+
+  DomainPortalUrl:
+    Description: Portal URL for the domain
+    Value: !GetAtt Domain.PortalUrl
+
+  RootDomainUnitId:
+    Description: Root domain unit ID
+    Value: !GetAtt Domain.RootDomainUnitId
+
+  ProvisioningRoleArn:
+    Description: ARN of the provisioning role
+    Value: !GetAtt ProvisioningRole.Arn
+
+  ProjectExecutionRoleArn:
+    Description: ARN of the project execution role (created or provided)
+    Value: !If
+      - CreateProjectExecutionRole
+      - !GetAtt ProjectExecutionRole.Arn
+      - !Ref ProjectExecutionRoleArn
+
+  ProjectProfileId:
+    Description: ID of the default project profile
+    Value: !GetAtt DefaultProjectProfile.Id
+
+  ProjectId:
+    Description: ID of the created project
+    Value: !Ref Project

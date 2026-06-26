@@ -1,0 +1,39 @@
+{
+	"name": "terraform-aws-sagemaker-unified-studio",
+	"image": "mcr.microsoft.com/devcontainers/python:3-3.13-bookworm",
+	"remoteUser": "vscode",
+	"features": {
+		"ghcr.io/devcontainers/features/aws-cli:1": {
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"moby": true,
+			"installDockerBuildx": true,
+			"version": "latest",
+			"dockerDashComposeVersion": "v2"
+		},
+		"ghcr.io/devcontainers/features/terraform:1": {
+			"version": "1.10.0",
+			"installTFsec": true
+		},
+		"ghcr.io/devcontainers-extra/features/markdownlint-cli2:1": {},
+		"ghcr.io/devcontainers-extra/features/pre-commit:2": {},
+		"ghcr.io/devcontainers-extra/features/terraform-docs:1": {
+			"version": "v0.20.0"
+		},
+		"ghcr.io/devcontainers-extra/features/checkov:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"streetsidesoftware.code-spell-checker",
+                "amazonwebservices.aws-toolkit-vscode",
+				"AmazonWebServices.amazon-q-vscode",
+				"-ms-vscode.azure-account",
+				"-ms-azuretools.vscode-azureresourcegroups",
+				"-ms-azuretools.vscode-azureterraform"
+			]
+		}
+	}
+}

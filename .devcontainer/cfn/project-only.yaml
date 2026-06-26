@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Creates a single SageMaker Unified Studio (DataZone) project from an existing
+  domain and project profile.
+
+###############################################################################
+# Parameters
+###############################################################################
+Parameters:
+  DomainId:
+    Type: String
+    Description: ID of the existing SageMaker Unified Studio domain
+
+  ProjectProfileId:
+    Type: String
+    Description: ID of the project profile to create the project from
+
+  ProjectName:
+    Type: String
+    Description: Name for the project
+    Default: my-project
+
+  ProjectDescription:
+    Type: String
+    Description: Description for the project
+    Default: Project created from an existing project profile
+
+
+###############################################################################
+# Resources
+###############################################################################
+Resources:
+  Project:
+    Type: AWS::DataZone::Project
+    Properties:
+      DomainIdentifier: !Ref DomainId
+      Name: !Ref ProjectName
+      Description: !Ref ProjectDescription
+      ProjectProfileId: !Ref ProjectProfileId
+
+###############################################################################
+# Outputs
+###############################################################################
+Outputs:
+  ProjectId:
+    Description: ID of the created project
+    Value: !Ref Project
+
+  ProjectName:
+    Description: Name of the created project
+    Value: !Ref ProjectName
