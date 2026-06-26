@@ -42,15 +42,14 @@ This requires the AWS CLI to be available and configured with appropriate permis
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.37.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.51.0 |
 | <a name="provider_awscc"></a> [awscc](#provider\_awscc) | n/a |
-| <a name="provider_null"></a> [null](#provider\_null) | n/a |
 
 ## Modules
 
@@ -63,8 +62,6 @@ No modules.
 | [awscc_datazone_project.main](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project) | resource |
 | [awscc_datazone_project_membership.contributors](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_membership) | resource |
 | [awscc_datazone_project_membership.members](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_membership) | resource |
-| [null_resource.cleanup_environments](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
-| [null_resource.cleanup_project_profiles](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
 
@@ -76,7 +73,6 @@ No modules.
 | <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Name of the project | `string` | n/a | yes |
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS region for API calls during cleanup | `string` | `null` | no |
 | <a name="input_contributor_list"></a> [contributor\_list](#input\_contributor\_list) | List of user identifiers to add as project contributors | `list(string)` | `[]` | no |
-| <a name="input_enable_profile_cleanup"></a> [enable\_profile\_cleanup](#input\_enable\_profile\_cleanup) | Enable project profile cleanup during destroy | `bool` | `false` | no |
 | <a name="input_project_description"></a> [project\_description](#input\_project\_description) | Description of the project | `string` | `"SageMaker Unified Studio project created with Terraform"` | no |
 | <a name="input_project_profile_id"></a> [project\_profile\_id](#input\_project\_profile\_id) | ID of the project profile to use for this project (optional for V2 domains) | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to the project | `map(string)` | `{}` | no |

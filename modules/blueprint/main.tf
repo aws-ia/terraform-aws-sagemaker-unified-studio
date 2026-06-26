@@ -60,9 +60,6 @@ locals {
   # Whether this blueprint uses regional parameters
   has_regional_parameters = length(var.regional_parameters) > 0
 
-  # Whether this blueprint uses global parameters
-  has_global_parameters = length(var.global_parameters) > 0
-
   # 2-tier role resolution: user-provided > data lookup > fail
   default_provisioning_role_name  = "AmazonSageMakerProvisioning-${local.account_id}-${var.domain_id}"
   default_manage_access_role_name = "AmazonSageMakerManageAccess-${local.region}-${var.domain_id}"
@@ -90,17 +87,6 @@ locals {
       "VpcId"      = params.vpc_id
     }
   } : null
-
-  awscc_formatted_regional_parameters = [
-    for r, params in var.regional_parameters : {
-      region = r
-      parameters = {
-        "S3Location" = params.s3_uri
-        "Subnets"    = join(",", params.subnet_ids)
-        "VpcId"      = params.vpc_id
-      }
-    }
-  ]
 
   # Resolve domain unit IDs: user-provided list, or fall back to root domain unit
   effective_domain_unit_ids = length(var.domain_unit_ids) > 0 ? toset(var.domain_unit_ids) : toset([data.aws_datazone_domain.main.root_domain_unit_id])
@@ -160,32 +146,13 @@ resource "terraform_data" "manage_access_role_validation" {
 ######################################
 
 resource "aws_datazone_environment_blueprint_configuration" "this" {
-  count                    = local.has_global_parameters ? 0 : 1
   domain_id                = var.domain_id
   environment_blueprint_id = data.aws_datazone_environment_blueprint.this.id
   manage_access_role_arn   = local.manage_access_role_arn
   provisioning_role_arn    = local.provisioning_role_arn
   enabled_regions          = local.enabled_regions
   regional_parameters      = local.regional_parameters
-
-  depends_on = [
-    terraform_data.subnet_vpc_validation,
-    terraform_data.provisioning_role_validation,
-    terraform_data.manage_access_role_validation,
-  ]
-}
-
-resource "awscc_datazone_environment_blueprint_configuration" "this" {
-  count                            = local.has_global_parameters ? 1 : 0
-  domain_identifier                = var.domain_id
-  environment_blueprint_identifier = var.blueprint_name
-  enabled_regions                  = local.enabled_regions
-  manage_access_role_arn           = local.manage_access_role_arn
-  provisioning_role_arn            = local.provisioning_role_arn
-
-  regional_parameters = local.awscc_formatted_regional_parameters
-
-  global_parameters = var.global_parameters
+  global_parameters        = var.global_parameters
 
   depends_on = [
     terraform_data.subnet_vpc_validation,
@@ -222,7 +189,7 @@ resource "awscc_datazone_policy_grant" "this" {
     }
   }
 
-  depends_on = [aws_datazone_environment_blueprint_configuration.this, awscc_datazone_environment_blueprint_configuration.this]
+  depends_on = [aws_datazone_environment_blueprint_configuration.this]
 }
 
 ######################################
