@@ -93,8 +93,8 @@ Then re-run `terraform apply` to recreate the grants cleanly.
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.76.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.51.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.89.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1 |
 
 ## Modules

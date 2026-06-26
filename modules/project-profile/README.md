@@ -65,8 +65,9 @@ The `project_profile_id` output declares `depends_on` on the underlying `awscc_d
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.76.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.51.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.89.0 |
+| <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Modules
 
