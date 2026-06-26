@@ -1,6 +1,6 @@
 {
 	"name": "terraform-aws-sagemaker-unified-studio",
-	"image": "mcr.microsoft.com/devcontainers/python:3-3.13-bookworm",
+	"image": "mcr.microsoft.com/devcontainers/go",
 	"remoteUser": "vscode",
 	"features": {
 		"ghcr.io/devcontainers/features/aws-cli:1": {
@@ -16,6 +16,9 @@
 			"version": "1.10.0",
 			"installTFsec": true
 		},
+		"ghcr.io/devcontainers/features/python:1": {
+			"version": "3.13"
+		}
 		"ghcr.io/devcontainers-extra/features/markdownlint-cli2:1": {},
 		"ghcr.io/devcontainers-extra/features/pre-commit:2": {},
 		"ghcr.io/devcontainers-extra/features/terraform-docs:1": {
