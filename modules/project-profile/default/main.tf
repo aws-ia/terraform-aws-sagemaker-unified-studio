@@ -155,10 +155,10 @@ data "aws_datazone_environment_blueprint" "s3_bucket" {
   managed   = true
 }
 
+// no provisioning role is specified for on_demand blueprints, so the project execution role will handle provisioning
 resource "aws_datazone_environment_blueprint_configuration" "s3_bucket" {
   domain_id                = var.domain_id
   environment_blueprint_id = data.aws_datazone_environment_blueprint.s3_bucket.id
-  provisioning_role_arn    = local.resolved_provisioning_role_arn
   enabled_regions          = [local.region]
 
   depends_on = [aws_datazone_environment_blueprint_configuration.tooling_lite]
@@ -170,10 +170,10 @@ data "aws_datazone_environment_blueprint" "s3_table_catalog" {
   managed   = true
 }
 
+// no provisioning role is specified for on_demand blueprints, so the project execution role will handle provisioning
 resource "aws_datazone_environment_blueprint_configuration" "s3_table_catalog" {
   domain_id                = var.domain_id
   environment_blueprint_id = data.aws_datazone_environment_blueprint.s3_table_catalog.id
-  provisioning_role_arn    = local.resolved_provisioning_role_arn
   enabled_regions          = [local.region]
 
   depends_on = [aws_datazone_environment_blueprint_configuration.s3_bucket]
