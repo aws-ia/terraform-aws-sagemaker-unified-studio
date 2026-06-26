@@ -48,7 +48,7 @@ module "project_owner" {
 
   domain_id    = module.domain.domain_id
   project_id   = module.project.project_id
-  member_type  = "IAM"
+  member_type  = "IAM_ROLE"
   identifier   = "arn:aws:iam::123456789012:role/MyAdmin"
   project_role = "PROJECT_OWNER"
 }
