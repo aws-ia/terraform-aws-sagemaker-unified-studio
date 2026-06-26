@@ -103,6 +103,7 @@ This example is a reference implementation. The individual sub-modules can be co
 | Name | Version |
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.46.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.85.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 | <a name="provider_time"></a> [time](#provider\_time) | >= 0.13.1 |
@@ -124,11 +125,13 @@ This example is a reference implementation. The individual sub-modules can be co
 
 | Name | Type |
 |------|------|
+| [aws_datazone_user_profile.iam_users](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/datazone_user_profile) | resource |
 | [aws_datazone_user_profile.sso_users](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/datazone_user_profile) | resource |
 | [aws_iam_role.project_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy.project_iam_role_pass_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy) | resource |
 | [aws_iam_role_policy_attachment.project_iam_role_policy_attachment](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.provisioning_admin_policy_attachment](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [awscc_datazone_group_profile.sso_groups](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_group_profile) | resource |
 | [random_id.project_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) | resource |
 | [random_string.project_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
 | [terraform_data.admin_project_membership_precondition](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |

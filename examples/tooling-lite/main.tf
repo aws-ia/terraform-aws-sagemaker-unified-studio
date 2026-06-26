@@ -155,6 +155,24 @@ locals {
     var.project_owners.sso_users,
     var.project_contributors.sso_users,
   ))
+
+  # Union of every SSO group across the three principal sets. Each unique group
+  # needs an awscc_datazone_group_profile created so it can be added as a
+  # project member.
+  all_sso_groups = toset(concat(
+    var.domain_admins.sso_groups,
+    var.project_owners.sso_groups,
+    var.project_contributors.sso_groups,
+  ))
+
+  # Union of every IAM user across the three principal sets. Each unique IAM user
+  # needs an aws_datazone_user_profile (user_type IAM_USER) created so it can be
+  # added as a project member.
+  all_iam_users = toset(concat(
+    var.domain_admins.iam_users,
+    var.project_owners.iam_users,
+    var.project_contributors.iam_users,
+  ))
 }
 
 # Register each SSO user as a domain user profile.
@@ -163,6 +181,22 @@ resource "aws_datazone_user_profile" "sso_users" {
   domain_identifier = module.domain.domain_id
   user_identifier   = each.key
   user_type         = "SSO_USER"
+}
+
+# Register each IAM user as a domain user profile so it can be added as a member.
+resource "aws_datazone_user_profile" "iam_users" {
+  for_each          = local.all_iam_users
+  domain_identifier = module.domain.domain_id
+  user_identifier   = each.key
+  user_type         = "IAM_USER"
+}
+
+# Register each SSO group as a domain group profile so it can be added as a member.
+resource "awscc_datazone_group_profile" "sso_groups" {
+  for_each          = local.all_sso_groups
+  domain_identifier = module.domain.domain_id
+  group_identifier  = each.key
+  status            = "ASSIGNED"
 }
 
 # Validation: domain_admins memberships only make sense when the admin portal
@@ -193,6 +227,8 @@ module "admin_project_membership" {
   depends_on = [
     terraform_data.admin_project_membership_precondition,
     aws_datazone_user_profile.sso_users,
+    aws_datazone_user_profile.iam_users,
+    awscc_datazone_group_profile.sso_groups,
   ]
 }
 
@@ -368,7 +404,11 @@ module "project_owner_membership" {
   identifier   = each.value.identifier
   project_role = "PROJECT_OWNER"
 
-  depends_on = [aws_datazone_user_profile.sso_users]
+  depends_on = [
+    aws_datazone_user_profile.sso_users,
+    aws_datazone_user_profile.iam_users,
+    awscc_datazone_group_profile.sso_groups,
+  ]
 }
 
 module "project_contributor_membership" {
@@ -381,5 +421,9 @@ module "project_contributor_membership" {
   identifier   = each.value.identifier
   project_role = "PROJECT_CONTRIBUTOR"
 
-  depends_on = [aws_datazone_user_profile.sso_users]
+  depends_on = [
+    aws_datazone_user_profile.sso_users,
+    aws_datazone_user_profile.iam_users,
+    awscc_datazone_group_profile.sso_groups,
+  ]
 }

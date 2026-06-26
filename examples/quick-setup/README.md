@@ -27,6 +27,15 @@ This example aims to closely mirror the [AWS Console quick-setup experience](htt
 
 - Deploys a basic **project** using the first available project profile from the ones created above
 
+### Memberships
+
+Two principal sets, each accepting any combination of SSO users, SSO groups, IAM users, and IAM roles:
+
+- `project_owners` → added to the created project as `PROJECT_OWNER`
+- `project_contributors` → added to the created project as `PROJECT_CONTRIBUTOR`
+
+Each set is an object with `sso_users`, `sso_groups`, `iam_users`, and `iam_roles` lists. Profiles are registered automatically before members are added: SSO users as `aws_datazone_user_profile`, IAM users as `aws_datazone_user_profile` (`user_type = IAM_USER`), and SSO groups as `awscc_datazone_group_profile`. IAM roles are added directly without a profile.
+
 ## Prerequisites
 
 1. **AWS CLI** configured with appropriate permissions
@@ -56,6 +65,7 @@ This example is intended as a reference implementation. For production use cases
 | Blueprint | `../../modules/blueprint` | Enable a single environment blueprint on a domain |
 | Project Profile | `../../modules/project-profile` | Compose blueprints into a deployable project profile |
 | Project | `../../modules/project` | Create a project from a project profile |
+| Membership | `../../modules/project/membership` | Add a single principal (SSO user/group, IAM user, or IAM role) to a project |
 
 For example, if you only need SQL Analytics you can invoke the domain module, enable just the relevant blueprints, and create a single project profile — no need to deploy the full quick-setup.
 
@@ -107,14 +117,17 @@ Then re-run `terraform apply` to recreate the grants cleanly.
 | <a name="module_domain"></a> [domain](#module\_domain) | ../.. | n/a |
 | <a name="module_generative_ai_project_profile"></a> [generative\_ai\_project\_profile](#module\_generative\_ai\_project\_profile) | ../../modules/project-profile | n/a |
 | <a name="module_project"></a> [project](#module\_project) | ../../modules/project | n/a |
+| <a name="module_project_contributor_membership"></a> [project\_contributor\_membership](#module\_project\_contributor\_membership) | ../../modules/project/membership | n/a |
+| <a name="module_project_owner_membership"></a> [project\_owner\_membership](#module\_project\_owner\_membership) | ../../modules/project/membership | n/a |
 | <a name="module_sql_analytics_project_profile"></a> [sql\_analytics\_project\_profile](#module\_sql\_analytics\_project\_profile) | ../../modules/project-profile | n/a |
 
 ## Resources
 
 | Name | Type |
 |------|------|
+| [aws_datazone_user_profile.iam_users](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/datazone_user_profile) | resource |
 | [aws_datazone_user_profile.sso_users](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/datazone_user_profile) | resource |
-| [awscc_datazone_project_membership.project_membership](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_membership) | resource |
+| [awscc_datazone_group_profile.sso_groups](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_group_profile) | resource |
 | [random_id.project_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
@@ -136,10 +149,11 @@ Then re-run `terraform apply` to recreate the grants cleanly.
 | <a name="input_model_consumption_role_arn"></a> [model\_consumption\_role\_arn](#input\_model\_consumption\_role\_arn) | ARN of existing AmazonDataZoneBedrockFMConsumptionRole. If null, auto-created by the domain module. | `string` | `null` | no |
 | <a name="input_model_management_role_arn"></a> [model\_management\_role\_arn](#input\_model\_management\_role\_arn) | ARN of existing AmazonDataZoneBedrockModelManagementRole. If null, auto-created by the domain module. | `string` | `null` | no |
 | <a name="input_owner"></a> [owner](#input\_owner) | Owner of the domain (for tagging purposes) | `string` | `"terraform-quick-setup"` | no |
+| <a name="input_project_contributors"></a> [project\_contributors](#input\_project\_contributors) | Principals to add to the created project as PROJECT\_CONTRIBUTOR. | <pre>object({<br/>    sso_users  = optional(list(string), [])<br/>    sso_groups = optional(list(string), [])<br/>    iam_users  = optional(list(string), [])<br/>    iam_roles  = optional(list(string), [])<br/>  })</pre> | `{}` | no |
 | <a name="input_project_description"></a> [project\_description](#input\_project\_description) | Description of the project | `string` | `"Quick-setup project created with Terraform for SageMaker Unified Studio"` | no |
 | <a name="input_project_name"></a> [project\_name](#input\_project\_name) | Name of the project to create | `string` | `"terraform-quick-setup-project"` | no |
+| <a name="input_project_owners"></a> [project\_owners](#input\_project\_owners) | Principals to add to the created project as PROJECT\_OWNER. | <pre>object({<br/>    sso_users  = optional(list(string), [])<br/>    sso_groups = optional(list(string), [])<br/>    iam_users  = optional(list(string), [])<br/>    iam_roles  = optional(list(string), [])<br/>  })</pre> | `{}` | no |
 | <a name="input_s3_bucket_name"></a> [s3\_bucket\_name](#input\_s3\_bucket\_name) | Existing S3 bucket name for Tooling blueprint storage. If null, a dedicated bucket is created by the domain module. | `string` | `null` | no |
-| <a name="input_sso_users"></a> [sso\_users](#input\_sso\_users) | A list of SSO user identifiers to add as members to the created domain and project | `list(string)` | `[]` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | Subnet IDs for blueprint regional parameters. If null, subnets from the default VPC are used. | `list(string)` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Additional tags to apply to all resources | `map(string)` | `{}` | no |
 | <a name="input_user_role_policy_arns"></a> [user\_role\_policy\_arns](#input\_user\_role\_policy\_arns) | List of IAM policy ARNs to apply as user role policies on the Tooling blueprint | `list(string)` | `null` | no |
