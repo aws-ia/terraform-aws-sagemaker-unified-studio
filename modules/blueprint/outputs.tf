@@ -22,7 +22,6 @@ output "entity_id" {
   # with "AWS Data Source Not Found".
   depends_on = [
     aws_datazone_environment_blueprint_configuration.this,
-    awscc_datazone_environment_blueprint_configuration.this,
   ]
 }
 

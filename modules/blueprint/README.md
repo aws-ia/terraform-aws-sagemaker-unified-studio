@@ -62,8 +62,8 @@ module "blueprints" {
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.76.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.51.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.89.0 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 | <a name="provider_time"></a> [time](#provider\_time) | n/a |
 
