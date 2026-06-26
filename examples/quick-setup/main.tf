@@ -73,156 +73,299 @@ locals {
 
   # Build the map of blueprints to enable based on toggle variables
   blueprint_configs = merge(
+    # Bedrock and QuickSight blueprints do not take VPC/subnet regional parameters.
     (var.enable_generative_ai || var.enable_all_capabilities) ? {
       amazon_bedrock_chat_agent = {
-        blueprint_name = "AmazonBedrockChatAgent"
+        blueprint_name            = "AmazonBedrockChatAgent"
+        needs_regional_parameters = false
       }
       amazon_bedrock_evaluation = {
-        blueprint_name = "AmazonBedrockEvaluation"
+        blueprint_name            = "AmazonBedrockEvaluation"
+        needs_regional_parameters = false
       }
       amazon_bedrock_flow = {
-        blueprint_name = "AmazonBedrockFlow"
+        blueprint_name            = "AmazonBedrockFlow"
+        needs_regional_parameters = false
       }
       amazon_bedrock_function = {
-        blueprint_name = "AmazonBedrockFunction"
+        blueprint_name            = "AmazonBedrockFunction"
+        needs_regional_parameters = false
       }
       amazon_bedrock_guardrail = {
-        blueprint_name = "AmazonBedrockGuardrail"
+        blueprint_name            = "AmazonBedrockGuardrail"
+        needs_regional_parameters = false
       }
       amazon_bedrock_knowledge_base = {
-        blueprint_name = "AmazonBedrockKnowledgeBase"
+        blueprint_name            = "AmazonBedrockKnowledgeBase"
+        needs_regional_parameters = false
       }
       amazon_bedrock_prompt = {
-        blueprint_name = "AmazonBedrockPrompt"
+        blueprint_name            = "AmazonBedrockPrompt"
+        needs_regional_parameters = false
       }
     } : {},
     (var.enable_sql_analytics || var.enable_all_capabilities) ? {
       lakehouse_database = {
-        blueprint_name = "DataLake"
+        blueprint_name            = "DataLake"
+        needs_regional_parameters = true
       }
       lakehouse_catalog = {
-        blueprint_name = "LakehouseCatalog"
+        blueprint_name            = "LakehouseCatalog"
+        needs_regional_parameters = true
       }
       redshift_serverless = {
-        blueprint_name = "RedshiftServerless"
+        blueprint_name            = "RedshiftServerless"
+        needs_regional_parameters = true
+      }
+      quicksight = {
+        blueprint_name            = "QuickSight"
+        needs_regional_parameters = false
       }
     } : {},
     (var.enable_all_capabilities) ? {
       emr_serverless = {
-        blueprint_name = "EmrServerless"
+        blueprint_name            = "EmrServerless"
+        needs_regional_parameters = true
       }
       emr_on_ec2 = {
-        blueprint_name = "EmrOnEc2"
+        blueprint_name            = "EmrOnEc2"
+        needs_regional_parameters = true
       }
       ml_experiments = {
-        blueprint_name = "MLExperiments"
+        blueprint_name            = "MLExperiments"
+        needs_regional_parameters = true
       }
       workflows = {
-        blueprint_name = "Workflows"
+        blueprint_name            = "Workflows"
+        needs_regional_parameters = true
       }
     } : {},
   )
 
+  # SQL analytics profile
   sql_analytics_blueprint_config = {
-    "DataLake" = {
+    "Lakehouse Database" = {
+      blueprint       = "DataLake"
+      description     = "Creates databases in SageMaker Lakehouse for S3 tables and Athena"
       deployment_mode = "ON_CREATE"
       parameter_overrides = {
-        "glueDbName" = {
-          value       = "glue_db"
-          is_editable = true
-        }
+        "glueDbName" = { value = "glue_db", is_editable = true }
       }
     }
-    "LakehouseCatalog" = {
+    "Redshift Serverless" = {
+      blueprint       = "RedshiftServerless"
+      description     = "Creates an Amazon Redshift Serverless workgroup"
+      deployment_mode = "ON_CREATE"
+      parameter_overrides = {
+        "redshiftDbName"      = { value = "dev", is_editable = true }
+        "connectToRMSCatalog" = { value = "true", is_editable = false }
+        "redshiftMaxCapacity" = { value = "512", is_editable = false }
+      }
+    }
+    "OnDemand Redshift Serverless" = {
+      blueprint       = "RedshiftServerless"
+      description     = "Additional Redshift Serverless workgroup"
       deployment_mode = "ON_DEMAND"
       parameter_overrides = {
-        "catalogDescription" = {
-          value       = "RMS catalog"
-          is_editable = true
-        }
-        "catalogName" = {
-          value       = ""
-          is_editable = true
-        }
+        "redshiftDbName"        = { value = "dev", is_editable = true }
+        "redshiftMaxCapacity"   = { value = "512", is_editable = true }
+        "redshiftWorkgroupName" = { value = "redshift-serverless-workgroup", is_editable = true }
+        "redshiftBaseCapacity"  = { value = "128", is_editable = true }
+        "connectionName"        = { value = "redshift.serverless", is_editable = true }
+        "connectToRMSCatalog"   = { value = "false", is_editable = false }
+      }
+    }
+    "OnDemand Catalog for RMS" = {
+      blueprint       = "LakehouseCatalog"
+      description     = "Catalog for Redshift Managed Storage"
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "catalogName"        = { value = "", is_editable = true }
+        "catalogDescription" = { value = "RMS catalog", is_editable = true }
+      }
+    }
+    "OnDemand QuickSight" = {
+      blueprint       = "QuickSight"
+      description     = "Amazon QuickSight for data visualization"
+      deployment_mode = "ON_DEMAND"
+    }
+  }
+
+  # Generative AI profile
+  generative_ai_blueprint_config = {
+    "Amazon Bedrock Chat Agent" = {
+      blueprint       = "AmazonBedrockChatAgent"
+      description     = "A configurable generative AI app with a conversational interface"
+      deployment_mode = "ON_DEMAND"
+    }
+    " Amazon Bedrock Knowledge Base" = {
+      blueprint       = "AmazonBedrockKnowledgeBase"
+      description     = "A reusable component for providing your own data to apps"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Guardrail" = {
+      blueprint       = "AmazonBedrockGuardrail"
+      description     = "A reusable component for implementing safeguards on model outputs"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Function" = {
+      blueprint       = "AmazonBedrockFunction"
+      description     = "A reusable component for including dynamic information in model outputs"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Flow" = {
+      blueprint       = "AmazonBedrockFlow"
+      description     = "A configurable generative AI workflow"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Prompt" = {
+      blueprint       = "AmazonBedrockPrompt"
+      description     = "A reusable set of inputs that guide model outputs"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Evaluation" = {
+      blueprint       = "AmazonBedrockEvaluation"
+      description     = "Enables evaluation features to compare Bedrock models"
+      deployment_mode = "ON_DEMAND"
+    }
+  }
+
+  # All capabilities profile
+  all_capabilities_blueprint_config = {
+    "Lakehouse Database" = {
+      blueprint       = "DataLake"
+      description     = "Creates databases in Amazon SageMaker Lakehouse for storing tables in S3 and Amazon Athena resources for your SQL workloads"
+      deployment_mode = "ON_CREATE"
+      parameter_overrides = {
+        "glueDbName" = { value = "glue_db", is_editable = true }
       }
     }
     "RedshiftServerless" = {
-      deployment_mode = "ON_DEMAND"
+      blueprint       = "RedshiftServerless"
+      description     = "Creates an Amazon Redshift Serverless workgroup for your SQL workloads"
+      deployment_mode = "ON_CREATE"
       parameter_overrides = {
-        "connectionName" = {
-          value       = "redshift.serverless"
-          is_editable = true
-        }
-        "connectToRMSCatalog" = {
-          value       = "false"
-          is_editable = false
-        }
-        "redshiftBaseCapacity" = {
-          value       = "128"
-          is_editable = true
-        }
-        "redshiftDbName" = {
-          value       = "dev"
-          is_editable = true
-        }
-        "redshiftMaxCapacity" = {
-          value       = "512"
-          is_editable = true
-        }
-        "redshiftWorkgroupName" = {
-          value       = "redshift-serverless-workgroup"
-          is_editable = true
-        }
+        "redshiftDbName"      = { value = "dev", is_editable = true }
+        "connectToRMSCatalog" = { value = "true", is_editable = false }
+        "redshiftMaxCapacity" = { value = "512", is_editable = false }
       }
     }
+    "OnDemand Workflows" = {
+      blueprint       = "Workflows"
+      description     = "Enables you to create Airflow workflows to be executed on MWAA environments"
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "environmentClass" = { value = "mw1.micro", is_editable = false }
+      }
+    }
+    "OnDemand MLExperiments" = {
+      blueprint       = "MLExperiments"
+      description     = "Enables you to create Amazon Sagemaker mlflow in the project"
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "mlflowTrackingServerSize" = { value = "Small", is_editable = true }
+        "mlflowTrackingServerName" = { value = "tracking-server", is_editable = true }
+      }
+    }
+    "OnDemand EMR on EC2 Memory-Optimized" = {
+      blueprint       = "EmrOnEc2"
+      description     = "Enables you to create an additional memory optimized Amazon EMR on Amazon EC2"
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "emrRelease"            = { value = "emr-7.5.0", is_editable = true }
+        "connectionDescription" = { value = "Spark connection for EMR EC2 cluster", is_editable = true }
+        "clusterName"           = { value = "emr-ec2-cluster", is_editable = true }
+        "primaryInstanceType"   = { value = "r6g.xlarge", is_editable = true }
+        "coreInstanceType"      = { value = "r6g.xlarge", is_editable = true }
+        "taskInstanceType"      = { value = "r6g.xlarge", is_editable = true }
+      }
+    }
+    "OnDemand EMR on EC2 General-Purpose" = {
+      blueprint       = "EmrOnEc2"
+      description     = "Enables you to create an additional general purpose Amazon EMR on Amazon EC2"
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "emrRelease"            = { value = "emr-7.5.0", is_editable = true }
+        "connectionDescription" = { value = "Spark connection for EMR EC2 cluster", is_editable = true }
+        "clusterName"           = { value = "emr-ec2-cluster", is_editable = true }
+        "primaryInstanceType"   = { value = "m6g.xlarge", is_editable = true }
+        "coreInstanceType"      = { value = "m6g.xlarge", is_editable = true }
+        "taskInstanceType"      = { value = "m6g.xlarge", is_editable = true }
+      }
+    }
+    "OnDemand RedshiftServerless" = {
+      blueprint       = "RedshiftServerless"
+      description     = "Enables you to create an additional Amazon Redshift Serverless workgroup for your SQL workloads"
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "redshiftDbName"        = { value = "dev", is_editable = true }
+        "redshiftMaxCapacity"   = { value = "512", is_editable = true }
+        "redshiftWorkgroupName" = { value = "redshift-serverless-workgroup", is_editable = true }
+        "redshiftBaseCapacity"  = { value = "128", is_editable = true }
+        "connectionName"        = { value = "redshift.serverless", is_editable = true }
+        "connectToRMSCatalog"   = { value = "false", is_editable = false }
+      }
+    }
+    "OnDemand Catalog for Redshift Managed Storage" = {
+      blueprint       = "LakehouseCatalog"
+      description     = "Enables you to create additional catalogs in Amazon SageMaker Lakehouse for storing data in Redshift Managed Storage"
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "catalogName"        = { value = "", is_editable = true }
+        "catalogDescription" = { value = "RMS catalog", is_editable = true }
+      }
+    }
+    "OnDemand EMRServerless" = {
+      blueprint       = "EmrServerless"
+      description     = "Enables you to create an additional Amazon EMR Serverless application for running Spark workloads"
+      deployment_mode = "ON_DEMAND"
+      parameter_overrides = {
+        "connectionDescription" = { value = "", is_editable = true }
+        "connectionName"        = { value = "", is_editable = true }
+        "releaseLabel"          = { value = "emr-7.5.0", is_editable = true }
+      }
+    }
+    "Amazon Bedrock Chat Agent" = {
+      blueprint       = "AmazonBedrockChatAgent"
+      description     = "A configurable generative AI app with a conversational interface"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Knowledge Base" = {
+      blueprint       = "AmazonBedrockKnowledgeBase"
+      description     = "A reusable component for providing your own data to apps"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Guardrail" = {
+      blueprint       = "AmazonBedrockGuardrail"
+      description     = "A reusable component for implementing safeguards on model outputs"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Function" = {
+      blueprint       = "AmazonBedrockFunction"
+      description     = "A reusable component for including dynamic information in model outputs"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Flow" = {
+      blueprint       = "AmazonBedrockFlow"
+      description     = "A configurable generative AI workflow"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Prompt" = {
+      blueprint       = "AmazonBedrockPrompt"
+      description     = "A reusable set of inputs that guide model outputs"
+      deployment_mode = "ON_DEMAND"
+    }
+    "Amazon Bedrock Evaluation" = {
+      blueprint       = "AmazonBedrockEvaluation"
+      description     = "Enables evaluation features to compare Bedrock models"
+      deployment_mode = "ON_DEMAND"
+    }
+    "QuickSight" = {
+      blueprint       = "QuickSight"
+      description     = "Amazon QuickSight for data visualization and business intelligence"
+      deployment_mode = "ON_DEMAND"
+    }
   }
-
-  # Example: composing a profile from explicit blueprint IDs instead of names.
-  #
-  # By default the map key is the blueprint NAME and the ID is resolved by the
-  # project-profile module via a data lookup. If you already know the blueprint ID
-  # (for example a custom blueprint, or one output by the blueprint module), set the
-  # optional `blueprint` parameter to that ID. The key is then used only as the
-  # environment configuration name and is no longer looked up by name.
-  #
-  # explicit_id_blueprint_config = {
-  #   sql_tooling = {
-  #     blueprint = "4lp8sfafm3rk6c" # explicit blueprint ID; key is just the config name
-  #   }
-  #   custom_redshift = {
-  #     blueprint       = "9mq2tcbxn7yz1a"
-  #     deployment_mode = "ON_DEMAND"
-  #     parameter_overrides = {
-  #       redshiftBaseCapacity = { value = "128", is_editable = true }
-  #     }
-  #   }
-  # }
-
-  generative_ai_blueprint_config = {
-    "AmazonBedrockEvaluation" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockPrompt" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockFlow" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockFunction" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockGuardrail" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockKnowledgeBase" = {
-      deployment_mode = "ON_DEMAND"
-    }
-    "AmazonBedrockChatAgent" = {
-      deployment_mode = "ON_DEMAND"
-    }
-  }
-
-  all_capabilities_blueprint_config = merge(local.sql_analytics_blueprint_config, local.generative_ai_blueprint_config)
   # Build the regional parameters for each blueprint (same VPC/subnets/S3 for all)
   regional_parameters = {
     (local.region) = {
@@ -273,7 +416,9 @@ module "blueprints" {
   domain_id      = module.domain.domain_id
   blueprint_name = each.value.blueprint_name
 
-  regional_parameters = local.regional_parameters
+  # Only blueprints that provision compute/storage take VPC/subnet/S3 parameters.
+  # QuickSight and Bedrock blueprints are enabled without regional parameters.
+  regional_parameters = each.value.needs_regional_parameters ? local.regional_parameters : {}
 
   # Reuse roles created by the domain module
   manage_access_role_arn = module.domain.manage_access_role_arn
