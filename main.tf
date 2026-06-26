@@ -229,6 +229,21 @@ resource "aws_datazone_domain" "main" {
     DomainVersion = "V2"
     Purpose       = "SageMaker-Unified-Studio"
   })
+
+  # Tie the domain execution/service roles (and their policy attachments) to the
+  # domain lifecycle. The domain already references the role ARNs implicitly, but
+  # the policy attachments do not — without this, Terraform could remove the
+  # attachments before destroying the domain. Declaring the dependency here forces:
+  #   - create: roles + policy attachments are fully provisioned BEFORE the domain
+  #   - destroy: the domain is deleted BEFORE its roles/attachments are removed
+  # No dependency cycle is created because the roles/attachments never reference
+  # the domain.
+  depends_on = [
+    aws_iam_role.domain_execution,
+    aws_iam_role.domain_service,
+    aws_iam_role_policy_attachment.domain_execution_policy,
+    aws_iam_role_policy_attachment.domain_service_policy,
+  ]
 }
 
 # Data source needed to get root domain unit
@@ -252,6 +267,10 @@ locals {
 resource "aws_s3_bucket" "domain" {
   count  = var.s3_bucket_name == null ? 1 : 0
   bucket = lower("sagemaker-studio-${local.account_id}-${local.region}-${random_string.suffix.result}")
+
+  # Allow Terraform to delete the bucket on destroy even when it still contains
+  # objects (and object versions). Without this, destroy fails with BucketNotEmpty.
+  force_destroy = true
 
   #checkov:skip=CKV2_AWS_61:Lifecycle configuration not required for tooling storage
   #checkov:skip=CKV2_AWS_62:Event notifications not required for tooling storage

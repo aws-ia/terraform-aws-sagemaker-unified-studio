@@ -1,5 +1,5 @@
 <!-- BEGIN_TF_DOCS -->
-# SageMaker Unified Studio Domain Module
+# IaC Module for Amazon Sagemaker Unified Studio
 
 This is the root module for deploying an Amazon SageMaker Unified Studio domain using Terraform. It handles the core infrastructure that every deployment needs.
 
