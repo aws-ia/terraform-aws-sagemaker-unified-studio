@@ -1,5 +1,5 @@
 <!-- BEGIN_TF_DOCS -->
-# SageMaker Unified Studio Domain Module
+# IaC Module for Amazon Sagemaker Unified Studio
 
 This is the root module for deploying an Amazon SageMaker Unified Studio domain using Terraform. It handles the core infrastructure that every deployment needs.
 
@@ -22,10 +22,8 @@ This module is designed to work alongside several sub-modules that handle specif
 | Blueprint | `modules/blueprint` | Enable an environment blueprint on a domain |
 | Project Profile | `modules/project-profile` | Compose blueprints into a deployable project profile |
 | Project | `modules/project` | Create a project from a project profile |
-| Policy Grant | `modules/policy-grant` | Manage DataZone policy grants |
+| Policy Grant | `modules/policy-grant/create_project` | Grant the `CREATE_PROJECT` policy on a domain |
 | Metadata Form | `modules/metadata_form` | Create metadata forms |
-| Organization | `modules/organization` | Manage domain organizational units |
-| Resource Sharing | `modules/resource-sharing` | Configure cross-account resource sharing |
 
 ## Quick Start
 
@@ -76,8 +74,8 @@ If you skip the first step, the destroy will fail on the S3 bucket resource. Sim
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.46.0 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.85.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.89.0 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.8.1 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.13.1 |
 
@@ -85,8 +83,8 @@ If you skip the first step, the destroy will fail on the S3 bucket resource. Sim
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.46.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.85.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.37.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.76.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1 |
 
 ## Modules
@@ -111,10 +109,9 @@ If you skip the first step, the destroy will fail on the S3 bucket resource. Sim
 | [aws_s3_bucket_logging.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_logging) | resource |
 | [aws_s3_bucket_public_access_block.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) | resource |
 | [aws_s3_bucket_server_side_encryption_configuration.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) | resource |
-| [aws_s3_bucket_versioning.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_versioning) | resource |
 | [awscc_datazone_project.model_governance_project](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project) | resource |
 | [awscc_datazone_project_profile.model_governance_project_profile](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_profile) | resource |
-| [random_string.role_name_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
+| [random_string.suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_datazone_domain.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/datazone_domain) | data source |
 | [aws_iam_roles.domain_execution_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_roles) | data source |

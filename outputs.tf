@@ -4,6 +4,11 @@
 output "domain_id" {
   description = "ID of the SageMaker Unified Studio domain"
   value       = aws_datazone_domain.main.id
+
+  # Bind this output to the Tooling blueprint. Any consumer of domain_id
+  # (e.g. project profile modules) transitively depends on the Tooling blueprint,
+  # so on destroy those consumers are torn down BEFORE Tooling is disabled.
+  depends_on = [module.tooling_blueprint]
 }
 
 output "domain_arn" {
@@ -24,6 +29,10 @@ output "domain_url" {
 output "domain_root_unit_id" {
   description = "Actual root domain unit ID (not domain ID)"
   value       = data.aws_datazone_domain.main.root_domain_unit_id
+
+  # Bind this output to the Tooling blueprint so consumers that build on the root
+  # domain unit (e.g. project profiles) are destroyed BEFORE Tooling is disabled.
+  depends_on = [module.tooling_blueprint]
 }
 
 output "account_id" {

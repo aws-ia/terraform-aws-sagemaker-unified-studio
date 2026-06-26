@@ -118,12 +118,6 @@ variable "aws_region" {
   }
 }
 
-variable "enable_profile_cleanup" {
-  description = "Enable project profile cleanup during destroy"
-  type        = bool
-  default     = false
-}
-
 variable "tags" {
   description = "Tags to apply to the project"
   type        = map(string)
