@@ -15,11 +15,11 @@ data "aws_datazone_domain" "main" {
 }
 
 # Resolve blueprint IDs from names.
-# Only entries WITHOUT an explicit blueprint ID need a name-based lookup. When the
-# `blueprint` parameter is supplied on an entry, its value is used directly as the
-# blueprint ID and the map key is treated purely as the configuration name.
+# By default the map key is the blueprint name to look up. When the `blueprint`
+# parameter is supplied on an entry, its value is used as the blueprint name for the
+# lookup instead and the map key is treated purely as the configuration name.
 data "aws_datazone_environment_blueprint" "this" {
-  for_each  = local.names_to_lookup
+  for_each  = local.blueprint_names_to_lookup
   domain_id = var.domain_id
   name      = each.key
   managed   = true
@@ -42,75 +42,94 @@ locals {
   account_id = data.aws_caller_identity.current.account_id
   region     = data.aws_region.current.id
 
-  # Tooling entry as configured in var.blueprints (may be absent).
-  tooling_entry = try(var.blueprints["Tooling"], null)
+  # The blueprint NAME to look up for each entry. Defaults to the map key; when the
+  # optional `blueprint` parameter is set it is used as the lookup name instead and
+  # the map key is treated purely as the environment configuration name.
+  lookup_names = {
+    for name, bp in var.blueprints : name => (bp.blueprint != null && bp.blueprint != "") ? bp.blueprint : name
+  }
 
-  # Whether the Tooling entry supplies an explicit blueprint ID.
-  tooling_has_id = local.tooling_entry != null && try(local.tooling_entry.blueprint, null) != null && try(local.tooling_entry.blueprint, "") != ""
+  # Blueprint name used to resolve the Tooling configuration. Tooling may be absent
+  # from var.blueprints, in which case it defaults to the "Tooling" blueprint.
+  tooling_lookup_name = try(local.lookup_names["Tooling"], "Tooling")
 
-  # Configuration names (map keys) that still require a name-based blueprint lookup,
-  # i.e. those that did NOT provide an explicit blueprint ID. Tooling is always
-  # needed (and looked up by name) unless it provides its own blueprint ID.
-  names_to_lookup = toset(concat(
-    local.tooling_has_id ? [] : ["Tooling"],
-    [for name, bp in var.blueprints : name if name != "Tooling" && (bp.blueprint == null || bp.blueprint == "")]
-  ))
+  # Unique set of blueprint names that require a data lookup (always include Tooling).
+  blueprint_names_to_lookup = toset(concat([local.tooling_lookup_name], values(local.lookup_names)))
 
-  # Resolved blueprint ID per configuration name (key). Uses the explicit `blueprint`
-  # ID when provided, otherwise the ID resolved from the name lookup.
+  # Resolved blueprint ID per configuration name (map key), via the name lookup.
   blueprint_ids = merge(
     {
-      "Tooling" = local.tooling_has_id ? local.tooling_entry.blueprint : data.aws_datazone_environment_blueprint.this["Tooling"].id
+      "Tooling" = data.aws_datazone_environment_blueprint.this[local.tooling_lookup_name].id
     },
     {
-      for name, bp in var.blueprints : name => (bp.blueprint != null && bp.blueprint != "") ? bp.blueprint : data.aws_datazone_environment_blueprint.this[name].id
+      for name, lk in local.lookup_names : name => data.aws_datazone_environment_blueprint.this[lk].id
       if name != "Tooling"
     }
   )
 
-  # Separate Tooling from other blueprints
-  non_tooling_names = sort([for name in keys(var.blueprints) : name if name != "Tooling"])
+  # Non-tooling blueprints, ordered to match how Amazon DataZone stores and returns
+  # environment configurations: ON_CREATE (deployment_order 1) before ON_DEMAND, each
+  # group sorted alphabetically for stability.
+  #
+  # This ordering is important: the awscc provider correlates the API's computed values
+  # (resolved parameter overrides, generated ids) back to the configured list entries
+  # BY POSITION. DataZone groups configurations by deployment order, so if we sent them
+  # in a different order (e.g. pure alphabetical) the provider would attribute one
+  # configuration's parameter overrides to the wrong configuration — which previously
+  # caused Redshift overrides to land on the QuickSight configuration and fail with
+  # "parameter(s) are not present in the blueprint".
+  non_tooling_on_create = sort([for name in keys(var.blueprints) : name if name != "Tooling" && var.blueprints[name].deployment_mode == "ON_CREATE"])
+  non_tooling_on_demand = sort([for name in keys(var.blueprints) : name if name != "Tooling" && var.blueprints[name].deployment_mode == "ON_DEMAND"])
+  non_tooling_names     = concat(local.non_tooling_on_create, local.non_tooling_on_demand)
 
-  # Build environment_configurations: Tooling first (order 1), rest alphabetical (order 2+)
+  # Build environment_configurations: Tooling is always deployment_order 0, other
+  # ON_CREATE blueprints are deployment_order 1, and ON_DEMAND blueprints have no
+  # deployment order (omitted).
   environment_configurations = concat(
-    # Tooling — always first
+    # Tooling — always first, deployment_order 0
     [{
       name                     = "Tooling"
       environment_blueprint_id = local.blueprint_ids["Tooling"]
       // description and deployment mode always set by default
       description      = "Configuration for the Tooling"
       deployment_mode  = "ON_CREATE"
-      deployment_order = 1
+      deployment_order = 0
       aws_account = {
         aws_account_id = local.account_id
       }
       aws_region = {
         region_name = local.region
       }
-      configuration_parameters = contains(keys(var.blueprints), "Tooling") && length(var.blueprints["Tooling"].parameter_overrides) > 0 ? {
-        parameter_overrides = [
+      configuration_parameters = {
+        # Always emit an explicit (possibly empty) list. parameter_overrides is
+        # optional+computed; leaving it null makes Terraform retain stale computed
+        # values from prior state, which causes one configuration's overrides to be
+        # re-sent on the wrong configuration (e.g. glueDbName landing on a Bedrock
+        # blueprint). An explicit list keeps each configuration's overrides correct.
+        parameter_overrides = contains(keys(var.blueprints), "Tooling") ? [
           for k, v in var.blueprints["Tooling"].parameter_overrides : {
             name        = k
             value       = v.value
             is_editable = v.is_editable
           }
-        ]
-      } : null
+        ] : []
+      }
     }],
-    # Other blueprints — alphabetical order starting at 2
-    [for idx, name in local.non_tooling_names : {
+    # Other blueprints — ON_CREATE gets deployment_order 1, ON_DEMAND has none
+    [for name in local.non_tooling_names : {
       name                     = name
       environment_blueprint_id = local.blueprint_ids[name]
       description              = var.blueprints[name].description
       deployment_mode          = var.blueprints[name].deployment_mode
-      deployment_order         = idx + 2
+      deployment_order         = var.blueprints[name].deployment_mode == "ON_CREATE" ? 1 : null
       aws_account = {
         aws_account_id = local.account_id
       }
       aws_region = {
         region_name = var.blueprints[name].region != null ? var.blueprints[name].region : local.region
       }
-      configuration_parameters = length(var.blueprints[name].parameter_overrides) > 0 ? {
+      configuration_parameters = {
+        # Always explicit (see Tooling note above) — empty list when no overrides.
         parameter_overrides = [
           for k, v in var.blueprints[name].parameter_overrides : {
             name        = k
@@ -118,7 +137,7 @@ locals {
             is_editable = v.is_editable
           }
         ]
-      } : null
+      }
     }]
   )
   effective_domain_unit_id = var.domain_unit_id != null ? var.domain_unit_id : data.aws_datazone_domain.main.root_domain_unit_id

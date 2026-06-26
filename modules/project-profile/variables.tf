@@ -53,8 +53,8 @@ variable "blueprints" {
 
     By default the `blueprint` parameter is blank and the map key is used as the
     blueprint name to look up the blueprint ID via data source. If the optional
-    `blueprint` parameter is set to a blueprint ID, that ID is used directly and the
-    map key is treated only as the environment configuration name instead.
+    `blueprint` parameter is set, it is used as the blueprint name for the lookup
+    instead and the map key is treated only as the environment configuration name.
 
     Tooling must always be included and automatically gets deployment_order = 1.
     Note: For EmrOnEks, you must provide eksClusterArn in parameter_overrides.
@@ -65,9 +65,10 @@ variable "blueprints" {
         Tooling            = {}
         DataLake           = { region = "us-west-2", parameter_overrides = { glueDbName = { value = "my_db" } } }
 
-        # Explicit blueprint ID — key "custom_redshift" becomes the configuration name
+        # Explicit blueprint name — key "custom_redshift" becomes the configuration name,
+        # while "RedshiftServerless" is the blueprint name resolved via data lookup
         custom_redshift = {
-          blueprint       = "4lp8sfafm3rk6c"
+          blueprint       = "RedshiftServerless"
           deployment_mode = "ON_DEMAND"
           region          = "eu-west-1"
           parameter_overrides = {
