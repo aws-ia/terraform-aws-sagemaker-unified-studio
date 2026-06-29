@@ -216,7 +216,7 @@ resource "terraform_data" "admin_project_membership_precondition" {
 # Admin project memberships (PROJECT_OWNER on the admin project).
 module "admin_project_membership" {
   for_each = var.create_domain_management_portal ? { for m in local.domain_admin_members : m.key => m } : {}
-  source   = "../../modules/project/membership"
+  source   = "../../modules/project-membership"
 
   domain_id    = module.domain.domain_id
   project_id   = module.admin_project[0].project_id
@@ -396,7 +396,7 @@ module "default_project" {
 
 module "project_owner_membership" {
   for_each = { for m in local.project_owner_members : m.key => m }
-  source   = "../../modules/project/membership"
+  source   = "../../modules/project-membership"
 
   domain_id    = module.domain.domain_id
   project_id   = module.default_project.project_id
@@ -413,7 +413,7 @@ module "project_owner_membership" {
 
 module "project_contributor_membership" {
   for_each = { for m in local.project_contributor_members : m.key => m }
-  source   = "../../modules/project/membership"
+  source   = "../../modules/project-membership"
 
   domain_id    = module.domain.domain_id
   project_id   = module.default_project.project_id

@@ -450,7 +450,7 @@ resource "awscc_datazone_group_profile" "sso_groups" {
 
 module "project_owner_membership" {
   for_each = local.project_enabled ? { for m in local.project_owner_members : m.key => m } : {}
-  source   = "../../modules/project/membership"
+  source   = "../../modules/project-membership"
 
   domain_id    = module.domain.domain_id
   project_id   = module.project[0].project_id
@@ -467,7 +467,7 @@ module "project_owner_membership" {
 
 module "project_contributor_membership" {
   for_each = local.project_enabled ? { for m in local.project_contributor_members : m.key => m } : {}
-  source   = "../../modules/project/membership"
+  source   = "../../modules/project-membership"
 
   domain_id    = module.domain.domain_id
   project_id   = module.project[0].project_id
