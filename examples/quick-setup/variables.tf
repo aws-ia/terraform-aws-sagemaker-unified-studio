@@ -184,10 +184,32 @@ variable "enable_sso" {
   default     = false
 }
 
-variable "sso_users" {
-  description = "A list of SSO user identifiers to add as members to the created domain and project"
-  type        = list(string)
-  default     = []
+# Principal grouping used by the membership wiring. Each variable accepts any
+# combination of SSO users, SSO groups, IAM users, and IAM roles. Empty lists
+# are fine.
+#
+# - project_owners       : added to the created project as PROJECT_OWNER
+# - project_contributors : added to the created project as PROJECT_CONTRIBUTOR
+variable "project_owners" {
+  description = "Principals to add to the created project as PROJECT_OWNER."
+  type = object({
+    sso_users  = optional(list(string), [])
+    sso_groups = optional(list(string), [])
+    iam_users  = optional(list(string), [])
+    iam_roles  = optional(list(string), [])
+  })
+  default = {}
+}
+
+variable "project_contributors" {
+  description = "Principals to add to the created project as PROJECT_CONTRIBUTOR."
+  type = object({
+    sso_users  = optional(list(string), [])
+    sso_groups = optional(list(string), [])
+    iam_users  = optional(list(string), [])
+    iam_roles  = optional(list(string), [])
+  })
+  default = {}
 }
 
 #####################################################################################
