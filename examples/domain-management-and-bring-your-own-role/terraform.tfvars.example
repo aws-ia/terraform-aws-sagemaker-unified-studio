@@ -27,6 +27,9 @@ enable_all_capabilities = false # All capabilities profile (combines SQL + GenAI
 # SSO Configuration
 enable_sso = true
 
+# Create the domain management portal
+create_domain_management_portal = true
+
 # Membership wiring. Each principal set accepts any combination of SSO users,
 # SSO groups, IAM users, and IAM roles. Empty maps are valid.
 domain_admins = {

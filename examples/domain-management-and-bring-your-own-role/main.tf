@@ -101,11 +101,11 @@ module "domain" {
 
 
 
-# Admin Project
+# Domain Management Portal
 
 module "admin_project" {
-  count      = var.create_admin_portal ? 1 : 0
-  source     = "../../modules/project/admin"
+  count      = var.create_domain_management_portal ? 1 : 0
+  source     = "../../modules/domain-management-portal"
   domain_id  = module.domain.domain_id
   depends_on = [module.domain]
 }
@@ -114,7 +114,7 @@ module "admin_project" {
 # 2. Membership wiring
 #
 # Three principal sets feed three target projects:
-#   - domain_admins        -> admin project (PROJECT_OWNER), only when create_admin_portal = true
+#   - domain_admins        -> admin project (PROJECT_OWNER), only when create_domain_management_portal = true
 #   - project_owners       -> default project (PROJECT_OWNER)
 #   - project_contributors -> default project (PROJECT_CONTRIBUTOR)
 #
@@ -207,15 +207,15 @@ resource "terraform_data" "admin_project_membership_precondition" {
 
   lifecycle {
     precondition {
-      condition     = var.create_admin_portal
-      error_message = "domain_admins may only be set when create_admin_portal = true. Either enable the admin portal, or move these principals into project_owners / project_contributors."
+      condition     = var.create_domain_management_portal
+      error_message = "domain_admins may only be set when create_domain_management_portal = true. Either enable the admin portal, or move these principals into project_owners / project_contributors."
     }
   }
 }
 
 # Admin project memberships (PROJECT_OWNER on the admin project).
 module "admin_project_membership" {
-  for_each = var.create_admin_portal ? { for m in local.domain_admin_members : m.key => m } : {}
+  for_each = var.create_domain_management_portal ? { for m in local.domain_admin_members : m.key => m } : {}
   source   = "../../modules/project/membership"
 
   domain_id    = module.domain.domain_id
@@ -247,7 +247,7 @@ module "admin_project_membership" {
 # provisioning role has to be elevated with admin permissions so it can create
 # the additional resources required to set up default projects.
 resource "aws_iam_role_policy_attachment" "provisioning_admin_policy_attachment" {
-  count      = var.create_admin_portal ? 0 : 1
+  count      = var.create_domain_management_portal ? 0 : 1
   role       = reverse(split("/", module.domain.provisioning_role_arn))[0]
   policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioAdminIAMDefaultExecutionPolicy"
 }
@@ -261,7 +261,7 @@ module "default_project_profile" {
   provisioning_role_arn = module.domain.provisioning_role_arn
   vpc_id                = var.vpc_id
   subnet_ids            = var.subnet_ids
-  using_admin_project   = var.create_admin_portal
+  using_admin_project   = var.create_domain_management_portal
   depends_on            = [module.admin_project, aws_iam_role_policy_attachment.provisioning_admin_policy_attachment]
 }
 
