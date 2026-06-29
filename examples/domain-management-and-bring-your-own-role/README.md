@@ -116,7 +116,7 @@ This example is a reference implementation. The individual sub-modules can be co
 | <a name="module_admin_project_membership"></a> [admin\_project\_membership](#module\_admin\_project\_membership) | ../../modules/project-membership | n/a |
 | <a name="module_create_project_from_project_profile_grant"></a> [create\_project\_from\_project\_profile\_grant](#module\_create\_project\_from\_project\_profile\_grant) | ../../modules/policy-grant/create_project | n/a |
 | <a name="module_default_project"></a> [default\_project](#module\_default\_project) | ../../modules/project | n/a |
-| <a name="module_default_project_profile"></a> [default\_project\_profile](#module\_default\_project\_profile) | ../../modules/project-profile/default | n/a |
+| <a name="module_default_project_profile"></a> [default\_project\_profile](#module\_default\_project\_profile) | ../../modules/default-project-profile | n/a |
 | <a name="module_domain"></a> [domain](#module\_domain) | ../.. | n/a |
 | <a name="module_project_contributor_membership"></a> [project\_contributor\_membership](#module\_project\_contributor\_membership) | ../../modules/project-membership | n/a |
 | <a name="module_project_owner_membership"></a> [project\_owner\_membership](#module\_project\_owner\_membership) | ../../modules/project-membership | n/a |

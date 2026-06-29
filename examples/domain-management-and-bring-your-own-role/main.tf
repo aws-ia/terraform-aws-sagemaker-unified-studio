@@ -255,7 +255,7 @@ resource "aws_iam_role_policy_attachment" "provisioning_admin_policy_attachment"
 // BYOR Project Profile
 
 module "default_project_profile" {
-  source = "../../modules/project-profile/default"
+  source = "../../modules/default-project-profile"
 
   domain_id             = module.domain.domain_id
   provisioning_role_arn = module.domain.provisioning_role_arn
