@@ -112,14 +112,14 @@ This example is a reference implementation. The individual sub-modules can be co
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_admin_project"></a> [admin\_project](#module\_admin\_project) | ../../modules/project/admin | n/a |
-| <a name="module_admin_project_membership"></a> [admin\_project\_membership](#module\_admin\_project\_membership) | ../../modules/project/membership | n/a |
+| <a name="module_admin_project"></a> [admin\_project](#module\_admin\_project) | ../../modules/domain-management-portal | n/a |
+| <a name="module_admin_project_membership"></a> [admin\_project\_membership](#module\_admin\_project\_membership) | ../../modules/project-membership | n/a |
 | <a name="module_create_project_from_project_profile_grant"></a> [create\_project\_from\_project\_profile\_grant](#module\_create\_project\_from\_project\_profile\_grant) | ../../modules/policy-grant/create_project | n/a |
 | <a name="module_default_project"></a> [default\_project](#module\_default\_project) | ../../modules/project | n/a |
 | <a name="module_default_project_profile"></a> [default\_project\_profile](#module\_default\_project\_profile) | ../../modules/project-profile/default | n/a |
 | <a name="module_domain"></a> [domain](#module\_domain) | ../.. | n/a |
-| <a name="module_project_contributor_membership"></a> [project\_contributor\_membership](#module\_project\_contributor\_membership) | ../../modules/project/membership | n/a |
-| <a name="module_project_owner_membership"></a> [project\_owner\_membership](#module\_project\_owner\_membership) | ../../modules/project/membership | n/a |
+| <a name="module_project_contributor_membership"></a> [project\_contributor\_membership](#module\_project\_contributor\_membership) | ../../modules/project-membership | n/a |
+| <a name="module_project_owner_membership"></a> [project\_owner\_membership](#module\_project\_owner\_membership) | ../../modules/project-membership | n/a |
 
 ## Resources
 
@@ -146,8 +146,8 @@ This example is a reference implementation. The individual sub-modules can be co
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_aws_region"></a> [aws\_region](#input\_aws\_region) | AWS region where the domain will be created | `string` | `"us-east-1"` | no |
-| <a name="input_create_admin_portal"></a> [create\_admin\_portal](#input\_create\_admin\_portal) | When set to true, the new project and domain management experience will be enabled an and Adminstrator project will be created and used for bring-your-own-role project provisioning. When set to false the admin portal will not be created and bring-your-role projects will be created by the provisioning role. | `bool` | `false` | no |
-| <a name="input_domain_admins"></a> [domain\_admins](#input\_domain\_admins) | Principals to add to the admin project as owners. Only used when create\_admin\_portal = true. | <pre>object({<br/>    sso_users  = optional(list(string), [])<br/>    sso_groups = optional(list(string), [])<br/>    iam_users  = optional(list(string), [])<br/>    iam_roles  = optional(list(string), [])<br/>  })</pre> | `{}` | no |
+| <a name="input_create_domain_management_portal"></a> [create\_domain\_management\_portal](#input\_create\_domain\_management\_portal) | When set to true, the new project and domain management experience will be enabled an and Adminstrator project will be created and used for bring-your-own-role project provisioning. When set to false the admin portal will not be created and bring-your-role projects will be created by the provisioning role. | `bool` | `false` | no |
+| <a name="input_domain_admins"></a> [domain\_admins](#input\_domain\_admins) | Principals to add to the admin project as owners. Only used when create\_domain\_management\_portal = true. | <pre>object({<br/>    sso_users  = optional(list(string), [])<br/>    sso_groups = optional(list(string), [])<br/>    iam_users  = optional(list(string), [])<br/>    iam_roles  = optional(list(string), [])<br/>  })</pre> | `{}` | no |
 | <a name="input_domain_description"></a> [domain\_description](#input\_domain\_description) | Description of the SageMaker Unified Studio domain | `string` | `"SageMaker Unified Studio domain with modular blueprint and profile setup"` | no |
 | <a name="input_domain_name"></a> [domain\_name](#input\_domain\_name) | Name of the SageMaker Unified Studio domain | `string` | `"terraform-quick-setup-domain"` | no |
 | <a name="input_enable_sso"></a> [enable\_sso](#input\_enable\_sso) | Enable single sign on (SSO) using the default IAM Identity Center instance for the region | `bool` | `false` | no |

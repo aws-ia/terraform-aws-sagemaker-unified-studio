@@ -146,7 +146,7 @@ variable "project_name" {
   }
 }
 
-variable "create_admin_portal" {
+variable "create_domain_management_portal" {
   description = "When set to true, the new project and domain management experience will be enabled an and Adminstrator project will be created and used for bring-your-own-role project provisioning. When set to false the admin portal will not be created and bring-your-role projects will be created by the provisioning role."
   type        = bool
   default     = false
@@ -183,11 +183,11 @@ variable "enable_sso" {
 # any combination of SSO users, SSO groups, IAM users, and IAM roles. Empty lists
 # are fine.
 #
-# - domain_admins        : added to the admin project (when create_admin_portal = true) as PROJECT_OWNER
+# - domain_admins        : added to the admin project (when create_domain_management_portal = true) as PROJECT_OWNER
 # - project_owners       : added to the default project as PROJECT_OWNER
 # - project_contributors : added to the default project as PROJECT_CONTRIBUTOR
 variable "domain_admins" {
-  description = "Principals to add to the admin project as owners. Only used when create_admin_portal = true."
+  description = "Principals to add to the admin project as owners. Only used when create_domain_management_portal = true."
   type = object({
     sso_users  = optional(list(string), [])
     sso_groups = optional(list(string), [])
