@@ -98,18 +98,20 @@ locals {
         region_name = local.region
       }
       configuration_parameters = {
-        # Always emit an explicit (possibly empty) list. parameter_overrides is
-        # optional+computed; leaving it null makes Terraform retain stale computed
-        # values from prior state, which causes one configuration's overrides to be
-        # re-sent on the wrong configuration (e.g. glueDbName landing on a Bedrock
-        # blueprint). An explicit list keeps each configuration's overrides correct.
-        parameter_overrides = contains(keys(var.blueprints), "Tooling") ? [
+        # parameter_overrides is optional+computed and DataZone normalizes an empty
+        # list to null on read. Sending an explicit [] therefore produces a perpetual
+        # in-place diff (config [] vs refreshed null) on every apply. So we emit the
+        # list ONLY when there are overrides, and null otherwise. Deterministic
+        # ordering (see non_tooling_names) keeps each configuration's overrides
+        # correlated to the right position, so this no longer risks re-sending one
+        # configuration's overrides on another.
+        parameter_overrides = length(try(var.blueprints["Tooling"].parameter_overrides, {})) > 0 ? [
           for k, v in var.blueprints["Tooling"].parameter_overrides : {
             name        = k
             value       = v.value
             is_editable = v.is_editable
           }
-        ] : []
+        ] : null
       }
     }],
     # Other blueprints — ON_CREATE gets deployment_order 1, ON_DEMAND has none
@@ -126,14 +128,15 @@ locals {
         region_name = var.blueprints[name].region != null ? var.blueprints[name].region : local.region
       }
       configuration_parameters = {
-        # Always explicit (see Tooling note above) — empty list when no overrides.
-        parameter_overrides = [
+        # Emit overrides only when present; null otherwise (see Tooling note above)
+        # to avoid the empty-list-vs-null perpetual diff.
+        parameter_overrides = length(var.blueprints[name].parameter_overrides) > 0 ? [
           for k, v in var.blueprints[name].parameter_overrides : {
             name        = k
             value       = v.value
             is_editable = v.is_editable
           }
-        ]
+        ] : null
       }
     }]
   )
