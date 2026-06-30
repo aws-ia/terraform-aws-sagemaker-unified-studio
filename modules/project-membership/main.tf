@@ -16,28 +16,39 @@
 #####################################################################################
 
 locals {
-  # Flatten each principal set into [{ key, member_type, identifier, designation }]
+  # Flatten each principal set into [{ member_type, identifier, designation }]
   # tuples so the membership resource can be driven by a single for_each.
+  # distinct() drops duplicate identifiers listed more than once within a set.
   owner_members = concat(
-    [for u in var.project_owners.sso_users : { member_type = "SSO_USER", identifier = u, designation = "PROJECT_OWNER" }],
-    [for g in var.project_owners.sso_groups : { member_type = "SSO_GROUP", identifier = g, designation = "PROJECT_OWNER" }],
-    [for a in var.project_owners.iam_users : { member_type = "IAM_USER", identifier = a, designation = "PROJECT_OWNER" }],
-    [for a in var.project_owners.iam_roles : { member_type = "IAM_ROLE", identifier = a, designation = "PROJECT_OWNER" }],
+    [for u in distinct(var.project_owners.sso_users) : { member_type = "SSO_USER", identifier = u, designation = "PROJECT_OWNER" }],
+    [for g in distinct(var.project_owners.sso_groups) : { member_type = "SSO_GROUP", identifier = g, designation = "PROJECT_OWNER" }],
+    [for a in distinct(var.project_owners.iam_users) : { member_type = "IAM_USER", identifier = a, designation = "PROJECT_OWNER" }],
+    [for a in distinct(var.project_owners.iam_roles) : { member_type = "IAM_ROLE", identifier = a, designation = "PROJECT_OWNER" }],
   )
 
   contributor_members = concat(
-    [for u in var.project_contributors.sso_users : { member_type = "SSO_USER", identifier = u, designation = "PROJECT_CONTRIBUTOR" }],
-    [for g in var.project_contributors.sso_groups : { member_type = "SSO_GROUP", identifier = g, designation = "PROJECT_CONTRIBUTOR" }],
-    [for a in var.project_contributors.iam_users : { member_type = "IAM_USER", identifier = a, designation = "PROJECT_CONTRIBUTOR" }],
-    [for a in var.project_contributors.iam_roles : { member_type = "IAM_ROLE", identifier = a, designation = "PROJECT_CONTRIBUTOR" }],
+    [for u in distinct(var.project_contributors.sso_users) : { member_type = "SSO_USER", identifier = u, designation = "PROJECT_CONTRIBUTOR" }],
+    [for g in distinct(var.project_contributors.sso_groups) : { member_type = "SSO_GROUP", identifier = g, designation = "PROJECT_CONTRIBUTOR" }],
+    [for a in distinct(var.project_contributors.iam_users) : { member_type = "IAM_USER", identifier = a, designation = "PROJECT_CONTRIBUTOR" }],
+    [for a in distinct(var.project_contributors.iam_roles) : { member_type = "IAM_ROLE", identifier = a, designation = "PROJECT_CONTRIBUTOR" }],
   )
 
-  # Keyed map of every member across both sets. The key encodes the designation,
-  # member type, and identifier so it is stable and unique.
-  members = {
-    for m in concat(local.owner_members, local.contributor_members) :
-    "${m.designation}.${m.member_type}.${m.identifier}" => m
-  }
+  # Dedup by identifier with owner precedence: owners are merged last so that
+  # when the same identifier appears in both sets, ownership wins (PROJECT_OWNER
+  # takes precedence over PROJECT_CONTRIBUTOR). Keying by identifier means each
+  # identifier yields exactly one membership AND the for_each key stays stable
+  # across designation changes. A stable key is important: DataZone project
+  # memberships have NO update API (every property is create-only), so changes
+  # must be a replacement. By keeping the same key and forcing replacement via
+  # replace_triggered_by below, the change is a single-instance replacement,
+  # which Terraform sequences as destroy-then-create. (Re-keying instead would
+  # create two independent instances that run in parallel, causing the new
+  # membership to be created before the old one is destroyed and failing with
+  # "User is already in the project".)
+  members = merge(
+    { for m in local.contributor_members : m.identifier => m },
+    { for m in local.owner_members : m.identifier => m },
+  )
 
   # Subsets that require a DataZone profile existence check.
   sso_user_members  = { for k, m in local.members : k => m if m.member_type == "SSO_USER" }
@@ -58,6 +69,19 @@ data "awscc_datazone_group_profile" "sso_group" {
   id       = "${var.domain_id}|${each.value.identifier}"
 }
 
+# Tracks the full create-only identity (designation + member) for each
+# membership. DataZone project memberships have no update API, but the awscc
+# provider treats designation as updatable, so a designation change would plan
+# as an in-place update and fail with NotUpdatableException. Referencing this
+# tracker from replace_triggered_by turns any such change into a replacement.
+# Because the membership keeps a stable (identifier) key, that replacement is a
+# single-instance destroy-then-create, correctly sequenced so the old member is
+# removed before the new one is added.
+resource "terraform_data" "member_identity" {
+  for_each = local.members
+  input    = "${each.value.designation}|${each.value.member_type}|${each.value.identifier}"
+}
+
 resource "awscc_datazone_project_membership" "this" {
   for_each = local.members
 
@@ -71,6 +95,10 @@ resource "awscc_datazone_project_membership" "this" {
   }
 
   lifecycle {
+    # DataZone memberships are create-only; force a (sequenced) replacement
+    # instead of an in-place update when designation or member changes.
+    replace_triggered_by = [terraform_data.member_identity[each.key]]
+
     precondition {
       condition     = each.value.member_type != "SSO_USER" || contains(keys(data.awscc_datazone_user_profile.sso_user), each.key)
       error_message = "SSO user '${each.value.identifier}' is not registered in domain '${var.domain_id}'. Create an aws_datazone_user_profile for this user before adding them to a project."
