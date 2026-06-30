@@ -14,7 +14,7 @@ This module grants principals the ability to create projects from specified proj
 ```hcl
 # Grant all users the ability to create projects from any profile
 module "create_project_grant" {
-  source = "./modules/policy-grant/create_project"
+  source = "./modules/policy-grant-create-project"
 
   domain_id           = module.domain.domain_id
   domain_unit_id      = module.domain.root_domain_unit_id
@@ -24,7 +24,7 @@ module "create_project_grant" {
 
 # Grant specific users
 module "create_project_grant_team" {
-  source = "./modules/policy-grant/create_project"
+  source = "./modules/policy-grant-create-project"
 
   domain_id           = module.domain.domain_id
   domain_unit_id      = module.domain.root_domain_unit_id
@@ -46,14 +46,14 @@ Only one principal type should be used per invocation:
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.28.0 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.68.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.89.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.68.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.89.0 |
 
 ## Modules
 

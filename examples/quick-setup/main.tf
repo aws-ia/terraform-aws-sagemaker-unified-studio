@@ -485,7 +485,7 @@ module "all_capabilities_project_profile" {
 
 module "create_project_from_project_profile_grant" {
   count          = (var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai) ? 1 : 0
-  source         = "../../modules/policy-grant/create_project"
+  source         = "../../modules/policy-grant-create-project"
   domain_id      = module.domain.domain_id
   domain_unit_id = module.domain.domain_root_unit_id
   project_profile_ids = concat(
