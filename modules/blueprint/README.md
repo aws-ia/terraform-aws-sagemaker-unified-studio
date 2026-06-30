@@ -16,13 +16,13 @@ This module configures a single environment blueprint for an Amazon SageMaker Un
 ## Prerequisite: bootstrap IAM roles
 
 Before configuring any blueprint, the foundational IAM roles must exist. These are
-created by the standalone [`blueprint-bootstrap`](../blueprint-bootstrap) module:
+created by the standalone [`blueprint-bootstrap`](../blueprint-bootstrap) submodule:
 
 - `AmazonSageMakerProvisioning` IAM role
 - `AmazonSageMakerManageAccess` IAM role
 - Custom Redshift secret access policy
 
-The `blueprint-bootstrap` module should be invoked once per domain, before
+The `blueprint-bootstrap` submodule should be invoked once per domain, before
 configuring any blueprints. (The root domain module invokes it automatically.)
 
 ## Usage

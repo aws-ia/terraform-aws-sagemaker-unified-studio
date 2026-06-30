@@ -127,7 +127,7 @@ resource "terraform_data" "provisioning_role_validation" {
   lifecycle {
     precondition {
       condition     = local.provisioning_role_arn != null
-      error_message = "Provisioning role '${local.default_provisioning_role_name}' not found. Please create it first using the bootstrap module (modules/blueprint-bootstrap) or pass var.provisioning_role_arn explicitly."
+      error_message = "Provisioning role '${local.default_provisioning_role_name}' not found. Please create it first using the bootstrap submodule (modules/blueprint-bootstrap) or pass var.provisioning_role_arn explicitly."
     }
   }
 }
@@ -136,7 +136,7 @@ resource "terraform_data" "manage_access_role_validation" {
   lifecycle {
     precondition {
       condition     = local.manage_access_role_arn != null
-      error_message = "Manage access role '${local.default_manage_access_role_name}' not found. Please create it first using the bootstrap module (modules/blueprint-bootstrap) or pass var.manage_access_role_arn explicitly."
+      error_message = "Manage access role '${local.default_manage_access_role_name}' not found. Please create it first using the bootstrap submodule (modules/blueprint-bootstrap) or pass var.manage_access_role_arn explicitly."
     }
   }
 }
