@@ -22,7 +22,7 @@ This module is designed to work alongside several sub-modules that handle specif
 | Blueprint | `modules/blueprint` | Enable an environment blueprint on a domain |
 | Project Profile | `modules/project-profile` | Compose blueprints into a deployable project profile |
 | Project | `modules/project` | Create a project from a project profile |
-| Policy Grant | `modules/policy-grant/create_project` | Grant the `CREATE_PROJECT` policy on a domain |
+| Policy Grant | `modules/policy-grant-create-project` | Grant the `CREATE_PROJECT` policy on a domain |
 | Metadata Form | `modules/metadata_form` | Create metadata forms |
 
 ## Quick Start
