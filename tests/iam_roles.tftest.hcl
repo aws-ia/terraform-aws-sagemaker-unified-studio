@@ -180,7 +180,7 @@ run "blueprint_no_roles_provided" {
   }
 
   module {
-    source = "./modules/blueprint/bootstrap"
+    source = "./modules/blueprint-bootstrap"
   }
 
   variables {
@@ -251,7 +251,7 @@ run "blueprint_user_provides_both_roles" {
   }
 
   module {
-    source = "./modules/blueprint/bootstrap"
+    source = "./modules/blueprint-bootstrap"
   }
 
   variables {

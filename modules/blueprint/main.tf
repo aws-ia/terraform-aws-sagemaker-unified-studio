@@ -50,9 +50,9 @@ data "aws_subnet" "validation" {
 ######################################
 
 locals {
-  account_id       = data.aws_caller_identity.current.account_id
-  region           = data.aws_region.current.id
-  domain_id_suffix = replace(var.domain_id, "/^dzd-/", "")
+  account_id        = data.aws_caller_identity.current.account_id
+  region            = data.aws_region.current.id
+  domain_id_suffix  = replace(var.domain_id, "/^dzd-/", "")
   domain_account_id = var.domain_account_id != null ? var.domain_account_id : local.account_id
 
   enabled_regions = length(var.regional_parameters) > 0 ? keys(var.regional_parameters) : [local.region]
@@ -127,7 +127,7 @@ resource "terraform_data" "provisioning_role_validation" {
   lifecycle {
     precondition {
       condition     = local.provisioning_role_arn != null
-      error_message = "Provisioning role '${local.default_provisioning_role_name}' not found. Please create it first using the bootstrap submodule (modules/blueprint/bootstrap) or pass var.provisioning_role_arn explicitly."
+      error_message = "Provisioning role '${local.default_provisioning_role_name}' not found. Please create it first using the bootstrap module (modules/blueprint-bootstrap) or pass var.provisioning_role_arn explicitly."
     }
   }
 }
@@ -136,7 +136,7 @@ resource "terraform_data" "manage_access_role_validation" {
   lifecycle {
     precondition {
       condition     = local.manage_access_role_arn != null
-      error_message = "Manage access role '${local.default_manage_access_role_name}' not found. Please create it first using the bootstrap submodule (modules/blueprint/bootstrap) or pass var.manage_access_role_arn explicitly."
+      error_message = "Manage access role '${local.default_manage_access_role_name}' not found. Please create it first using the bootstrap module (modules/blueprint-bootstrap) or pass var.manage_access_role_arn explicitly."
     }
   }
 }

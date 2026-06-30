@@ -190,12 +190,11 @@ resource "aws_iam_role_policy_attachment" "query_execution_policy" {
 #####################################################################################
 
 module "bootstrap" {
-  source = "./modules/blueprint/bootstrap"
+  source = "./modules/blueprint-bootstrap"
 
   domain_id                 = aws_datazone_domain.main.id
   create_provisioning_role  = var.provisioning_role_arn == null
   create_manage_access_role = var.manage_access_role_arn == null
-  configure_lake_formation  = true
   tags                      = var.tags
 }
 

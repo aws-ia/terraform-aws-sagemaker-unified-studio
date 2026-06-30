@@ -142,18 +142,3 @@ resource "aws_iam_role_policy_attachment" "redshift_manage_access" {
   role       = aws_iam_role.sagemaker_manage_access[0].name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonDataZoneRedshiftManageAccessRolePolicy"
 }
-
-######################################
-# Lake Formation Configuration (from R4)
-######################################
-
-resource "aws_lakeformation_data_lake_settings" "main" {
-  count = var.configure_lake_formation ? 1 : 0
-
-  admins = toset(concat([for role in aws_iam_role.sagemaker_provisioning : role.arn], [for role in aws_iam_role.sagemaker_manage_access : role.arn]))
-
-  depends_on = [
-    aws_iam_role.sagemaker_provisioning,
-    aws_iam_role.sagemaker_manage_access
-  ]
-}
