@@ -24,10 +24,31 @@ enable_all_capabilities = false # All capabilities profile (combines SQL + GenAI
 # S3 Bucket Configuration (null = auto-create)
 # s3_bucket_name = "my-existing-bucket"
 
+# IAM Role Configuration (all optional; null = auto-create / not applied)
+# user_role_policy_arns      = ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"]
+# model_management_role_arn  = "arn:aws:iam::123456789012:role/AmazonDataZoneBedrockModelManagementRole"
+# model_consumption_role_arn = "arn:aws:iam::123456789012:role/AmazonDataZoneBedrockFMConsumptionRole"
+
 # SSO Configuration
 enable_sso = true
-sso_users  = ["user@example.com"]
+
+# Membership wiring. Each principal set accepts SSO users, SSO groups, IAM users,
+# and IAM roles. Owners get PROJECT_OWNER, contributors get PROJECT_CONTRIBUTOR.
+project_owners = {
+  sso_users = ["user@example.com"]
+  # sso_groups = ["12345678-1234-1234-1234-123456789012"]
+  # iam_users  = ["arn:aws:iam::123456789012:user/alice"]
+  # iam_roles  = ["arn:aws:iam::123456789012:role/MyAdmin"]
+}
+
+project_contributors = {}
 
 # Environment and Tagging
 environment = "test"
 owner       = "data-team"
+
+# Additional tags applied to all resources
+# tags = {
+#   CostCenter = "1234"
+#   Team       = "analytics"
+# }
