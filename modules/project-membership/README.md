@@ -1,105 +1,80 @@
 <!-- BEGIN_TF_DOCS -->
 # SageMaker Unified Studio Project Membership Module
 
-This module adds a single principal to a SageMaker Unified Studio project with a specified role. Principal types supported: SSO users, SSO groups, IAM users, and IAM roles. To add multiple members, invoke the module multiple times via `for_each` keyed by principal.
+This module wires up the members of a SageMaker Unified Studio project from two principal sets: `project_owners` (granted `PROJECT_OWNER`) and `project_contributors` (granted `PROJECT_CONTRIBUTOR`). Each set accepts any combination of SSO users, SSO groups, IAM users, and IAM roles, and the module creates one membership per principal via `for_each`.
 
 ## What it does
 
-- Creates one `awscc_datazone_project_membership` per invocation, attaching the principal to the given project with `PROJECT_OWNER` or `PROJECT_CONTRIBUTOR` designation
-- Routes the principal into the correct membership field based on `member_type`:
+- Flattens both principal sets into a single keyed map and creates one `awscc_datazone_project_membership` per unique principal
+- Routes each principal into the correct membership field based on its type:
   - `SSO_USER` and `IAM_USER` → `member.user_identifier`
   - `SSO_GROUP` and `IAM_ROLE` → `member.group_identifier`
 - For SSO members, looks up the corresponding DataZone user or group profile in the domain and fails the plan with a clear error message if it isn't registered
 
+## Uniqueness and owner bias
+
+Memberships are keyed by **identifier**, so each principal results in exactly one membership:
+
+- Duplicate identifiers listed more than once within a set are collapsed (via `distinct()`)
+- When the same identifier appears in **both** `project_owners` and `project_contributors`, ownership wins — the principal is granted `PROJECT_OWNER` only. The owner set is merged last so it takes precedence over the contributor set.
+
+This means a principal is always either an owner or a contributor, never both.
+
 ## IAM user vs IAM role
 
-DataZone treats an IAM user and an IAM role as different kinds of principal, so this module exposes two distinct member types:
+DataZone treats an IAM user and an IAM role as different kinds of principal, so each set distinguishes them:
 
-- `IAM_USER` — a specific IAM user ARN (e.g. `arn:aws:iam::123456789012:user/alice`). The ARN is passed in `member.user_identifier`, the same field used for individual SSO users.
-- `IAM_ROLE` — an IAM role ARN (e.g. `arn:aws:iam::123456789012:role/MyRole`). The ARN is passed in `member.group_identifier`, because a role represents an assumable identity shared by many sessions rather than a single user.
+- `iam_users` — specific IAM user ARNs (e.g. `arn:aws:iam::123456789012:user/alice`). Passed in `member.user_identifier`, the same field used for individual SSO users.
+- `iam_roles` — IAM role ARNs (e.g. `arn:aws:iam::123456789012:role/MyRole`). Passed in `member.group_identifier`, because a role represents an assumable identity shared by many sessions rather than a single user.
 
-Pick the type that matches the ARN you are adding; the validation rejects a role ARN supplied as `IAM_USER` and vice versa.
+The validation rejects a role ARN supplied under `iam_users` and a user ARN supplied under `iam_roles`.
 
 ## Validations
 
 **Variable-level (run at plan time before any data source reads):**
 
-- `member_type` must be one of `SSO_USER`, `SSO_GROUP`, `IAM_USER`, `IAM_ROLE`
-- `project_role` must be `PROJECT_OWNER` or `PROJECT_CONTRIBUTOR`
 - `domain_id` must match the `dzd[-_]...` format
-- `project_id` and `identifier` must be non-empty
-- When `member_type = "IAM_USER"`, `identifier` must be a valid IAM user ARN (any partition)
-- When `member_type = "IAM_ROLE"`, `identifier` must be a valid IAM role ARN (any partition)
-- When `member_type = "SSO_GROUP"`, `identifier` must be a UUID
+- `project_id` must be non-empty
+- For each of `project_owners` and `project_contributors`:
+  - every `sso_users` entry must be a non-empty string
+  - every `sso_groups` entry must be an identity store group UUID
+  - every `iam_users` entry must be a valid IAM user ARN (any partition)
+  - every `iam_roles` entry must be a valid IAM role ARN (any partition)
 
 **Resource-level preconditions:**
 
-- When `member_type = "SSO_USER"`, the user must already have a DataZone user profile in the domain (e.g. created via `aws_datazone_user_profile`)
-- When `member_type = "SSO_GROUP"`, the group must already have a DataZone group profile in the domain
+- Each `SSO_USER` must already have a DataZone user profile in the domain (e.g. created via `aws_datazone_user_profile`)
+- Each `SSO_GROUP` must already have a DataZone group profile in the domain
 
 ## Usage
 
-Add an IAM role as a project owner:
-
 ```hcl
-module "owner" {
-  source = "./modules/project/membership"
+module "project_membership" {
+  source = "./modules/project-membership"
 
-  domain_id    = module.domain.domain_id
-  project_id   = module.project.project_id
-  member_type  = "IAM_ROLE"
-  identifier   = "arn:aws:iam::123456789012:role/MyAdmin"
-  project_role = "PROJECT_OWNER"
+  domain_id  = module.domain.domain_id
+  project_id = module.project.project_id
+
+  project_owners = {
+    sso_users = ["jdoe@example.com"]
+    iam_roles = ["arn:aws:iam::123456789012:role/MyAdmin"]
+  }
+
+  project_contributors = {
+    sso_users  = ["analyst@example.com"]
+    sso_groups = ["12345678-1234-1234-1234-123456789012"]
+    iam_users  = ["arn:aws:iam::123456789012:user/alice"]
+  }
 }
 ```
 
-Add an IAM user as a contributor:
-
-```hcl
-module "iam_user" {
-  source = "./modules/project/membership"
-
-  domain_id    = module.domain.domain_id
-  project_id   = module.project.project_id
-  member_type  = "IAM_USER"
-  identifier   = "arn:aws:iam::123456789012:user/alice"
-  project_role = "PROJECT_CONTRIBUTOR"
-}
-```
-
-Add multiple SSO users as contributors:
-
-```hcl
-module "contributors" {
-  for_each = toset(var.sso_user_ids)
-  source   = "./modules/project/membership"
-
-  domain_id    = module.domain.domain_id
-  project_id   = module.project.project_id
-  member_type  = "SSO_USER"
-  identifier   = each.value
-  project_role = "PROJECT_CONTRIBUTOR"
-}
-```
-
-Add an SSO group as a contributor:
-
-```hcl
-module "team" {
-  source = "./modules/project/membership"
-
-  domain_id    = module.domain.domain_id
-  project_id   = module.project.project_id
-  member_type  = "SSO_GROUP"
-  identifier   = "12345678-1234-1234-1234-123456789012"
-  project_role = "PROJECT_CONTRIBUTOR"
-}
-```
+Both sets default to empty, so you can supply only the ones you need.
 
 ## Notes
 
-- SSO users must be registered as `aws_datazone_user_profile` in the domain before being added. The `examples/tooling-lite` example shows the typical pattern of unioning SSO users from multiple principal sets and registering each one once.
-- IAM users and IAM roles are routed to different membership fields (`user_identifier` vs `group_identifier`), so be sure to set `member_type` to match the kind of ARN you are passing.
+- DataZone project memberships have no update API — every property is create-only. The module keys each membership by its full identity (`designation|member_type|identifier`), so any change (including switching a principal between owner and contributor) is realized as a destroy-and-recreate rather than an in-place update, which would otherwise fail with `NotUpdatableException`.
+- SSO users and groups must be registered as `aws_datazone_user_profile` / `awscc_datazone_group_profile` in the domain before being added. The `examples/quick-setup` example shows the typical pattern of unioning principals from both sets and registering each one once.
+- IAM users and IAM roles are routed to different membership fields (`user_identifier` vs `group_identifier`), so place each ARN under the matching key.
 
 ## Requirements
 
@@ -109,7 +84,8 @@ No requirements.
 
 | Name | Version |
 |------|---------|
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | 1.90.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | n/a |
+| <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Modules
 
@@ -120,6 +96,7 @@ No modules.
 | Name | Type |
 |------|------|
 | [awscc_datazone_project_membership.this](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_membership) | resource |
+| [terraform_data.member_identity](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 | [awscc_datazone_group_profile.sso_group](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/data-sources/datazone_group_profile) | data source |
 | [awscc_datazone_user_profile.sso_user](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/data-sources/datazone_user_profile) | data source |
 
