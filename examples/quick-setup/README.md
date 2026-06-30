@@ -64,7 +64,7 @@ This example is intended as a reference implementation. For production use cases
 | Blueprint | `../../modules/blueprint` | Enable a single environment blueprint on a domain |
 | Project Profile | `../../modules/project-profile` | Compose blueprints into a deployable project profile |
 | Project | `../../modules/project` | Create a project from a project profile |
-| Policy Grant (create project) | `../../modules/policy-grant/create_project` | Grant `CREATE_PROJECT_FROM_PROJECT_PROFILE` on project profiles |
+| Policy Grant (create project) | `../../modules/policy-grant-create-project` | Grant `CREATE_PROJECT_FROM_PROJECT_PROFILE` on project profiles |
 | Project Membership | `../../modules/project-membership` | Add an owner or contributor member to a project |
 
 For example, if you only need SQL Analytics you can invoke the domain module, enable just the relevant blueprints, and create a single project profile — no need to deploy the full quick-setup.
@@ -75,7 +75,7 @@ For example, if you only need SQL Analytics you can invoke the domain module, en
 
 The `awscc_datazone_policy_grant` resource has a known issue where updating a policy grant that shares the same domain unit and principal as an existing grant will successfully replace the policy content but then return an `AlreadyExists` error. One policy grant is used to grant access to multiple project profiles. We are actively working with the service team to resolve this behavior.
 
-**Workaround**: Remove any existing CREATE\_PROJECT\_FROM\_PROJECT\_PROFILE policy grants that share the same domain unit and principal before running the `policy-grant/create_project` module. You can do this via the AWS Console or CLI:
+**Workaround**: Remove any existing CREATE\_PROJECT\_FROM\_PROJECT\_PROFILE policy grants that share the same domain unit and principal before running the `policy-grant-create-project` module. You can do this via the AWS Console or CLI:
 
 ```bash
 aws datazone delete-policy-grant \
@@ -113,7 +113,7 @@ Then re-run `terraform apply` to recreate the grants cleanly.
 |------|--------|---------|
 | <a name="module_all_capabilities_project_profile"></a> [all\_capabilities\_project\_profile](#module\_all\_capabilities\_project\_profile) | ../../modules/project-profile | n/a |
 | <a name="module_blueprints"></a> [blueprints](#module\_blueprints) | ../../modules/blueprint | n/a |
-| <a name="module_create_project_from_project_profile_grant"></a> [create\_project\_from\_project\_profile\_grant](#module\_create\_project\_from\_project\_profile\_grant) | ../../modules/policy-grant/create_project | n/a |
+| <a name="module_create_project_from_project_profile_grant"></a> [create\_project\_from\_project\_profile\_grant](#module\_create\_project\_from\_project\_profile\_grant) | ../../modules/policy-grant-create-project | n/a |
 | <a name="module_domain"></a> [domain](#module\_domain) | ../.. | n/a |
 | <a name="module_generative_ai_project_profile"></a> [generative\_ai\_project\_profile](#module\_generative\_ai\_project\_profile) | ../../modules/project-profile | n/a |
 | <a name="module_project"></a> [project](#module\_project) | ../../modules/project | n/a |
