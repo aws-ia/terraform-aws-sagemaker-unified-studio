@@ -3,15 +3,15 @@
 # Enables ToolingLite, S3Bucket, S3TableCatalog blueprints and creates the
 # special "Default Project Profile" used for bring-your-own-role projects.
 #
-# Provisioning role resolution (when var.using_admin_project = false):
+# Provisioning role resolution (when var.using_domain_management_portal = false):
 #   1. var.provisioning_role_arn (if set)
 #   2. Existing IAM role created by modules/blueprint/bootstrap, looked up by
 #      the conventional name AmazonSageMakerProvisioning-<account_id>-<domain_id>
 #   3. If neither is found, the module fails with a clear error
 #
-# When var.using_admin_project = true the provisioning_role_arn is left null on
-# blueprint configurations so the admin project's execution role is used as
-# the provisioner.
+# When var.using_domain_management_portal = true the provisioning_role_arn is
+# left null on blueprint configurations so the admin project's execution role is
+# used as the provisioner.
 #
 # Optional VPC configuration:
 #   When var.vpc_id and var.subnet_ids are both provided, the ToolingLite
@@ -68,7 +68,7 @@ locals {
   # module header. Returns null when admin project mode is on (so the admin
   # execution role acts as provisioner) OR when no role can be found.
   resolved_provisioning_role_arn = (
-    var.using_admin_project ? null :
+    var.using_domain_management_portal ? null :
     var.provisioning_role_arn != null ? var.provisioning_role_arn :
     length(data.aws_iam_roles.provisioning_role.arns) > 0 ?
     tolist(data.aws_iam_roles.provisioning_role.arns)[0] :
@@ -115,12 +115,12 @@ resource "terraform_data" "vpc_config_validation" {
 # Fail the plan early if no provisioning role can be resolved when one is
 # required (i.e. admin project mode is off and no ARN was provided/found).
 resource "terraform_data" "provisioning_role_validation" {
-  count = var.using_admin_project ? 0 : 1
+  count = var.using_domain_management_portal ? 0 : 1
 
   lifecycle {
     precondition {
       condition     = local.resolved_provisioning_role_arn != null
-      error_message = "No provisioning role available for the default project profile. Either pass var.provisioning_role_arn, or run modules/blueprint/bootstrap to create AmazonSageMakerProvisioning-${data.aws_caller_identity.current.account_id}-${var.domain_id}, or set var.using_admin_project = true."
+      error_message = "No provisioning role available for the default project profile. Either pass var.provisioning_role_arn, or run modules/blueprint/bootstrap to create AmazonSageMakerProvisioning-${data.aws_caller_identity.current.account_id}-${var.domain_id}, or set var.using_domain_management_portal = true."
     }
   }
 }

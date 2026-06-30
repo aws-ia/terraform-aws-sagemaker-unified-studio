@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
 # SageMaker Unified Studio Project Module
 
-This module creates a single Amazon SageMaker Unified Studio project from a project profile. Membership management lives in the `membership` submodule (`modules/project/membership`); this module focuses on the project resource itself.
+This module creates a single Amazon SageMaker Unified Studio project from a project profile. Membership management lives in the separate `project-membership` module (`modules/project-membership`); this module focuses on the project resource itself.
 
 ## What it does
 
@@ -40,21 +40,27 @@ module "project" {
 
 ## Adding members
 
-Use the `membership` submodule to add SSO users, SSO groups, or IAM principals to the project after creation:
+Use the `project-membership` module to add SSO users, SSO groups, and IAM principals to the project after creation. Principals are grouped into owner and contributor sets:
 
 ```hcl
-module "project_owner" {
-  source = "./modules/project/membership"
+module "project_membership" {
+  source = "./modules/project-membership"
 
-  domain_id    = module.domain.domain_id
-  project_id   = module.project.project_id
-  member_type  = "IAM_ROLE"
-  identifier   = "arn:aws:iam::123456789012:role/MyAdmin"
-  project_role = "PROJECT_OWNER"
+  domain_id  = module.domain.domain_id
+  project_id = module.project.project_id
+
+  project_owners = {
+    iam_roles = ["arn:aws:iam::123456789012:role/MyAdmin"]
+  }
+
+  project_contributors = {
+    sso_users  = ["analyst@example.com"]
+    sso_groups = ["12345678-1234-1234-1234-123456789012"]
+  }
 }
 ```
 
-The membership submodule validates the identifier format per `member_type` and verifies SSO user/group profiles exist in the domain before attempting to add them.
+The membership module validates each identifier format, biases a principal that appears in both sets toward owner, and verifies SSO user/group profiles exist in the domain before attempting to add them.
 
 ## Destroy behavior
 

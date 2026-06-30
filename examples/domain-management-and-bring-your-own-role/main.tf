@@ -239,12 +239,12 @@ resource "aws_iam_role_policy_attachment" "provisioning_admin_policy_attachment"
 module "default_project_profile" {
   source = "../../modules/default-project-profile"
 
-  domain_id             = module.domain.domain_id
-  provisioning_role_arn = module.domain.provisioning_role_arn
-  vpc_id                = var.vpc_id
-  subnet_ids            = var.subnet_ids
-  using_admin_project   = var.create_domain_management_portal
-  depends_on            = [module.admin_project, aws_iam_role_policy_attachment.provisioning_admin_policy_attachment]
+  domain_id                       = module.domain.domain_id
+  provisioning_role_arn           = module.domain.provisioning_role_arn
+  vpc_id                          = var.vpc_id
+  subnet_ids                      = var.subnet_ids
+  using_domain_management_portal  = var.create_domain_management_portal
+  depends_on                      = [module.admin_project, aws_iam_role_policy_attachment.provisioning_admin_policy_attachment]
 }
 
 

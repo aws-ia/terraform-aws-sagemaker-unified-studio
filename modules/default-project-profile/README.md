@@ -16,13 +16,13 @@ This module enables the blueprints needed to support the special "Default Projec
 
 ## Provisioning role resolution
 
-Resolution order when `using_admin_project = false`:
+Resolution order when `using_domain_management_portal = false`:
 
 1. `var.provisioning_role_arn` if explicitly provided
 2. Existing IAM role created by `modules/blueprint/bootstrap`, looked up by the conventional name `AmazonSageMakerProvisioning-<account_id>-<domain_id>` under path `/service-role/`
 3. If neither is available, the plan fails early with a clear error message
 
-When `using_admin_project = true`, the provisioning role ARN is left null on each blueprint configuration so the admin project's execution role acts as the provisioner for ON\_CREATE blueprints.
+When `using_domain_management_portal = true`, the provisioning role ARN is left null on each blueprint configuration so the admin project's execution role acts as the provisioner for ON\_CREATE blueprints.
 
 Self-serve ON\_DEMAND blueprints (S3TablesCatalog and S3Bucket) are always defined without a provisioning role; by default the project execution role will act as the provisioner for ON\_DEMAND blueprints.
 
@@ -68,8 +68,8 @@ When an admin project is acting as the provisioner:
 module "default_project_profile" {
   source = "./modules/project-profile/default"
 
-  domain_id           = module.domain.domain_id
-  using_admin_project = true
+  domain_id                       = module.domain.domain_id
+  using_domain_management_portal  = true
 }
 ```
 
@@ -123,7 +123,7 @@ No modules.
 | <a name="input_domain_id"></a> [domain\_id](#input\_domain\_id) | The ID of the SageMaker Unified Studio domain | `string` | n/a | yes |
 | <a name="input_provisioning_role_arn"></a> [provisioning\_role\_arn](#input\_provisioning\_role\_arn) | ARN of existing Provisioning role. If not provided, the role is looked up by name. If neither is found, the module will fail — use the bootstrap submodule to create roles first. | `string` | `null` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | Subnet IDs to attach to the ToolingLite blueprint configuration. Must be provided together with vpc\_id. All subnets must belong to vpc\_id. | `list(string)` | `null` | no |
-| <a name="input_using_admin_project"></a> [using\_admin\_project](#input\_using\_admin\_project) | Set to true if an admin project is used. The admin project's execution role acts as provisioner for the ToolingLite, S3Bucket, and S3TableCatalog blueprints, so var.provisioning\_role\_arn is ignored. | `bool` | `false` | no |
+| <a name="input_using_domain_management_portal"></a> [using\_domain\_management\_portal](#input\_using\_domain\_management\_portal) | Set to true if a domain management portal (admin project) is used. The admin project's execution role acts as provisioner for the ToolingLite blueprints, so var.provisioning\_role\_arn is ignored. | `bool` | `false` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID to attach to the ToolingLite blueprint configuration. Must be provided together with subnet\_ids. When both are set, the ToolingLite blueprint is enabled with the same VPC/Subnets regional parameters used by the standard Tooling blueprint. | `string` | `null` | no |
 
 ## Outputs

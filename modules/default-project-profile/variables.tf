@@ -19,8 +19,8 @@ variable "provisioning_role_arn" {
   }
 }
 
-variable "using_admin_project" {
-  description = "Set to true if an admin project is used. The admin project's execution role acts as provisioner for the ToolingLite, S3Bucket, and S3TableCatalog blueprints, so var.provisioning_role_arn is ignored."
+variable "using_domain_management_portal" {
+  description = "Set to true if a domain management portal (admin project) is used. The admin project's execution role acts as provisioner for the ToolingLite blueprints, so var.provisioning_role_arn is ignored."
   type        = bool
   default     = false
 }
