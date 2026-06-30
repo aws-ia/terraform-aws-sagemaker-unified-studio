@@ -24,6 +24,11 @@ enable_all_capabilities = false # All capabilities profile (combines SQL + GenAI
 # S3 Bucket Configuration (null = auto-create)
 # s3_bucket_name = "my-existing-bucket"
 
+# IAM Role Configuration (all optional; null = auto-create / not applied)
+# user_role_policy_arns      = ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"]
+# model_management_role_arn  = "arn:aws:iam::123456789012:role/AmazonDataZoneBedrockModelManagementRole"
+# model_consumption_role_arn = "arn:aws:iam::123456789012:role/AmazonDataZoneBedrockFMConsumptionRole"
+
 # SSO Configuration
 enable_sso = true
 
@@ -41,3 +46,9 @@ project_contributors = {}
 # Environment and Tagging
 environment = "test"
 owner       = "data-team"
+
+# Additional tags applied to all resources
+# tags = {
+#   CostCenter = "1234"
+#   Team       = "analytics"
+# }

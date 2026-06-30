@@ -1,66 +1,95 @@
-variable "member_type" {
-  description = "Type of project member. One of: SSO_USER, SSO_GROUP, IAM_USER, or IAM_ROLE."
-  type        = string
+
+# Principal grouping used by the membership wiring. Each variable accepts any
+# combination of SSO users, SSO groups, IAM users, and IAM roles. Empty lists
+# are fine.
+#
+# - project_owners       : added to the created project as PROJECT_OWNER
+# - project_contributors : added to the created project as PROJECT_CONTRIBUTOR
+variable "project_owners" {
+  description = "Principals to add to the created project as PROJECT_OWNER."
+  type = object({
+    sso_users  = optional(list(string), [])
+    sso_groups = optional(list(string), [])
+    iam_users  = optional(list(string), [])
+    iam_roles  = optional(list(string), [])
+  })
+  default = {}
 
   validation {
-    condition     = contains(["SSO_USER", "SSO_GROUP", "IAM_USER", "IAM_ROLE"], var.member_type)
-    error_message = "member_type must be one of: SSO_USER, SSO_GROUP, IAM_USER, IAM_ROLE."
-  }
-}
-
-variable "identifier" {
-  description = <<-EOT
-    Identifier of the project member.
-    - For member_type = "IAM_USER": full IAM user ARN
-      (e.g. arn:aws:iam::123456789012:user/alice).
-    - For member_type = "IAM_ROLE": full IAM role ARN
-      (e.g. arn:aws:iam::123456789012:role/MyRole).
-    - For member_type = "SSO_USER": identity store user ID (UUID) or SSO username.
-    - For member_type = "SSO_GROUP": identity store group ID (UUID).
-  EOT
-  type        = string
-
-  validation {
-    condition     = length(trimspace(var.identifier)) > 0
-    error_message = "identifier must be a non-empty string."
+    # Every SSO user identifier must be a non-empty string.
+    condition     = alltrue([for u in var.project_owners.sso_users : length(trimspace(u)) > 0])
+    error_message = "Each project_owners.sso_users entry must be a non-empty string."
   }
 
   validation {
-    # IAM_USER members must be a valid IAM user ARN.
-    condition = var.member_type != "IAM_USER" || can(regex(
-      "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:user/[\\w+=,.@/-]+$",
-      var.identifier
-    ))
-    error_message = "When member_type is IAM_USER, identifier must be a valid IAM user ARN (e.g. arn:aws:iam::123456789012:user/alice)."
-  }
-
-  validation {
-    # IAM_ROLE members must be a valid IAM role ARN.
-    condition = var.member_type != "IAM_ROLE" || can(regex(
-      "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/[\\w+=,.@/-]+$",
-      var.identifier
-    ))
-    error_message = "When member_type is IAM_ROLE, identifier must be a valid IAM role ARN (e.g. arn:aws:iam::123456789012:role/MyRole)."
-  }
-
-  validation {
-    # SSO_GROUP requires an identity store group UUID.
-    condition = var.member_type != "SSO_GROUP" || can(regex(
+    # Each SSO group requires an identity store group UUID.
+    condition = alltrue([for g in var.project_owners.sso_groups : can(regex(
       "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
-      var.identifier
-    ))
-    error_message = "When member_type is SSO_GROUP, identifier must be an identity store group UUID (e.g. 12345678-1234-1234-1234-123456789012)."
+      g
+    ))])
+    error_message = "Each project_owners.sso_groups entry must be an identity store group UUID (e.g. 12345678-1234-1234-1234-123456789012)."
+  }
+
+  validation {
+    # Each IAM user must be a valid IAM user ARN.
+    condition = alltrue([for a in var.project_owners.iam_users : can(regex(
+      "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:user/[\\w+=,.@/-]+$",
+      a
+    ))])
+    error_message = "Each project_owners.iam_users entry must be a valid IAM user ARN (e.g. arn:aws:iam::123456789012:user/alice)."
+  }
+
+  validation {
+    # Each IAM role must be a valid IAM role ARN.
+    condition = alltrue([for a in var.project_owners.iam_roles : can(regex(
+      "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/[\\w+=,.@/-]+$",
+      a
+    ))])
+    error_message = "Each project_owners.iam_roles entry must be a valid IAM role ARN (e.g. arn:aws:iam::123456789012:role/MyRole)."
   }
 }
 
-variable "project_role" {
-  description = "Role of the user within the project. One of: PROJECT_OWNER, PROJECT_CONTRIBUTOR."
-  type        = string
-  default     = "PROJECT_CONTRIBUTOR"
+variable "project_contributors" {
+  description = "Principals to add to the created project as PROJECT_CONTRIBUTOR."
+  type = object({
+    sso_users  = optional(list(string), [])
+    sso_groups = optional(list(string), [])
+    iam_users  = optional(list(string), [])
+    iam_roles  = optional(list(string), [])
+  })
+  default = {}
 
   validation {
-    condition     = contains(["PROJECT_OWNER", "PROJECT_CONTRIBUTOR"], var.project_role)
-    error_message = "project_role must be either PROJECT_OWNER or PROJECT_CONTRIBUTOR."
+    # Every SSO user identifier must be a non-empty string.
+    condition     = alltrue([for u in var.project_contributors.sso_users : length(trimspace(u)) > 0])
+    error_message = "Each project_contributors.sso_users entry must be a non-empty string."
+  }
+
+  validation {
+    # Each SSO group requires an identity store group UUID.
+    condition = alltrue([for g in var.project_contributors.sso_groups : can(regex(
+      "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      g
+    ))])
+    error_message = "Each project_contributors.sso_groups entry must be an identity store group UUID (e.g. 12345678-1234-1234-1234-123456789012)."
+  }
+
+  validation {
+    # Each IAM user must be a valid IAM user ARN.
+    condition = alltrue([for a in var.project_contributors.iam_users : can(regex(
+      "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:user/[\\w+=,.@/-]+$",
+      a
+    ))])
+    error_message = "Each project_contributors.iam_users entry must be a valid IAM user ARN (e.g. arn:aws:iam::123456789012:user/alice)."
+  }
+
+  validation {
+    # Each IAM role must be a valid IAM role ARN.
+    condition = alltrue([for a in var.project_contributors.iam_roles : can(regex(
+      "^arn:aws[a-zA-Z-]*:iam::[0-9]{12}:role/[\\w+=,.@/-]+$",
+      a
+    ))])
+    error_message = "Each project_contributors.iam_roles entry must be a valid IAM role ARN (e.g. arn:aws:iam::123456789012:role/MyRole)."
   }
 }
 

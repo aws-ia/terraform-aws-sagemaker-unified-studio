@@ -8,14 +8,18 @@ For the special "Default Project Profile" used for bring-your-own-role (BYOR) pr
 ## What it does
 
 - Creates one `awscc_datazone_project_profile` per invocation
-- Automatically includes Tooling as the first environment (`deployment_order = 1`)
-- Orders remaining blueprints alphabetically starting at `deployment_order = 2`
-- Resolves blueprint IDs internally from blueprint names via data source lookup
+- Automatically includes Tooling as the first environment (deployment\_order = 0); you do not add a Tooling entry yourself
+- Assigns `ON_CREATE` blueprints deployment\_order = 1 and omits the deployment order for `ON_DEMAND` blueprints, sorting each group alphabetically for a stable, position-correlated ordering
+- Resolves blueprint IDs internally from the managed blueprint name via data source lookup
 - Validates that all referenced blueprints are configured (enabled) for the domain before creating the profile
 - Supports per-blueprint region overrides and parameter overrides
-- Supports a `blueprint_dependencies` input that establishes a real dependency edge to upstream blueprint modules so the profile is created after blueprints are configured
+- Allows multiple environment configurations to reference the same blueprint (e.g. an `ON_CREATE` and an `ON_DEMAND` Redshift Serverless)
 
 ## Usage
+
+The `blueprints` map key is the **environment configuration name**, and each entry's
+`blueprint` attribute is the **managed blueprint name** that gets resolved to a
+blueprint ID. This lets you compose several configurations from the same blueprint.
 
 ```hcl
 module "sql_analytics_profile" {
@@ -26,10 +30,19 @@ module "sql_analytics_profile" {
   description = "Analyze your data in SageMaker Lakehouse using SQL"
 
   blueprints = {
-    Tooling            = {}
-    DataLake           = { parameter_overrides = { glueDbName = { value = "glue_db" } } }
-    LakehouseCatalog   = { deployment_mode = "ON_DEMAND" }
-    RedshiftServerless = { deployment_mode = "ON_DEMAND" }
+    "Lakehouse Database" = {
+      blueprint       = "DataLake"
+      deployment_mode = "ON_CREATE"
+      parameter_overrides = { glueDbName = { value = "glue_db", is_editable = true } }
+    }
+    "Redshift Serverless" = {
+      blueprint       = "RedshiftServerless"
+      deployment_mode = "ON_CREATE"
+    }
+    "OnDemand Catalog for RMS" = {
+      blueprint       = "LakehouseCatalog"
+      deployment_mode = "ON_DEMAND"
+    }
   }
 
   # Pass through entity_id from each upstream blueprint module so the profile
@@ -40,18 +53,15 @@ module "sql_analytics_profile" {
 
 ## Blueprint configuration
 
-Each entry in `blueprints` accepts:
+The map key is always treated as the environment configuration name. Each entry accepts:
 
+- `blueprint` (required) — the managed blueprint name to resolve to a blueprint ID (e.g. `DataLake`, `RedshiftServerless`, `QuickSight`)
 - `description` — optional description for the environment configuration
 - `deployment_mode` — `ON_CREATE` (default) or `ON_DEMAND`
 - `region` — override the AWS region for this blueprint (defaults to the current region)
 - `parameter_overrides` — map of parameter name to `{ value, is_editable }` for customizing blueprint defaults
 
-Tooling is always added at `deployment_order = 1`. Other blueprints are placed in alphabetical order starting at `deployment_order = 2`.
-
-## Output behavior
-
-The `project_profile_id` output declares `depends_on` on the underlying `awscc_datazone_project_profile` resource. Downstream modules that reference this output will automatically wait for the profile to be fully created before being evaluated, which prevents unknown-value plan errors and "AWS Data Source Not Found" race conditions.
+Note: For `EmrOnEks`, you must provide `eksClusterArn` in `parameter_overrides`.
 
 ## Requirements
 
@@ -89,7 +99,7 @@ No modules.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_blueprints"></a> [blueprints](#input\_blueprints) | Map of blueprints to include in this project profile.<br/>Key = blueprint name (e.g., "Tooling", "DataLake", "RedshiftServerless").<br/>The blueprint ID is resolved internally via data lookup.<br/><br/>Tooling must always be included and automatically gets deployment\_order = 1.<br/>Note: For EmrOnEks, you must provide eksClusterArn in parameter\_overrides.<br/><br/>Example:<br/>  blueprints = {<br/>    Tooling            = {}<br/>    DataLake           = { region = "us-west-2", parameter\_overrides = { glueDbName = { value = "my\_db" } } }<br/>    RedshiftServerless = {<br/>      deployment\_mode = "ON\_DEMAND"<br/>      region          = "eu-west-1"<br/>      parameter\_overrides = {<br/>        redshiftBaseCapacity = { value = "256", is\_editable = true }<br/>      }<br/>    }<br/>  } | <pre>map(object({<br/>    description     = optional(string)<br/>    deployment_mode = optional(string, "ON_CREATE")<br/>    region          = optional(string)<br/>    parameter_overrides = optional(map(object({<br/>      value       = string<br/>      is_editable = optional(bool, false)<br/>    })), {})<br/>  }))</pre> | n/a | yes |
+| <a name="input_blueprints"></a> [blueprints](#input\_blueprints) | Map of environment configurations to include in this project profile.<br/><br/>Key = the environment configuration name (e.g., "OnDemand Redshift Serverless").<br/>`blueprint` (required) = the managed blueprint name to resolve to a blueprint ID<br/>via data lookup (e.g., "RedshiftServerless", "DataLake", "QuickSight").<br/><br/>The map key is always treated as the configuration name only; the blueprint is<br/>always resolved from the `blueprint` attribute. This allows multiple configurations<br/>to reference the same blueprint (e.g., an ON\_CREATE and an ON\_DEMAND Redshift).<br/><br/>Tooling is added automatically (deployment\_order = 0) and does not need an entry.<br/>Note: For EmrOnEks, you must provide eksClusterArn in parameter\_overrides.<br/><br/>Example:<br/>  blueprints = {<br/>    "Lakehouse Database" = {<br/>      blueprint       = "DataLake"<br/>      deployment\_mode = "ON\_CREATE"<br/>      parameter\_overrides = { glueDbName = { value = "glue\_db", is\_editable = true } }<br/>    }<br/>    "OnDemand Redshift Serverless" = {<br/>      blueprint       = "RedshiftServerless"<br/>      deployment\_mode = "ON\_DEMAND"<br/>      region          = "eu-west-1"<br/>      parameter\_overrides = {<br/>        redshiftBaseCapacity = { value = "256", is\_editable = true }<br/>      }<br/>    }<br/>  } | <pre>map(object({<br/>    blueprint       = string<br/>    description     = optional(string)<br/>    deployment_mode = optional(string, "ON_CREATE")<br/>    region          = optional(string)<br/>    parameter_overrides = optional(map(object({<br/>      value       = string<br/>      is_editable = optional(bool, false)<br/>    })), {})<br/>  }))</pre> | n/a | yes |
 | <a name="input_domain_id"></a> [domain\_id](#input\_domain\_id) | The ID of the SageMaker Unified Studio domain | `string` | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Name of the project profile | `string` | n/a | yes |
 | <a name="input_blueprint_dependencies"></a> [blueprint\_dependencies](#input\_blueprint\_dependencies) | List of blueprint entity IDs to ensure they are created before the profile. Pass the entity\_id output from each blueprint module. This prevents race conditions when blueprints and profiles are deployed in the same apply. | `list(string)` | `[]` | no |
