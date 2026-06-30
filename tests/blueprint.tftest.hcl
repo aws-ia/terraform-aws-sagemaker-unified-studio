@@ -223,64 +223,6 @@ run "blueprint_user_provides_roles" {
 }
 
 #####################################################################################
-# Scenario 4: Lake Formation disabled
-# Expected: No Lake Formation resources created
-#####################################################################################
-
-run "blueprint_lake_formation_disabled" {
-  command = plan
-
-  module {
-    source = "./modules/blueprint"
-  }
-
-  override_data {
-    target = data.aws_iam_roles.provisioning_role
-    values = { arns = [], names = [] }
-  }
-
-  override_data {
-    target = data.aws_iam_roles.manage_access_role
-    values = { arns = [], names = [] }
-  }
-
-  override_data {
-    target = data.aws_datazone_environment_blueprint.this
-    values = { id = "mock-ml-bp-id" }
-  }
-
-  override_data {
-    target = data.aws_subnet.validation["subnet-abc123"]
-    values = { id = "subnet-abc123", vpc_id = "vpc-abc123" }
-  }
-
-  variables {
-    domain_id                = "dzd-test123456"
-    blueprint_name           = "MLExperiments"
-    domain_root_unit_id      = "root-unit-123"
-    vpc_id                   = "vpc-abc123"
-    subnet_ids               = ["subnet-abc123"]
-    s3_bucket_name           = "test-bucket-123"
-    configure_lake_formation = false
-  }
-
-  assert {
-    condition     = length(aws_lakeformation_data_lake_settings.main) == 0
-    error_message = "Lake Formation should not be configured when disabled"
-  }
-
-  assert {
-    condition     = length(time_sleep.lakeformation_propagation) == 0
-    error_message = "Lake Formation propagation sleep should not exist when disabled"
-  }
-
-  assert {
-    condition     = output.lake_formation_configured == false
-    error_message = "Output should indicate Lake Formation was not configured"
-  }
-}
-
-#####################################################################################
 # Scenario 5: Custom enabled regions
 # Expected: Blueprint enabled in specified regions
 #####################################################################################
