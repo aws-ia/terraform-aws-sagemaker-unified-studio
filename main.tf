@@ -20,7 +20,7 @@ locals {
   region     = data.aws_region.current.id
 
   # Generate dynamic domain name if not provided
-  domain_name = var.domain_name != null ? var.domain_name : "domain-${formatdate("MM-DD-YYYY-HHmmss", timestamp())}"
+  domain_name = var.domain_name != null ? var.domain_name : "domain-${random_string.suffix.result}"
 
   # Default role names for SageMaker Unified Studio
   default_domain_execution_role_name = "AmazonSageMakerDomainExecution${random_string.suffix.result}"
