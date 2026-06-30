@@ -104,8 +104,8 @@ This example is a reference implementation. The individual sub-modules can be co
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.46.0 |
-| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.85.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.89.0 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | >= 3.2.4 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.8.1 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.13.1 |
@@ -114,8 +114,8 @@ This example is a reference implementation. The individual sub-modules can be co
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.46.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.85.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.51.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.89.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 | <a name="provider_time"></a> [time](#provider\_time) | >= 0.13.1 |
