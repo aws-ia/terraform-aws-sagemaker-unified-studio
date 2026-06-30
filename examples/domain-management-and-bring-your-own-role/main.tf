@@ -249,7 +249,7 @@ module "default_project_profile" {
 
 
 module "create_project_from_project_profile_grant" {
-  source              = "../../modules/policy-grant/create_project"
+  source              = "../../modules/policy-grant-create-project"
   domain_id           = module.domain.domain_id
   domain_unit_id      = module.domain.domain_root_unit_id
   project_profile_ids = [module.default_project_profile.project_profile_id]
