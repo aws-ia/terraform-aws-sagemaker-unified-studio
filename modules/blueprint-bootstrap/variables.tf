@@ -36,12 +36,6 @@ variable "create_provisioning_role" {
   default     = true
 }
 
-variable "configure_lake_formation" {
-  description = "Whether to configure Lake Formation data lake settings with admin permissions for SageMaker roles"
-  type        = bool
-  default     = true
-}
-
 variable "tags" {
   description = "Tags to apply to all resources created by this module"
   type        = map(string)

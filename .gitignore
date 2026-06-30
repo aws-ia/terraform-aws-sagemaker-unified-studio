@@ -72,4 +72,6 @@ requirements.txt
 
 # E2E tests
 tests/e2e/
-.devcontainer/*
+
+# Local project context for Claude (not shared for now)
+CLAUDE.md

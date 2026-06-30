@@ -91,7 +91,7 @@ If you skip the first step, the destroy will fail on the S3 bucket resource. Sim
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_bootstrap"></a> [bootstrap](#module\_bootstrap) | ./modules/blueprint/bootstrap | n/a |
+| <a name="module_bootstrap"></a> [bootstrap](#module\_bootstrap) | ./modules/blueprint-bootstrap | n/a |
 | <a name="module_tooling_blueprint"></a> [tooling\_blueprint](#module\_tooling\_blueprint) | ./modules/blueprint | n/a |
 
 ## Resources

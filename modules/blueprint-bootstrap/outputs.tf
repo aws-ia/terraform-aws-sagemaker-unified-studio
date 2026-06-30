@@ -40,8 +40,3 @@ output "create_provisioning_role" {
   description = "Whether the Provisioning role was created by this module"
   value       = var.create_provisioning_role
 }
-
-output "lake_formation_configured" {
-  description = "Whether Lake Formation data lake settings have been configured"
-  value       = var.configure_lake_formation
-}
