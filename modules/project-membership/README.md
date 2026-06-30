@@ -78,13 +78,17 @@ Both sets default to empty, so you can supply only the ones you need.
 
 ## Requirements
 
-No requirements.
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
+| <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.89.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | n/a |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | 1.90.0 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Modules
@@ -111,5 +115,8 @@ No modules.
 
 ## Outputs
 
-No outputs.
+| Name | Description |
+|------|-------------|
+| <a name="output_member_designations"></a> [member\_designations](#output\_member\_designations) | Map of member identifier to assigned designation (PROJECT\_OWNER or PROJECT\_CONTRIBUTOR), after dedup and owner precedence. |
+| <a name="output_members"></a> [members](#output\_members) | The final list of project members created by this module, after dedup and<br/>owner precedence. Each entry includes the principal identifier, its member<br/>type (SSO\_USER, SSO\_GROUP, IAM\_USER, IAM\_ROLE), the assigned designation<br/>(PROJECT\_OWNER or PROJECT\_CONTRIBUTOR), and the resulting membership id. |
 <!-- END_TF_DOCS -->
