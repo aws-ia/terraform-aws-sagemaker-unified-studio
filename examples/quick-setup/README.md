@@ -103,9 +103,9 @@ Then re-run `terraform apply` to recreate the grants cleanly.
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.51.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.89.0 |
-| <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.52.0 |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | 1.90.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | 3.9.0 |
 
 ## Modules
 
@@ -117,8 +117,7 @@ Then re-run `terraform apply` to recreate the grants cleanly.
 | <a name="module_domain"></a> [domain](#module\_domain) | ../.. | n/a |
 | <a name="module_generative_ai_project_profile"></a> [generative\_ai\_project\_profile](#module\_generative\_ai\_project\_profile) | ../../modules/project-profile | n/a |
 | <a name="module_project"></a> [project](#module\_project) | ../../modules/project | n/a |
-| <a name="module_project_contributor_membership"></a> [project\_contributor\_membership](#module\_project\_contributor\_membership) | ../../modules/project-membership | n/a |
-| <a name="module_project_owner_membership"></a> [project\_owner\_membership](#module\_project\_owner\_membership) | ../../modules/project-membership | n/a |
+| <a name="module_project_membership"></a> [project\_membership](#module\_project\_membership) | ../../modules/project-membership | n/a |
 | <a name="module_sql_analytics_project_profile"></a> [sql\_analytics\_project\_profile](#module\_sql\_analytics\_project\_profile) | ../../modules/project-profile | n/a |
 
 ## Resources

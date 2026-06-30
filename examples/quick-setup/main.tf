@@ -534,22 +534,6 @@ locals {
   # The project is only created when at least one profile is enabled.
   project_enabled = var.enable_sql_analytics || var.enable_all_capabilities || var.enable_generative_ai
 
-  # Flatten each principal set into [{ key, member_type, identifier }] tuples
-  # so we can drive a single for_each per role.
-  project_owner_members = concat(
-    [for u in var.project_owners.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
-    [for g in var.project_owners.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
-    [for a in var.project_owners.iam_users : { key = "iam_user.${a}", member_type = "IAM_USER", identifier = a }],
-    [for a in var.project_owners.iam_roles : { key = "iam_role.${a}", member_type = "IAM_ROLE", identifier = a }],
-  )
-
-  project_contributor_members = concat(
-    [for u in var.project_contributors.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
-    [for g in var.project_contributors.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
-    [for a in var.project_contributors.iam_users : { key = "iam_user.${a}", member_type = "IAM_USER", identifier = a }],
-    [for a in var.project_contributors.iam_roles : { key = "iam_role.${a}", member_type = "IAM_ROLE", identifier = a }],
-  )
-
   # Union of every SSO user across the principal sets. Each unique user needs an
   # aws_datazone_user_profile created so they can be added as a project member.
   all_sso_users = toset(concat(
@@ -597,32 +581,14 @@ resource "awscc_datazone_group_profile" "sso_groups" {
   status            = "ASSIGNED"
 }
 
-module "project_owner_membership" {
-  for_each = local.project_enabled ? { for m in local.project_owner_members : m.key => m } : {}
-  source   = "../../modules/project-membership"
+module "project_membership" {
+  count  = local.project_enabled ? 1 : 0
+  source = "../../modules/project-membership"
 
-  domain_id    = module.domain.domain_id
-  project_id   = module.project[0].project_id
-  member_type  = each.value.member_type
-  identifier   = each.value.identifier
-  project_role = "PROJECT_OWNER"
-
-  depends_on = [
-    aws_datazone_user_profile.sso_users,
-    aws_datazone_user_profile.iam_users,
-    awscc_datazone_group_profile.sso_groups,
-  ]
-}
-
-module "project_contributor_membership" {
-  for_each = local.project_enabled ? { for m in local.project_contributor_members : m.key => m } : {}
-  source   = "../../modules/project-membership"
-
-  domain_id    = module.domain.domain_id
-  project_id   = module.project[0].project_id
-  member_type  = each.value.member_type
-  identifier   = each.value.identifier
-  project_role = "PROJECT_CONTRIBUTOR"
+  domain_id            = module.domain.domain_id
+  project_id           = module.project[0].project_id
+  project_owners       = var.project_owners
+  project_contributors = var.project_contributors
 
   depends_on = [
     aws_datazone_user_profile.sso_users,

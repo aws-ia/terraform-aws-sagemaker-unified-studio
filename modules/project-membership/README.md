@@ -109,7 +109,7 @@ No requirements.
 
 | Name | Version |
 |------|---------|
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | n/a |
+| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | 1.90.0 |
 
 ## Modules
 
@@ -128,10 +128,9 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_domain_id"></a> [domain\_id](#input\_domain\_id) | ID of the SageMaker Unified Studio domain that owns the project. | `string` | n/a | yes |
-| <a name="input_identifier"></a> [identifier](#input\_identifier) | Identifier of the project member.<br/>- For member\_type = "IAM\_USER": full IAM user ARN<br/>  (e.g. arn:aws:iam::123456789012:user/alice).<br/>- For member\_type = "IAM\_ROLE": full IAM role ARN<br/>  (e.g. arn:aws:iam::123456789012:role/MyRole).<br/>- For member\_type = "SSO\_USER": identity store user ID (UUID) or SSO username.<br/>- For member\_type = "SSO\_GROUP": identity store group ID (UUID). | `string` | n/a | yes |
-| <a name="input_member_type"></a> [member\_type](#input\_member\_type) | Type of project member. One of: SSO\_USER, SSO\_GROUP, IAM\_USER, or IAM\_ROLE. | `string` | n/a | yes |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | ID of the SageMaker Unified Studio project to add the member to. | `string` | n/a | yes |
-| <a name="input_project_role"></a> [project\_role](#input\_project\_role) | Role of the user within the project. One of: PROJECT\_OWNER, PROJECT\_CONTRIBUTOR. | `string` | `"PROJECT_CONTRIBUTOR"` | no |
+| <a name="input_project_contributors"></a> [project\_contributors](#input\_project\_contributors) | Principals to add to the created project as PROJECT\_CONTRIBUTOR. | <pre>object({<br/>    sso_users  = optional(list(string), [])<br/>    sso_groups = optional(list(string), [])<br/>    iam_users  = optional(list(string), [])<br/>    iam_roles  = optional(list(string), [])<br/>  })</pre> | `{}` | no |
+| <a name="input_project_owners"></a> [project\_owners](#input\_project\_owners) | Principals to add to the created project as PROJECT\_OWNER. | <pre>object({<br/>    sso_users  = optional(list(string), [])<br/>    sso_groups = optional(list(string), [])<br/>    iam_users  = optional(list(string), [])<br/>    iam_roles  = optional(list(string), [])<br/>  })</pre> | `{}` | no |
 
 ## Outputs
 
