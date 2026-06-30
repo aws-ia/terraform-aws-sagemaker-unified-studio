@@ -88,7 +88,7 @@ This example is a reference implementation. The individual sub-modules can be co
 | Default Project Profile | `../../modules/default-project-profile` | ToolingLite + S3Bucket + S3TableCatalog and the BYOR profile |
 | Domain Management Portal | `../../modules/domain-management-portal` | Singleton admin project that provisions BYOR projects |
 | Project | `../../modules/project` | Create a project from a profile, with optional `project_role` for BYOR |
-| Membership | `../../modules/project-membership` | Add a single principal (SSO user/group, IAM user, or IAM role) to a project |
+| Membership | `../../modules/project-membership` | Add owner/contributor principal sets (SSO users/groups, IAM users, IAM roles) to a project |
 | Policy Grant: Create Project | `../../modules/policy-grant/create_project` | Grant CREATE\_PROJECT\_FROM\_PROJECT\_PROFILE on a domain unit |
 
 ## Further reading
@@ -128,10 +128,9 @@ This example is a reference implementation. The individual sub-modules can be co
 | <a name="module_admin_project_membership"></a> [admin\_project\_membership](#module\_admin\_project\_membership) | ../../modules/project-membership | n/a |
 | <a name="module_create_project_from_project_profile_grant"></a> [create\_project\_from\_project\_profile\_grant](#module\_create\_project\_from\_project\_profile\_grant) | ../../modules/policy-grant/create_project | n/a |
 | <a name="module_default_project"></a> [default\_project](#module\_default\_project) | ../../modules/project | n/a |
+| <a name="module_default_project_membership"></a> [default\_project\_membership](#module\_default\_project\_membership) | ../../modules/project-membership | n/a |
 | <a name="module_default_project_profile"></a> [default\_project\_profile](#module\_default\_project\_profile) | ../../modules/default-project-profile | n/a |
 | <a name="module_domain"></a> [domain](#module\_domain) | ../.. | n/a |
-| <a name="module_project_contributor_membership"></a> [project\_contributor\_membership](#module\_project\_contributor\_membership) | ../../modules/project-membership | n/a |
-| <a name="module_project_owner_membership"></a> [project\_owner\_membership](#module\_project\_owner\_membership) | ../../modules/project-membership | n/a |
 
 ## Resources
 

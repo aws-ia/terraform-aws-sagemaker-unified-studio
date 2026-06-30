@@ -124,29 +124,6 @@ module "admin_project" {
 #####################################################################################
 
 locals {
-  # Flatten each principal set into [{ key, member_type, identifier, role }] tuples
-  # so we can drive a single for_each per role.
-  domain_admin_members = concat(
-    [for u in var.domain_admins.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
-    [for g in var.domain_admins.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
-    [for a in var.domain_admins.iam_users : { key = "iam_user.${a}", member_type = "IAM_USER", identifier = a }],
-    [for a in var.domain_admins.iam_roles : { key = "iam_role.${a}", member_type = "IAM_ROLE", identifier = a }],
-  )
-
-  project_owner_members = concat(
-    [for u in var.project_owners.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
-    [for g in var.project_owners.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
-    [for a in var.project_owners.iam_users : { key = "iam_user.${a}", member_type = "IAM_USER", identifier = a }],
-    [for a in var.project_owners.iam_roles : { key = "iam_role.${a}", member_type = "IAM_ROLE", identifier = a }],
-  )
-
-  project_contributor_members = concat(
-    [for u in var.project_contributors.sso_users : { key = "sso_user.${u}", member_type = "SSO_USER", identifier = u }],
-    [for g in var.project_contributors.sso_groups : { key = "sso_group.${g}", member_type = "SSO_GROUP", identifier = g }],
-    [for a in var.project_contributors.iam_users : { key = "iam_user.${a}", member_type = "IAM_USER", identifier = a }],
-    [for a in var.project_contributors.iam_roles : { key = "iam_role.${a}", member_type = "IAM_ROLE", identifier = a }],
-  )
-
   # Union of every SSO user across the three principal sets. Each unique user
   # needs an aws_datazone_user_profile created so they can be added as a
   # project member.
@@ -203,7 +180,12 @@ resource "awscc_datazone_group_profile" "sso_groups" {
 # is enabled. Without this guard, indexing into module.admin_project[0] would
 # fail with a less helpful error.
 resource "terraform_data" "admin_project_membership_precondition" {
-  count = length(local.domain_admin_members) > 0 ? 1 : 0
+  count = length(concat(
+    var.domain_admins.sso_users,
+    var.domain_admins.sso_groups,
+    var.domain_admins.iam_users,
+    var.domain_admins.iam_roles,
+  )) > 0 ? 1 : 0
 
   lifecycle {
     precondition {
@@ -213,16 +195,16 @@ resource "terraform_data" "admin_project_membership_precondition" {
   }
 }
 
-# Admin project memberships (PROJECT_OWNER on the admin project).
+# Admin project memberships (PROJECT_OWNER on the admin project). domain_admins
+# are all owners of the admin project, so they are passed through as the
+# module's project_owners set.
 module "admin_project_membership" {
-  for_each = var.create_domain_management_portal ? { for m in local.domain_admin_members : m.key => m } : {}
-  source   = "../../modules/project-membership"
+  count  = var.create_domain_management_portal ? 1 : 0
+  source = "../../modules/project-membership"
 
-  domain_id    = module.domain.domain_id
-  project_id   = module.admin_project[0].project_id
-  member_type  = each.value.member_type
-  identifier   = each.value.identifier
-  project_role = "PROJECT_OWNER"
+  domain_id      = module.domain.domain_id
+  project_id     = module.admin_project[0].project_id
+  project_owners = var.domain_admins
 
   depends_on = [
     terraform_data.admin_project_membership_precondition,
@@ -394,32 +376,13 @@ module "default_project" {
 # 5. Default project memberships
 #####################################################################################
 
-module "project_owner_membership" {
-  for_each = { for m in local.project_owner_members : m.key => m }
-  source   = "../../modules/project-membership"
+module "default_project_membership" {
+  source = "../../modules/project-membership"
 
-  domain_id    = module.domain.domain_id
-  project_id   = module.default_project.project_id
-  member_type  = each.value.member_type
-  identifier   = each.value.identifier
-  project_role = "PROJECT_OWNER"
-
-  depends_on = [
-    aws_datazone_user_profile.sso_users,
-    aws_datazone_user_profile.iam_users,
-    awscc_datazone_group_profile.sso_groups,
-  ]
-}
-
-module "project_contributor_membership" {
-  for_each = { for m in local.project_contributor_members : m.key => m }
-  source   = "../../modules/project-membership"
-
-  domain_id    = module.domain.domain_id
-  project_id   = module.default_project.project_id
-  member_type  = each.value.member_type
-  identifier   = each.value.identifier
-  project_role = "PROJECT_CONTRIBUTOR"
+  domain_id            = module.domain.domain_id
+  project_id           = module.default_project.project_id
+  project_owners       = var.project_owners
+  project_contributors = var.project_contributors
 
   depends_on = [
     aws_datazone_user_profile.sso_users,
