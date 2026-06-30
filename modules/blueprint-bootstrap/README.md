@@ -69,8 +69,8 @@ No modules.
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
 | <a name="input_domain_id"></a> [domain\_id](#input\_domain\_id) | The ID of the SageMaker Unified Studio domain | `string` | n/a | yes |
-| <a name="input_create_manage_access_role"></a> [create\_manage\_access\_role](#input\_create\_manage\_access\_role) | ARN of existing ManageAccess role. If not provided, the role is looked up or auto-created. | `bool` | `true` | no |
-| <a name="input_create_provisioning_role"></a> [create\_provisioning\_role](#input\_create\_provisioning\_role) | ARN of existing Provisioning role. If not provided, the role is looked up or auto-created. | `bool` | `true` | no |
+| <a name="input_create_manage_access_role"></a> [create\_manage\_access\_role](#input\_create\_manage\_access\_role) | Whether to create the ManageAccess IAM role (and its attached policies). Set to false to skip creation when the role is managed elsewhere. | `bool` | `true` | no |
+| <a name="input_create_provisioning_role"></a> [create\_provisioning\_role](#input\_create\_provisioning\_role) | Whether to create the Provisioning IAM role (and its attached policy). Set to false to skip creation when the role is managed elsewhere. | `bool` | `true` | no |
 | <a name="input_domain_account_id"></a> [domain\_account\_id](#input\_domain\_account\_id) | AWS account ID where the domain resides. Defaults to the current account. Set this for cross-account blueprints so IAM trust policies grant the domain account permission to assume roles. | `string` | `null` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags to apply to all resources created by this module | `map(string)` | `{}` | no |
 
