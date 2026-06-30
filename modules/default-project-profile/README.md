@@ -19,7 +19,7 @@ This module enables the blueprints needed to support the special "Default Projec
 Resolution order when `using_domain_management_portal = false`:
 
 1. `var.provisioning_role_arn` if explicitly provided
-2. Existing IAM role created by `modules/blueprint/bootstrap`, looked up by the conventional name `AmazonSageMakerProvisioning-<account_id>-<domain_id>` under path `/service-role/`
+2. Existing IAM role created by `modules/blueprint-bootstrap`, looked up by the conventional name `AmazonSageMakerProvisioning-<account_id>-<domain_id>` under path `/service-role/`
 3. If neither is available, the plan fails early with a clear error message
 
 When `using_domain_management_portal = true`, the provisioning role ARN is left null on each blueprint configuration so the admin project's execution role acts as the provisioner for ON\_CREATE blueprints.

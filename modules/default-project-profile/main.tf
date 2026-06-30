@@ -5,7 +5,7 @@
 #
 # Provisioning role resolution (when var.using_domain_management_portal = false):
 #   1. var.provisioning_role_arn (if set)
-#   2. Existing IAM role created by modules/blueprint/bootstrap, looked up by
+#   2. Existing IAM role created by modules/blueprint-bootstrap, looked up by
 #      the conventional name AmazonSageMakerProvisioning-<account_id>-<domain_id>
 #   3. If neither is found, the module fails with a clear error
 #
@@ -120,7 +120,7 @@ resource "terraform_data" "provisioning_role_validation" {
   lifecycle {
     precondition {
       condition     = local.resolved_provisioning_role_arn != null
-      error_message = "No provisioning role available for the default project profile. Either pass var.provisioning_role_arn, or run modules/blueprint/bootstrap to create AmazonSageMakerProvisioning-${data.aws_caller_identity.current.account_id}-${var.domain_id}, or set var.using_domain_management_portal = true."
+      error_message = "No provisioning role available for the default project profile. Either pass var.provisioning_role_arn, or run modules/blueprint-bootstrap to create AmazonSageMakerProvisioning-${data.aws_caller_identity.current.account_id}-${var.domain_id}, or set var.using_domain_management_portal = true."
     }
   }
 }
