@@ -5,7 +5,7 @@ This module creates a single Amazon SageMaker Unified Studio project and manages
 
 ## What it does
 
-- Creates a DataZone project linked to a project profile
+- Creates a SageMaker Unified Studio project linked to a project profile
 - Supports user parameters for environment configuration overrides
 - Manages project memberships for owners and contributors
 - Handles environment cleanup on destroy (deletes all environments before removing the project)
@@ -30,7 +30,7 @@ module "project" {
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
 
 ## Providers

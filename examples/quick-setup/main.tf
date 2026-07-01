@@ -198,7 +198,7 @@ locals {
       description     = "A configurable generative AI app with a conversational interface"
       deployment_mode = "ON_DEMAND"
     }
-    " Amazon Bedrock Knowledge Base" = {
+    "Amazon Bedrock Knowledge Base" = {
       blueprint       = "AmazonBedrockKnowledgeBase"
       description     = "A reusable component for providing your own data to apps"
       deployment_mode = "ON_DEMAND"

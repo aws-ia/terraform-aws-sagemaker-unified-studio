@@ -25,13 +25,13 @@ variable "domain_account_id" {
 }
 
 variable "create_manage_access_role" {
-  description = "ARN of existing ManageAccess role. If not provided, the role is looked up or auto-created."
+  description = "Whether to create the ManageAccess IAM role (and its attached policies). Set to false to skip creation when the role is managed elsewhere."
   type        = bool
   default     = true
 }
 
 variable "create_provisioning_role" {
-  description = "ARN of existing Provisioning role. If not provided, the role is looked up or auto-created."
+  description = "Whether to create the Provisioning IAM role (and its attached policy). Set to false to skip creation when the role is managed elsewhere."
   type        = bool
   default     = true
 }

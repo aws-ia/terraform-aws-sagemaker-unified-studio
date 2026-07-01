@@ -20,7 +20,7 @@ created by the standalone [`blueprint-bootstrap`](../blueprint-bootstrap) submod
 
 - `AmazonSageMakerProvisioning` IAM role
 - `AmazonSageMakerManageAccess` IAM role
-- Custom Redshift secret access policy
+- Optional custom Redshift secret access policy
 
 The `blueprint-bootstrap` submodule should be invoked once per domain, before
 configuring any blueprints. (The root domain module invokes it automatically.)
@@ -53,7 +53,7 @@ module "blueprints" {
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
 | <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.89.0 |
 

@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
 # SageMaker Unified Studio Project Profile Module
 
-This module creates a single project profile for an Amazon SageMaker Unified Studio domain. A project profile defines which environment blueprints are available when creating a project, along with their deployment order and configuration parameters.
+This module creates a single project profile for an Amazon SageMaker Unified Studio domain. A project profile defines which environment blueprints are available when creating a project, along with their deployment order, target account and region, and configuration parameters.
 
 ## What it does
 
@@ -63,7 +63,7 @@ Note: For `EmrOnEks`, you must provide `eksClusterArn` in `parameter_overrides`.
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
 | <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.89.0 |
 
