@@ -29,7 +29,7 @@ This example aims to closely mirror the [AWS Console quick-setup experience](htt
 
 ### Policy Grant Module
 
-- Creates a `CREATE_PROJECT_FROM_PROJECT_PROFILE` **policy grant** so users can create projects from the enabled project profiles
+- Creates a `CREATE_PROJECT_FROM_PROJECT_PROFILE` **policy grant** so users can create projects from the enabled project profiles. In this quick-setup, the grants are scoped to all users in the domain
 
 ### Project Membership Module
 

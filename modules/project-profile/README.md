@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
 # SageMaker Unified Studio Project Profile Module
 
-This module creates a single project profile for an Amazon SageMaker Unified Studio domain. A project profile defines which environment blueprints are available when creating a project, along with their deployment order and configuration parameters.
+This module creates a single project profile for an Amazon SageMaker Unified Studio domain. A project profile defines which environment blueprints are available when creating a project, along with their deployment order, target account and region, and configuration parameters.
 
 ## What it does
 
