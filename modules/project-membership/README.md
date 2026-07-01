@@ -80,7 +80,7 @@ Both sets default to empty, so you can supply only the ones you need.
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
 | <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.89.0 |
 
