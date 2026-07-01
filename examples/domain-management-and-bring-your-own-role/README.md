@@ -106,7 +106,6 @@ This example is a reference implementation. The individual sub-modules can be co
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
 | <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.89.0 |
-| <a name="requirement_null"></a> [null](#requirement\_null) | >= 3.2.4 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.8.1 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.13.1 |
 
