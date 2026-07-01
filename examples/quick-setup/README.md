@@ -29,7 +29,7 @@ This example aims to closely mirror the [AWS Console quick-setup experience](htt
 
 ### Policy Grant Module
 
-- Creates a `CREATE_PROJECT_FROM_PROJECT_PROFILE` **policy grant** so users can create projects from the enabled project profiles
+- Creates a `CREATE_PROJECT_FROM_PROJECT_PROFILE` **policy grant** so users can create projects from the enabled project profiles. In this quick-setup, the grants are scoped to all users in the domain
 
 ### Project Membership Module
 
@@ -95,7 +95,6 @@ Then re-run `terraform apply` to recreate the grants cleanly.
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
 | <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.89.0 |
-| <a name="requirement_null"></a> [null](#requirement\_null) | >= 3.2.4 |
 | <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.8.1 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | >= 0.13.1 |
 
@@ -145,8 +144,6 @@ Then re-run `terraform apply` to recreate the grants cleanly.
 | <a name="input_enable_sql_analytics"></a> [enable\_sql\_analytics](#input\_enable\_sql\_analytics) | Enable the SQL analytics default project profile. Enabling this will create the project profile and enable the selected blueprints. | `bool` | `true` | no |
 | <a name="input_enable_sso"></a> [enable\_sso](#input\_enable\_sso) | Enable single sign on (SSO) using the default IAM Identity Center instance for the region | `bool` | `false` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Environment name (e.g., dev, staging, prod) | `string` | `"test"` | no |
-| <a name="input_model_consumption_role_arn"></a> [model\_consumption\_role\_arn](#input\_model\_consumption\_role\_arn) | ARN of existing AmazonDataZoneBedrockFMConsumptionRole. If null, auto-created by the domain module. | `string` | `null` | no |
-| <a name="input_model_management_role_arn"></a> [model\_management\_role\_arn](#input\_model\_management\_role\_arn) | ARN of existing AmazonDataZoneBedrockModelManagementRole. If null, auto-created by the domain module. | `string` | `null` | no |
 | <a name="input_owner"></a> [owner](#input\_owner) | Owner of the domain (for tagging purposes) | `string` | `"terraform-quick-setup"` | no |
 | <a name="input_project_contributors"></a> [project\_contributors](#input\_project\_contributors) | Principals to add to the created project as PROJECT\_CONTRIBUTOR. | <pre>object({<br/>    sso_users  = optional(list(string), [])<br/>    sso_groups = optional(list(string), [])<br/>    iam_users  = optional(list(string), [])<br/>    iam_roles  = optional(list(string), [])<br/>  })</pre> | `{}` | no |
 | <a name="input_project_description"></a> [project\_description](#input\_project\_description) | Description of the project | `string` | `"Quick-setup project created with Terraform for SageMaker Unified Studio"` | no |

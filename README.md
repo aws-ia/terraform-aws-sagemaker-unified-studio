@@ -9,7 +9,7 @@ This is the root module for deploying an Amazon SageMaker Unified Studio domain 
 - **IAM roles** — domain execution, domain service, query execution, provisioning, and manage access roles (auto-created unless you bring your own)
 - The **Tooling blueprint** — enabled and configured with VPC, subnet, and S3 parameters
 - An **S3 bucket** for tooling environment storage (optional — skipped if you provide an existing bucket name)
-- **Model governance resources** — a project profile and project used to govern Bedrock generative AI models
+- **Model governance resources** (optional) — a project profile and project used to govern Bedrock generative AI models
 
 Role creation follows a 3-tier resolution: user-provided ARN → pre-existing role discovered in AWS → Terraform-managed role. This means the module is safe to run in accounts that already have the standard SageMaker Unified Studio roles.
 
@@ -106,7 +106,6 @@ If you skip the first step, the destroy will fail on the S3 bucket resource. Sim
 | [aws_iam_role_policy_attachment.domain_service_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_iam_role_policy_attachment.query_execution_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
 | [aws_s3_bucket.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
-| [aws_s3_bucket_logging.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_logging) | resource |
 | [aws_s3_bucket_public_access_block.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) | resource |
 | [aws_s3_bucket_server_side_encryption_configuration.domain](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) | resource |
 | [awscc_datazone_project.model_governance_project](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project) | resource |

@@ -5,9 +5,9 @@ This module creates a single Amazon SageMaker Unified Studio project from a proj
 
 ## What it does
 
-- Creates an `awscc_datazone_project` resource bound to the given `domain_id` and `project_profile_id`
-- Auto-injects `project_role` as a `projectRoleArn` user parameter on the ToolingLite environment configuration when the role is provided (required for bring-your-own-role / ToolingLite project profiles)
-- Merges any caller-supplied `user_parameters` with the auto-generated ToolingLite entry. Caller-provided ToolingLite entries take precedence
+- Creates a SageMaker Unified Studio project linked to a project profile
+- Supports user parameters for environment configuration overrides
+- Manages project memberships for owners and contributors
 - Handles environment cleanup on destroy (deletes all environments before removing the project)
 - Optionally cleans up the linked project profile on destroy when `enable_profile_cleanup = true`
 
@@ -77,7 +77,7 @@ This requires the AWS CLI to be available and configured with appropriate permis
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.5 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.51.0 |
 | <a name="requirement_awscc"></a> [awscc](#requirement\_awscc) | >= 1.89.0 |
 

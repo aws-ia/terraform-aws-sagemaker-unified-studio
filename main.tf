@@ -20,7 +20,7 @@ locals {
   region     = data.aws_region.current.id
 
   # Generate dynamic domain name if not provided
-  domain_name = var.domain_name != null ? var.domain_name : "domain-${formatdate("MM-DD-YYYY-HHmmss", timestamp())}"
+  domain_name = var.domain_name != null ? var.domain_name : "domain-${random_string.suffix.result}"
 
   # Default role names for SageMaker Unified Studio
   default_domain_execution_role_name = "AmazonSageMakerDomainExecution${random_string.suffix.result}"
@@ -262,14 +262,12 @@ locals {
 #checkov:skip=CKV2_AWS_61:Lifecycle configuration not required for tooling storage
 #checkov:skip=CKV2_AWS_62:Event notifications not required for tooling storage
 #checkov:skip=CKV_AWS_144:Cross-region replication not required for tooling storage
+#checkov:skip=CKV_AWS_18:Access logging intentionally disabled; logging into the same bucket causes recursive logging and self-logging is not a supported service standard
 #tfsec:ignore:aws-s3-enable-versioning
+#tfsec:ignore:aws-s3-enable-bucket-logging Access logging intentionally disabled to avoid recursive logging into the same bucket
 resource "aws_s3_bucket" "domain" {
   count  = var.s3_bucket_name == null ? 1 : 0
   bucket = lower("sagemaker-studio-${local.account_id}-${local.region}-${random_string.suffix.result}")
-
-  # Allow Terraform to delete the bucket on destroy even when it still contains
-  # objects (and object versions). Without this, destroy fails with BucketNotEmpty.
-  force_destroy = true
 
   #checkov:skip=CKV2_AWS_61:Lifecycle configuration not required for tooling storage
   #checkov:skip=CKV2_AWS_62:Event notifications not required for tooling storage
@@ -291,13 +289,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "domain" {
       kms_master_key_id = var.kms_key_identifier
     }
   }
-}
-
-resource "aws_s3_bucket_logging" "domain" {
-  count         = var.s3_bucket_name == null ? 1 : 0
-  bucket        = aws_s3_bucket.domain[0].id
-  target_bucket = aws_s3_bucket.domain[0].id
-  target_prefix = "access-logs/"
 }
 
 resource "aws_s3_bucket_public_access_block" "domain" {

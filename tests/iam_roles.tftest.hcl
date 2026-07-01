@@ -32,14 +32,6 @@ override_data {
   }
 }
 
-override_data {
-  target = data.aws_iam_roles.provisioning_role
-  values = {
-    arns  = []
-    names = []
-  }
-}
-
 run "domain_no_roles_provided" {
   command = plan
   module {
