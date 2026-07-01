@@ -273,6 +273,7 @@ resource "aws_s3_bucket" "domain" {
   #checkov:skip=CKV2_AWS_62:Event notifications not required for tooling storage
   #checkov:skip=CKV_AWS_144:Cross-region replication not required for tooling storage
   #checkov:skip=CKV_AWS_21:Versioning not required for tooling storage since data lakes will be stored
+  #checkov:skip=CKV_AWS_18:Access logging intentionally disabled; logging into the same bucket causes recursive logging and self-logging is not a supported service standard
 
   tags = merge(var.tags, {
     Purpose = "SageMaker Unified Studio Domain Storage"
