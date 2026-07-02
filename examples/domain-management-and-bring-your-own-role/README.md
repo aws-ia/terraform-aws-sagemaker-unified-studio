@@ -162,8 +162,6 @@ This example is a reference implementation. The individual sub-modules can be co
 | <a name="input_domain_name"></a> [domain\_name](#input\_domain\_name) | Name of the SageMaker Unified Studio domain | `string` | `"terraform-quick-setup-domain"` | no |
 | <a name="input_enable_sso"></a> [enable\_sso](#input\_enable\_sso) | Enable single sign on (SSO) using the default IAM Identity Center instance for the region | `bool` | `false` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Environment name (e.g., dev, staging, prod) | `string` | `"test"` | no |
-| <a name="input_model_consumption_role_arn"></a> [model\_consumption\_role\_arn](#input\_model\_consumption\_role\_arn) | ARN of existing AmazonDataZoneBedrockFMConsumptionRole. If null, auto-created by the domain module. | `string` | `null` | no |
-| <a name="input_model_management_role_arn"></a> [model\_management\_role\_arn](#input\_model\_management\_role\_arn) | ARN of existing AmazonDataZoneBedrockModelManagementRole. If null, auto-created by the domain module. | `string` | `null` | no |
 | <a name="input_owner"></a> [owner](#input\_owner) | Owner of the domain (for tagging purposes) | `string` | `"terraform-quick-setup"` | no |
 | <a name="input_project_contributors"></a> [project\_contributors](#input\_project\_contributors) | Principals to add to the default project as PROJECT\_CONTRIBUTOR. | <pre>object({<br/>    sso_users  = optional(list(string), [])<br/>    sso_groups = optional(list(string), [])<br/>    iam_users  = optional(list(string), [])<br/>    iam_roles  = optional(list(string), [])<br/>  })</pre> | `{}` | no |
 | <a name="input_project_description"></a> [project\_description](#input\_project\_description) | Description of the project | `string` | `"Quick-setup project created with Terraform for SageMaker Unified Studio"` | no |
@@ -172,7 +170,6 @@ This example is a reference implementation. The individual sub-modules can be co
 | <a name="input_project_role_arn"></a> [project\_role\_arn](#input\_project\_role\_arn) | Bring-your-own-role: ARN of an existing IAM role to use as the project execution role. When null (default), the example creates and manages its own project execution role. | `string` | `null` | no |
 | <a name="input_s3_bucket_name"></a> [s3\_bucket\_name](#input\_s3\_bucket\_name) | Existing S3 bucket name for Tooling blueprint storage. If null, a dedicated bucket is created by the domain module. | `string` | `null` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | Subnet IDs for blueprint regional parameters. If null, subnets from the default VPC are used. | `list(string)` | `null` | no |
-| <a name="input_tags"></a> [tags](#input\_tags) | Additional tags to apply to all resources | `map(string)` | `{}` | no |
 | <a name="input_user_role_policy_arns"></a> [user\_role\_policy\_arns](#input\_user\_role\_policy\_arns) | List of IAM policy ARNs to apply as user role policies on the Tooling blueprint | `list(string)` | `null` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID for blueprint regional parameters. If null, the default VPC is used. | `string` | `null` | no |
 
