@@ -109,28 +109,6 @@ variable "user_role_policy_arns" {
   }
 }
 
-variable "model_management_role_arn" {
-  description = "ARN of existing AmazonDataZoneBedrockModelManagementRole. If null, auto-created by the domain module."
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.model_management_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.model_management_role_arn))
-    error_message = "Must be a valid IAM role ARN."
-  }
-}
-
-variable "model_consumption_role_arn" {
-  description = "ARN of existing AmazonDataZoneBedrockFMConsumptionRole. If null, auto-created by the domain module."
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.model_consumption_role_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.model_consumption_role_arn))
-    error_message = "Must be a valid IAM role ARN."
-  }
-}
-
 #####################################################################################
 # Project Configuration
 #####################################################################################
@@ -240,8 +218,4 @@ variable "owner" {
   default     = "terraform-quick-setup"
 }
 
-variable "tags" {
-  description = "Additional tags to apply to all resources"
-  type        = map(string)
-  default     = {}
-}
+

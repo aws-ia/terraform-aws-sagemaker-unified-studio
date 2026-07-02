@@ -1,15 +1,19 @@
 #####################################################################################
-# SageMaker Unified Studio Quick-Setup Example
+# SageMaker Unified Studio Domain Management Portal & Bring-Your-Own-Role Example
 #
-# Demonstrates the modular architecture:
-#   1. Root domain module — creates domain, Tooling blueprint, IAM roles, S3 bucket,
-#      model governance resources
-#   2. Blueprint module (singular) — invoked per blueprint (LakehouseCatalog,
-#      MLExperiments, RedshiftServerless)
-#   3. Project profile module (singular) — composes blueprints into a deployable profile
-#   4. Project module — creates a project from the profile
-#
-# Equivalent to the AWS console quick-setup experience.
+# Demonstrates a bring-your-own-role (BYOR) deployment, optionally fronted by the
+# domain management portal:
+#   1. Root domain module — creates the domain, Tooling blueprint, IAM roles, and
+#      S3 bucket
+#   2. Domain management portal (optional) — when create_domain_management_portal
+#      is true, creates the singleton admin project that provisions BYOR projects
+#   3. Default project profile module — enables ToolingLite/S3Bucket/S3TableCatalog
+#      and creates the Default Project Profile required for BYOR projects
+#   4. Policy grant module — grants CREATE_PROJECT_FROM_PROJECT_PROFILE on the profile
+#   5. Project module — creates a project from the Default Project Profile using a
+#      caller-supplied or example-managed IAM execution role (BYOR)
+#   6. Project membership modules — wire domain admins, project owners, and
+#      project contributors to their respective projects
 #####################################################################################
 
 # Configure the AWS Provider
@@ -21,7 +25,7 @@ provider "aws" {
       Project     = "SageMaker-Unified-Studio"
       Environment = var.environment
       ManagedBy   = "Terraform"
-      Example     = "quick-setup"
+      Example     = "domain-management-and-bring-your-own-role"
     }
   }
 }
@@ -239,12 +243,12 @@ resource "aws_iam_role_policy_attachment" "provisioning_admin_policy_attachment"
 module "default_project_profile" {
   source = "../../modules/default-project-profile"
 
-  domain_id                       = module.domain.domain_id
-  provisioning_role_arn           = module.domain.provisioning_role_arn
-  vpc_id                          = var.vpc_id
-  subnet_ids                      = var.subnet_ids
-  using_domain_management_portal  = var.create_domain_management_portal
-  depends_on                      = [module.admin_project, aws_iam_role_policy_attachment.provisioning_admin_policy_attachment]
+  domain_id                      = module.domain.domain_id
+  provisioning_role_arn          = module.domain.provisioning_role_arn
+  vpc_id                         = var.vpc_id
+  subnet_ids                     = var.subnet_ids
+  using_domain_management_portal = var.create_domain_management_portal
+  depends_on                     = [module.admin_project, aws_iam_role_policy_attachment.provisioning_admin_policy_attachment]
 }
 
 
