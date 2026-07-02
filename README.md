@@ -5,7 +5,7 @@ This is the root module for deploying an Amazon SageMaker Unified Studio domain 
 
 ## What This Module Creates
 
-- A **SageMaker Unified Studio (V2) domain** backed by AWS DataZone
+- A **SageMaker Unified Studio (V2) domain** backed by Amazon DataZone
 - **IAM roles** — domain execution, domain service, query execution, provisioning, and manage access roles (auto-created unless you bring your own)
 - The **Tooling blueprint** — enabled and configured with VPC, subnet, and S3 parameters
 - An **S3 bucket** for tooling environment storage (optional — skipped if you provide an existing bucket name)
