@@ -72,7 +72,7 @@ Both sets default to empty, so you can supply only the ones you need.
 
 ## Notes
 
-- DataZone project memberships have no update API — every property is create-only. The module keys each membership by its full identity (`designation|member_type|identifier`), so any change (including switching a principal between owner and contributor) is realized as a destroy-and-recreate rather than an in-place update, which would otherwise fail with `NotUpdatableException`.
+- DataZone project memberships have no update API — every property is create-only. Memberships are keyed by identifier (a stable key) and replacement is forced via `replace_triggered_by` whenever the designation or member changes. Using a stable key makes this a single-instance replacement, which Terraform sequences as destroy-then-create, so the old membership is removed before the new one is added (avoiding both `NotUpdatableException` and `AlreadyExists`).
 - SSO users and groups must be registered as `aws_datazone_user_profile` / `awscc_datazone_group_profile` in the domain before being added. The `examples/quick-setup` example shows the typical pattern of unioning principals from both sets and registering each one once.
 - IAM users and IAM roles are routed to different membership fields (`user_identifier` vs `group_identifier`), so place each ARN under the matching key.
 

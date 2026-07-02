@@ -15,6 +15,14 @@ output "blueprint_name" {
 output "entity_id" {
   description = "Entity identifier for policy grants (account_id:blueprint_id)"
   value       = "${local.account_id}:${data.aws_datazone_environment_blueprint.this.id}"
+
+  # Force consumers (e.g. project-profile module) to wait until the blueprint
+  # configuration resource has been applied. Without this, downstream data
+  # sources reading the blueprint configuration can race the apply and fail
+  # with "AWS Data Source Not Found".
+  depends_on = [
+    aws_datazone_environment_blueprint_configuration.this,
+  ]
 }
 
 

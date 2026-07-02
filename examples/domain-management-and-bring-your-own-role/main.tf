@@ -1,0 +1,396 @@
+#####################################################################################
+# SageMaker Unified Studio Domain Management Portal & Bring-Your-Own-Role Example
+#
+# Demonstrates a bring-your-own-role (BYOR) deployment, optionally fronted by the
+# domain management portal:
+#   1. Root domain module — creates the domain, Tooling blueprint, IAM roles, and
+#      S3 bucket
+#   2. Domain management portal (optional) — when create_domain_management_portal
+#      is true, creates the singleton admin project that provisions BYOR projects
+#   3. Default project profile module — enables ToolingLite/S3Bucket/S3TableCatalog
+#      and creates the Default Project Profile required for BYOR projects
+#   4. Policy grant module — grants CREATE_PROJECT_FROM_PROJECT_PROFILE on the profile
+#   5. Project module — creates a project from the Default Project Profile using a
+#      caller-supplied or example-managed IAM execution role (BYOR)
+#   6. Project membership modules — wire domain admins, project owners, and
+#      project contributors to their respective projects
+#####################################################################################
+
+# Configure the AWS Provider
+provider "aws" {
+  region = var.aws_region
+
+  default_tags {
+    tags = {
+      Project     = "SageMaker-Unified-Studio"
+      Environment = var.environment
+      ManagedBy   = "Terraform"
+      Example     = "domain-management-and-bring-your-own-role"
+    }
+  }
+}
+
+# Configure the AWS Cloud Control Provider (awscc) to use the same region
+provider "awscc" {
+  region = var.aws_region
+}
+
+#####################################################################################
+# Data Sources
+#####################################################################################
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
+# Use default VPC/subnets when not explicitly provided
+data "aws_vpc" "default" {
+  count   = var.vpc_id == null ? 1 : 0
+  default = true
+}
+
+data "aws_subnets" "default" {
+  count = var.subnet_ids == null ? 1 : 0
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default[0].id]
+  }
+}
+
+#####################################################################################
+# Locals
+#####################################################################################
+
+locals {
+  vpc_id     = var.vpc_id != null ? var.vpc_id : data.aws_vpc.default[0].id
+  subnet_ids = var.subnet_ids != null ? var.subnet_ids : data.aws_subnets.default[0].ids
+  region     = data.aws_region.current.id
+
+  # Dynamic project name with random suffix for uniqueness
+  project_name = "${var.project_name}-${random_id.project_suffix.hex}"
+
+  common_tags = {
+    DomainName  = var.domain_name
+    Environment = var.environment
+    Owner       = var.owner
+    CreatedBy   = "terraform-quick-setup-example"
+  }
+}
+
+resource "random_id" "project_suffix" {
+  byte_length = 3
+}
+
+#####################################################################################
+# 1. Domain Module
+#    Creates the domain, Tooling blueprint, IAM roles, optional S3 bucket,
+#    and model governance resources.
+#    Demonstrates: Tooling blueprint integration (Req 9.3),
+#                  model provisioning/consumption role config (Req 9.5),
+#                  user role policy config (Req 9.6)
+#####################################################################################
+
+module "domain" {
+  source = "../.."
+
+  domain_name           = var.domain_name
+  description           = var.domain_description
+  vpc_id                = local.vpc_id
+  subnet_ids            = local.subnet_ids
+  s3_bucket_name        = var.s3_bucket_name
+  user_role_policy_arns = var.user_role_policy_arns
+  enable_sso            = var.enable_sso
+
+  tags = local.common_tags
+}
+
+
+
+# Domain Management Portal
+
+module "admin_project" {
+  count      = var.create_domain_management_portal ? 1 : 0
+  source     = "../../modules/domain-management-portal"
+  domain_id  = module.domain.domain_id
+  depends_on = [module.domain]
+}
+
+#####################################################################################
+# 2. Membership wiring
+#
+# Three principal sets feed three target projects:
+#   - domain_admins        -> admin project (PROJECT_OWNER), only when create_domain_management_portal = true
+#   - project_owners       -> default project (PROJECT_OWNER)
+#   - project_contributors -> default project (PROJECT_CONTRIBUTOR)
+#
+# Each set accepts SSO users, SSO groups, IAM users, and IAM roles. IAM user ARNs
+# are mapped to member_type IAM_USER and IAM role ARNs to IAM_ROLE. SSO users are
+# registered as user profiles in the domain so they can be added as members.
+#####################################################################################
+
+locals {
+  # Union of every SSO user across the three principal sets. Each unique user
+  # needs an aws_datazone_user_profile created so they can be added as a
+  # project member.
+  all_sso_users = toset(concat(
+    var.domain_admins.sso_users,
+    var.project_owners.sso_users,
+    var.project_contributors.sso_users,
+  ))
+
+  # Union of every SSO group across the three principal sets. Each unique group
+  # needs an awscc_datazone_group_profile created so it can be added as a
+  # project member.
+  all_sso_groups = toset(concat(
+    var.domain_admins.sso_groups,
+    var.project_owners.sso_groups,
+    var.project_contributors.sso_groups,
+  ))
+
+  # Union of every IAM user across the three principal sets. Each unique IAM user
+  # needs an aws_datazone_user_profile (user_type IAM_USER) created so it can be
+  # added as a project member.
+  all_iam_users = toset(concat(
+    var.domain_admins.iam_users,
+    var.project_owners.iam_users,
+    var.project_contributors.iam_users,
+  ))
+}
+
+# Register each SSO user as a domain user profile.
+resource "aws_datazone_user_profile" "sso_users" {
+  for_each          = local.all_sso_users
+  domain_identifier = module.domain.domain_id
+  user_identifier   = each.key
+  user_type         = "SSO_USER"
+}
+
+# Register each IAM user as a domain user profile so it can be added as a member.
+resource "aws_datazone_user_profile" "iam_users" {
+  for_each          = local.all_iam_users
+  domain_identifier = module.domain.domain_id
+  user_identifier   = each.key
+  user_type         = "IAM_USER"
+}
+
+# Register each SSO group as a domain group profile so it can be added as a member.
+resource "awscc_datazone_group_profile" "sso_groups" {
+  for_each          = local.all_sso_groups
+  domain_identifier = module.domain.domain_id
+  group_identifier  = each.key
+  status            = "ASSIGNED"
+}
+
+# Validation: domain_admins memberships only make sense when the admin portal
+# is enabled. Without this guard, indexing into module.admin_project[0] would
+# fail with a less helpful error.
+resource "terraform_data" "admin_project_membership_precondition" {
+  count = length(concat(
+    var.domain_admins.sso_users,
+    var.domain_admins.sso_groups,
+    var.domain_admins.iam_users,
+    var.domain_admins.iam_roles,
+  )) > 0 ? 1 : 0
+
+  lifecycle {
+    precondition {
+      condition     = var.create_domain_management_portal
+      error_message = "domain_admins may only be set when create_domain_management_portal = true. Either enable the admin portal, or move these principals into project_owners / project_contributors."
+    }
+  }
+}
+
+# Admin project memberships (PROJECT_OWNER on the admin project). domain_admins
+# are all owners of the admin project, so they are passed through as the
+# module's project_owners set.
+module "admin_project_membership" {
+  count  = var.create_domain_management_portal ? 1 : 0
+  source = "../../modules/project-membership"
+
+  domain_id      = module.domain.domain_id
+  project_id     = module.admin_project[0].project_id
+  project_owners = var.domain_admins
+
+  depends_on = [
+    terraform_data.admin_project_membership_precondition,
+    aws_datazone_user_profile.sso_users,
+    aws_datazone_user_profile.iam_users,
+    awscc_datazone_group_profile.sso_groups,
+  ]
+}
+
+
+#####################################################################################
+# 3. Project Profile Module (singular)
+#    Demonstrates: blueprint dictionary composition (Req 9.2),
+#                  Tooling blueprint integration from domain output (Req 9.3)
+#####################################################################################
+
+
+# Provisioning role: extra permissions.
+# When the admin project is enabled, the admin project's execution role acts as
+# the provisioning role for the default project profile blueprints, so no extra
+# permissions are needed here. When the admin project is NOT created, the
+# provisioning role has to be elevated with admin permissions so it can create
+# the additional resources required to set up default projects.
+resource "aws_iam_role_policy_attachment" "provisioning_admin_policy_attachment" {
+  count      = var.create_domain_management_portal ? 0 : 1
+  role       = reverse(split("/", module.domain.provisioning_role_arn))[0]
+  policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioAdminIAMDefaultExecutionPolicy"
+}
+
+// BYOR Project Profile
+
+module "default_project_profile" {
+  source = "../../modules/default-project-profile"
+
+  domain_id                      = module.domain.domain_id
+  provisioning_role_arn          = module.domain.provisioning_role_arn
+  vpc_id                         = var.vpc_id
+  subnet_ids                     = var.subnet_ids
+  using_domain_management_portal = var.create_domain_management_portal
+  depends_on                     = [module.admin_project, aws_iam_role_policy_attachment.provisioning_admin_policy_attachment]
+}
+
+
+module "create_project_from_project_profile_grant" {
+  source              = "../../modules/policy-grant-create-project"
+  domain_id           = module.domain.domain_id
+  domain_unit_id      = module.domain.domain_root_unit_id
+  project_profile_ids = [module.default_project_profile.project_profile_id]
+  all_users           = true
+  depends_on          = [module.default_project_profile]
+}
+
+
+#####################################################################################
+# 4. Project Module
+#    Creates a project from the profile with SSO user membership
+#####################################################################################
+
+
+resource "random_string" "project_suffix" {
+  length  = 8
+  special = false
+}
+resource "aws_iam_role" "project_iam_role" {
+  count = var.project_role_arn == null ? 1 : 0
+  name  = "SMUSProjectIAMExecutionRole_${random_string.project_suffix.result}"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = [
+            "datazone.amazonaws.com",
+            "sagemaker.amazonaws.com",
+            "glue.amazonaws.com",
+            "bedrock.amazonaws.com",
+            "scheduler.amazonaws.com",
+            "lakeformation.amazonaws.com",
+            "airflow-serverless.amazonaws.com",
+            "athena.amazonaws.com",
+            "redshift.amazonaws.com",
+            "emr-serverless.amazonaws.com"
+          ]
+        }
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession",
+          "sts:SetContext",
+          "sts:SetSourceIdentity"
+        ]
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+        }
+      }
+    ]
+  })
+}
+resource "aws_iam_role_policy_attachment" "project_iam_role_policy_attachment" {
+  count      = var.project_role_arn == null ? 1 : 0
+  role       = aws_iam_role.project_iam_role[0].name
+  policy_arn = "arn:aws:iam::aws:policy/SageMakerStudioUserIAMDefaultExecutionPolicy"
+}
+
+# Allow the project execution role to be passed to the SMUS-integrated services.
+resource "aws_iam_role_policy" "project_iam_role_pass_role" {
+  count = var.project_role_arn == null ? 1 : 0
+  name  = "PassRole"
+  role  = aws_iam_role.project_iam_role[0].name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "PassRole"
+        Effect   = "Allow"
+        Action   = ["iam:PassRole"]
+        Resource = aws_iam_role.project_iam_role[0].arn
+        Condition = {
+          StringEquals = {
+            "aws:ResourceAccount" = "$${aws:PrincipalAccount}"
+            "iam:PassedToService" = [
+              "bedrock.amazonaws.com",
+              "glue.amazonaws.com",
+              "lakeformation.amazonaws.com",
+              "sagemaker.amazonaws.com",
+              "scheduler.amazonaws.com",
+              "emr-serverless.amazonaws.com",
+              "elasticmapreduce.amazonaws.com",
+              "redshift.amazonaws.com",
+              "airflow-serverless.amazonaws.com"
+            ]
+          }
+        }
+      }
+    ]
+  })
+}
+
+// Wait after role deployment for state to synchronize between aws and awscc
+resource "time_sleep" "wait_after_project_role_creation" {
+  count           = var.project_role_arn == null ? 1 : 0
+  depends_on      = [aws_iam_role.project_iam_role, aws_iam_role_policy_attachment.project_iam_role_policy_attachment, aws_iam_role_policy.project_iam_role_pass_role]
+  create_duration = "10s"
+}
+
+locals {
+  # Bring-your-own-role: when project_role_arn is provided, use it as-is.
+  # Otherwise fall back to the IAM role created by this example.
+  project_role_arn = var.project_role_arn != null ? var.project_role_arn : aws_iam_role.project_iam_role[0].arn
+}
+
+
+module "default_project" {
+  source = "../../modules/project"
+
+  domain_id           = module.domain.domain_id
+  project_name        = var.project_name
+  project_description = var.project_description
+  project_profile_id  = module.default_project_profile.project_profile_id
+  project_role        = local.project_role_arn
+
+  depends_on = [module.create_project_from_project_profile_grant, time_sleep.wait_after_project_role_creation]
+}
+
+#####################################################################################
+# 5. Default project memberships
+#####################################################################################
+
+module "default_project_membership" {
+  source = "../../modules/project-membership"
+
+  domain_id            = module.domain.domain_id
+  project_id           = module.default_project.project_id
+  project_owners       = var.project_owners
+  project_contributors = var.project_contributors
+
+  depends_on = [
+    aws_datazone_user_profile.sso_users,
+    aws_datazone_user_profile.iam_users,
+    awscc_datazone_group_profile.sso_groups,
+  ]
+}

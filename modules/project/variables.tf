@@ -32,49 +32,23 @@ variable "project_description" {
 }
 
 variable "project_profile_id" {
-  description = "ID of the project profile to use for this project (optional for V2 domains)"
+  description = "ID of the project profile to use for this project"
+  type        = string
+  
+  validation {
+    condition     = length(var.project_profile_id) > 0
+    error_message = "Project profile ID must be a non-empty string."
+  }
+}
+
+variable "project_role" {
+  description = "Specify the project role if the project profile is defined with ToolingLite."
   type        = string
   default     = null
-  
-  validation {
-    condition     = var.project_profile_id == null || length(var.project_profile_id) > 0
-    error_message = "Project profile ID must be either null or a non-empty string."
-  }
-}
 
-variable "user_list" {
-  description = "List of user identifiers to add as project owners"
-  type        = list(string)
-  default     = []
-  
   validation {
-    condition     = length(var.user_list) >= 0
-    error_message = "User list must be a valid list (can be empty)."
-  }
-}
-
-variable "contributor_list" {
-  description = "List of user identifiers to add as project contributors"
-  type        = list(string)
-  default     = []
-  
-  validation {
-    condition     = length(var.contributor_list) >= 0
-    error_message = "Contributor list must be a valid list (can be empty)."
-  }
-}
-
-variable "user_designation" {
-  description = "Designation for users in the user_list"
-  type        = string
-  default     = "PROJECT_OWNER"
-  
-  validation {
-    condition = contains([
-      "PROJECT_OWNER",
-      "PROJECT_CONTRIBUTOR"
-    ], var.user_designation)
-    error_message = "User designation must be either PROJECT_OWNER or PROJECT_CONTRIBUTOR."
+    condition = var.project_role == null || can(regex("^arn:aws:iam::[0-9]{12}:role/.+", var.project_role))
+    error_message = "Project role ARN must be a valid IAM role ARN."
   }
 }
 

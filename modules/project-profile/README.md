@@ -3,6 +3,8 @@
 
 This module creates a single project profile for an Amazon SageMaker Unified Studio domain. A project profile defines which environment blueprints are available when creating a project, along with their deployment order, target account and region, and configuration parameters.
 
+For the special "Default Project Profile" used for bring-your-own-role (BYOR) projects with the ToolingLite blueprint, see `modules/project-profile/default` instead.
+
 ## What it does
 
 - Creates one `awscc_datazone_project_profile` per invocation
@@ -43,6 +45,8 @@ module "sql_analytics_profile" {
     }
   }
 
+  # Pass through entity_id from each upstream blueprint module so the profile
+  # waits for blueprint configurations to be applied first.
   blueprint_dependencies = [for bp in module.blueprints : bp.entity_id]
 }
 ```
@@ -54,7 +58,7 @@ The map key is always treated as the environment configuration name. Each entry 
 - `blueprint` (required) — the managed blueprint name to resolve to a blueprint ID (e.g. `DataLake`, `RedshiftServerless`, `QuickSight`)
 - `description` — optional description for the environment configuration
 - `deployment_mode` — `ON_CREATE` (default) or `ON_DEMAND`
-- `region` — override the AWS region for this blueprint (defaults to current region)
+- `region` — override the AWS region for this blueprint (defaults to the current region)
 - `parameter_overrides` — map of parameter name to `{ value, is_editable }` for customizing blueprint defaults
 
 Note: For `EmrOnEks`, you must provide `eksClusterArn` in `parameter_overrides`.
@@ -73,6 +77,7 @@ Note: For `EmrOnEks`, you must provide `eksClusterArn` in `parameter_overrides`.
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.51.0 |
 | <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.89.0 |
+| <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Modules
 
@@ -83,6 +88,7 @@ No modules.
 | Name | Type |
 |------|------|
 | [awscc_datazone_project_profile.this](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_profile) | resource |
+| [terraform_data.blueprint_dependencies](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_datazone_domain.main](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/datazone_domain) | data source |
 | [aws_datazone_environment_blueprint.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/datazone_environment_blueprint) | data source |

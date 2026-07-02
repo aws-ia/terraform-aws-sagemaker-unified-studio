@@ -1,0 +1,56 @@
+# SageMaker Unified Studio Domain Management Portal & Bring-Your-Own-Role Example
+# Copy this file to terraform.tfvars and customize the values
+
+# AWS Configuration
+aws_region = "us-west-2" # Change to your preferred region
+
+# Domain Configuration
+domain_name        = "my-unified-studio"
+domain_description = "SageMaker Unified Studio domain with BYOR default project profile"
+
+# Project Configuration
+project_name        = "my-byor-project"
+project_description = "BYOR project created with Terraform for SageMaker Unified Studio"
+
+# Bring-your-own-role: provide an existing IAM role to use as the project execution
+# role. When omitted (null), the example creates and manages its own project role.
+# project_role_arn = "arn:aws:iam::<account_id>:role/<project_role>"
+
+# Domain management portal. When true, creates the admin project and uses it as the
+# provisioner for BYOR projects. domain_admins may only be set when this is true.
+create_domain_management_portal = true
+
+# VPC and Network Configuration (null = use default VPC). Both required together.
+# vpc_id     = "vpc-xxx"
+# subnet_ids = ["subnet-xxx", "subnet-xxx"]
+
+# S3 Bucket Configuration (null = auto-create)
+# s3_bucket_name = "my-existing-bucket"
+
+# SSO Configuration
+enable_sso = true
+
+# Membership wiring. Each principal set accepts any combination of SSO users,
+# SSO groups, IAM users, and IAM roles. Empty maps are valid.
+#
+# - domain_admins        -> admin project as PROJECT_OWNER (requires create_domain_management_portal = true)
+# - project_owners       -> default project as PROJECT_OWNER
+# - project_contributors -> default project as PROJECT_CONTRIBUTOR
+domain_admins = {
+  sso_users = ["admin@example.com"]
+  iam_roles = ["arn:aws:iam::<account_id>:role/<admin_role>"]
+  iam_users = ["arn:aws:iam::<account_id>:user/<admin_user>"]
+}
+
+project_owners = {
+  sso_users = ["owner@example.com"]
+}
+
+project_contributors = {
+  sso_users  = ["contributor@example.com"]
+  sso_groups = ["12345678-1234-1234-1234-123456789012"]
+}
+
+# Environment and Tagging
+environment = "test"
+owner       = "data-team"
