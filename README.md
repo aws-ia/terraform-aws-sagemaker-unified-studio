@@ -21,9 +21,10 @@ This module is designed to work alongside several sub-modules that handle specif
 |---|---|---|
 | Blueprint | `modules/blueprint` | Enable an environment blueprint on a domain |
 | Project Profile | `modules/project-profile` | Compose blueprints into a deployable project profile |
+| Default Project Profile | `modules/default-project-profile` | Enable the ToolingLite, S3Bucket, and S3TableCatalog blueprints and create the Default Project Profile used for bring-your-own-role projects |
 | Project | `modules/project` | Create a project from a project profile |
+| Domain Management Portal | `modules/domain-management-portal` | Create the admin project that enables the domain management portal |
 | Policy Grant | `modules/policy-grant-create-project` | Grant the `CREATE_PROJECT` policy on a domain |
-| Metadata Form | `modules/metadata_form` | Create metadata forms |
 
 ## Quick Start
 
