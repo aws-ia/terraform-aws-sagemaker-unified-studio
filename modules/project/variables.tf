@@ -52,42 +52,6 @@ variable "project_role" {
   }
 }
 
-variable "user_list" {
-  description = "List of user identifiers to add as project owners"
-  type        = list(string)
-  default     = []
-  
-  validation {
-    condition     = length(var.user_list) >= 0
-    error_message = "User list must be a valid list (can be empty)."
-  }
-}
-
-variable "contributor_list" {
-  description = "List of user identifiers to add as project contributors"
-  type        = list(string)
-  default     = []
-  
-  validation {
-    condition     = length(var.contributor_list) >= 0
-    error_message = "Contributor list must be a valid list (can be empty)."
-  }
-}
-
-variable "user_designation" {
-  description = "Designation for users in the user_list"
-  type        = string
-  default     = "PROJECT_OWNER"
-  
-  validation {
-    condition = contains([
-      "PROJECT_OWNER",
-      "PROJECT_CONTRIBUTOR"
-    ], var.user_designation)
-    error_message = "User designation must be either PROJECT_OWNER or PROJECT_CONTRIBUTOR."
-  }
-}
-
 variable "user_parameters" {
   description = "User parameters for environment configurations"
   type = list(object({

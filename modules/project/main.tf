@@ -1,6 +1,5 @@
 # SageMaker Unified Studio Project Module
-# This module creates projects and manages user memberships
-# Equivalent to cloudformation/project/create_project.yaml
+# This module creates projects within a domain using a supplied project profile
 
 # Data sources for current context
 data "aws_caller_identity" "current" {}
@@ -65,35 +64,4 @@ resource "awscc_datazone_project" "main" {
       error_message = "The project profile '${var.project_profile_id}' includes the ToolingLite blueprint, which requires var.project_role to be set to a valid IAM role ARN (e.g. 'arn:aws:iam::123456789012:role/MyProjectRole')."
     }
   }
-}
-
-# Project Memberships
-# Create memberships for all specified users
-resource "awscc_datazone_project_membership" "members" {
-  for_each = toset(var.user_list)
-
-  domain_identifier  = var.domain_id
-  project_identifier = awscc_datazone_project.main.project_id
-  designation        = var.user_designation
-
-  member = {
-    user_identifier = each.value
-  }
-
-  depends_on = [awscc_datazone_project.main]
-}
-
-# Optional: Create additional memberships with different designations
-resource "awscc_datazone_project_membership" "contributors" {
-  for_each = toset(var.contributor_list)
-
-  domain_identifier  = var.domain_id
-  project_identifier = awscc_datazone_project.main.project_id
-  designation        = "PROJECT_CONTRIBUTOR"
-
-  member = {
-    user_identifier = each.value
-  }
-
-  depends_on = [awscc_datazone_project.main]
 }
