@@ -1,0 +1,52 @@
+# SageMaker Unified Studio Quick-Setup Example Configuration
+# Copy this file to terraform.tfvars and customize the values
+
+# AWS Configuration
+aws_region = "us-west-2" # Change to your preferred region
+
+# Domain Configuration
+domain_name        = "my-unified-studio"
+domain_description = "SageMaker Unified Studio domain with modular blueprint and profile setup"
+
+# Project Configuration
+project_name        = "my-analytics-project"
+project_description = "Quick-setup project for data science and ML workloads"
+
+# Project Profile Selection -- controls which profiles and blueprints are enabled
+enable_sql_analytics    = true  # SQL analytics profile (DataLake, LakehouseCatalog, RedshiftServerless)
+enable_generative_ai    = true  # Generative AI profile (Bedrock blueprints)
+enable_all_capabilities = false # All capabilities profile (combines SQL + GenAI + EMR + ML)
+
+# VPC and Network Configuration (null = use default VPC)
+# vpc_id     = "vpc-xxx"
+# subnet_ids = ["subnet-xxx", "subnet-xxx"]
+
+# S3 Bucket Configuration (null = auto-create)
+# s3_bucket_name = "my-existing-bucket"
+
+# IAM Role Configuration (all optional; null = auto-create / not applied)
+# user_role_policy_arns      = ["arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"]
+
+# SSO Configuration
+enable_sso = true
+
+# Membership wiring. Each principal set accepts SSO users, SSO groups, IAM users,
+# and IAM roles. Owners get PROJECT_OWNER, contributors get PROJECT_CONTRIBUTOR.
+project_owners = {
+  sso_users = ["user@example.com"]
+  # sso_groups = ["12345678-1234-1234-1234-123456789012"]
+  # iam_users  = ["arn:aws:iam::123456789012:user/alice"]
+  # iam_roles  = ["arn:aws:iam::123456789012:role/MyAdmin"]
+}
+
+project_contributors = {}
+
+# Environment and Tagging
+environment = "test"
+owner       = "data-team"
+
+# Additional tags applied to all resources
+# tags = {
+#   CostCenter = "1234"
+#   Team       = "analytics"
+# }
