@@ -94,10 +94,10 @@ This example is a reference implementation. The individual sub-modules can be co
 ## Further reading
 
 - [Amazon SageMaker Unified Studio concepts](https://docs.aws.amazon.com/sagemaker-unified-studio/latest/userguide/concepts.html) — domains, projects, project profiles, and blueprints
-- [Project profiles](https://docs.aws.amazon.com/sagemaker-unified-studio/latest/userguide/projects.html) — configuration templates that define which blueprints a project is created from
+- [Project profiles](https://docs.aws.amazon.com/sagemaker-unified-studio/latest/adminguide/project-profiles.html) — configuration templates that define which blueprints a project is created from
 - [Create a project](https://docs.aws.amazon.com/sagemaker-unified-studio/latest/userguide/getting-started-create-a-project.html) — creating a project from a project profile
-- [Project role](https://docs.aws.amazon.com/sagemaker-unified-studio/latest/userguide/adding-existing-s3-data.html) — the IAM role associated with a project, which BYOR lets you supply
-- [Admin setup for IAM-based domains](https://docs.aws.amazon.com/sagemaker-unified-studio/latest/userguide/gs-admin-setup.html) — domain administration, roles, and blueprint enablement
+- [Project role](https://docs.aws.amazon.com/sagemaker-unified-studio/latest/adminguide/setup-projects-iam-based-domains.html) — the IAM role associated with a project, which BYOR lets you supply
+- [Domain management portal setup](https://docs.aws.amazon.com/sagemaker-unified-studio/latest/adminguide/accessing-domain-management-idc.html) — domain administration, roles, user management, and project creation
 
 ## Requirements
 
