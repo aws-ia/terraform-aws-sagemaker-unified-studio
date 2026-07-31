@@ -101,8 +101,6 @@ No modules.
 |------|------|
 | [awscc_datazone_project_membership.this](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_project_membership) | resource |
 | [terraform_data.member_identity](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
-| [awscc_datazone_group_profile.sso_group](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/data-sources/datazone_group_profile) | data source |
-| [awscc_datazone_user_profile.sso_user](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/data-sources/datazone_user_profile) | data source |
 
 ## Inputs
 
