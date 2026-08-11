@@ -1,4 +1,4 @@
-FROM public.ecr.aws/codebuild/amazonlinux2-x86_64-standard:4.0
+FROM public.ecr.aws/codebuild/amazonlinux2-x86_64-standard:5.0
 ENV TERRAFORM_VERSION=1.10.0
 RUN cd /tmp && \
     wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \

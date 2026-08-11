@@ -1,0 +1,131 @@
+name: Version Bump
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Get PR title
+        id: pr-title
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr_number=$(git log -1 --pretty=%s | grep -o '#[0-9]\+' | sed 's/#//')
+          if [ -n "$pr_number" ]; then
+            pr_title=$(gh pr view $pr_number --json title --jq '.title')
+            echo "title=$pr_title" >> $GITHUB_OUTPUT
+          else
+            echo "title=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check if commit is a version bump
+        id: skip-check
+        run: |
+          if [[ "${{ steps.pr-title.outputs.title }}" == "Version bump to"* ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Skipping version bump workflow - commit is already a version bump"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine version bump type
+        if: steps.skip-check.outputs.skip == 'false'
+        id: bump-type
+        run: |
+          if [[ "${{ steps.pr-title.outputs.title }}" == *"[Major Release]"* ]]; then
+            echo "type=major" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.pr-title.outputs.title }}" == *"[Minor Release]"* ]]; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+          else
+            echo "type=patch" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate new version
+        if: steps.skip-check.outputs.skip == 'false'
+        id: version
+        run: |
+          if [ ! -f VERSION ]; then
+            major=0
+            minor=0
+            patch=0
+          else
+            current=$(cat VERSION | sed 's/v//')
+            IFS='.' read -r major minor patch <<< "$current"
+          fi
+          
+          case "${{ steps.bump-type.outputs.type }}" in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+          
+          new_version="v${major}.${minor}.${patch}"
+          echo "new_version=$new_version" >> $GITHUB_OUTPUT
+
+      - name: Check for existing version bump PR
+        if: steps.skip-check.outputs.skip == 'false'
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          existing_pr=$(gh pr list --state open --json number,headRefName,title --jq '[.[] | select(.title | startswith("Version bump to"))][0] // empty') 
+          if [ -n "$existing_pr" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "branch=$(echo "$existing_pr" | jq -r '.headRefName')" >> $GITHUB_OUTPUT
+            echo "number=$(echo "$existing_pr" | jq -r '.number')" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update existing PR
+        if: steps.skip-check.outputs.skip == 'false' && steps.check-pr.outputs.exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git fetch origin "${{ steps.check-pr.outputs.branch }}"
+          git checkout "${{ steps.check-pr.outputs.branch }}"
+          git merge origin/main
+          echo "${{ steps.version.outputs.new_version }}" > VERSION
+          git add VERSION
+          git commit -m "Bump version to ${{ steps.version.outputs.new_version }}" || echo "No changes to commit"
+          git push origin "${{ steps.check-pr.outputs.branch }}" --force
+          gh pr edit "${{ steps.check-pr.outputs.number }}" --title "Version bump to ${{ steps.version.outputs.new_version }}"
+
+      - name: Create new PR
+        if: steps.skip-check.outputs.skip == 'false' && steps.check-pr.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          branch="version-bump-${{ steps.version.outputs.new_version }}"
+          git checkout -b "$branch"
+          echo "${{ steps.version.outputs.new_version }}" > VERSION
+          git add VERSION
+          git commit -m "Bump version to ${{ steps.version.outputs.new_version }}"
+          git push origin "$branch"
+          gh pr create --title "Version bump to ${{ steps.version.outputs.new_version }}" \
+            --body "Automated version bump based on commit message.\n\n- Bump type: ${{ steps.bump-type.outputs.type }}\n- New version: ${{ steps.version.outputs.new_version }}"
