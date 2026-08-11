@@ -55,19 +55,6 @@ locals {
   sso_group_members = { for k, m in local.members : k => m if m.member_type == "SSO_GROUP" }
 }
 
-# Look up each SSO user profile in the domain. Fails the plan if the user has not
-# been registered in the domain.
-data "awscc_datazone_user_profile" "sso_user" {
-  for_each = local.sso_user_members
-  id       = "${var.domain_id}|${each.value.identifier}"
-}
-
-# Look up each group profile in the domain. Fails the plan if the group has not
-# been registered in the domain.
-data "awscc_datazone_group_profile" "sso_group" {
-  for_each = local.sso_group_members
-  id       = "${var.domain_id}|${each.value.identifier}"
-}
 
 # Tracks the full create-only identity (designation + member) for each
 # membership. DataZone project memberships have no update API, but the awscc
@@ -98,15 +85,5 @@ resource "awscc_datazone_project_membership" "this" {
     # DataZone memberships are create-only; force a (sequenced) replacement
     # instead of an in-place update when designation or member changes.
     replace_triggered_by = [terraform_data.member_identity[each.key]]
-
-    precondition {
-      condition     = each.value.member_type != "SSO_USER" || contains(keys(data.awscc_datazone_user_profile.sso_user), each.key)
-      error_message = "SSO user '${each.value.identifier}' is not registered in domain '${var.domain_id}'. Create an aws_datazone_user_profile for this user before adding them to a project."
-    }
-
-    precondition {
-      condition     = each.value.member_type != "SSO_GROUP" || contains(keys(data.awscc_datazone_group_profile.sso_group), each.key)
-      error_message = "SSO group '${each.value.identifier}' does not have a group profile in domain '${var.domain_id}'. Create an awscc_datazone_group_profile for this group before adding it to a project."
-    }
   }
 }

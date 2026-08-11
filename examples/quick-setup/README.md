@@ -103,7 +103,6 @@ Then re-run `terraform apply` to recreate the grants cleanly.
 | Name | Version |
 |------|---------|
 | <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.51.0 |
-| <a name="provider_awscc"></a> [awscc](#provider\_awscc) | >= 1.89.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | >= 3.8.1 |
 
 ## Modules
@@ -123,9 +122,6 @@ Then re-run `terraform apply` to recreate the grants cleanly.
 
 | Name | Type |
 |------|------|
-| [aws_datazone_user_profile.iam_users](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/datazone_user_profile) | resource |
-| [aws_datazone_user_profile.sso_users](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/datazone_user_profile) | resource |
-| [awscc_datazone_group_profile.sso_groups](https://registry.terraform.io/providers/hashicorp/awscc/latest/docs/resources/datazone_group_profile) | resource |
 | [random_id.project_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) | resource |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
