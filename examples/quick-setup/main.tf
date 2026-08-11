@@ -557,30 +557,6 @@ locals {
   ))
 }
 
-# Register each SSO user as a domain user profile.
-resource "aws_datazone_user_profile" "sso_users" {
-  for_each          = local.all_sso_users
-  domain_identifier = module.domain.domain_id
-  user_identifier   = each.key
-  user_type         = "SSO_USER"
-}
-
-# Register each IAM user as a domain user profile so it can be added as a member.
-resource "aws_datazone_user_profile" "iam_users" {
-  for_each          = local.all_iam_users
-  domain_identifier = module.domain.domain_id
-  user_identifier   = each.key
-  user_type         = "IAM_USER"
-}
-
-# Register each SSO group as a domain group profile so it can be added as a member.
-resource "awscc_datazone_group_profile" "sso_groups" {
-  for_each          = local.all_sso_groups
-  domain_identifier = module.domain.domain_id
-  group_identifier  = each.key
-  status            = "ASSIGNED"
-}
-
 module "project_membership" {
   count  = local.project_enabled ? 1 : 0
   source = "../../modules/project-membership"
@@ -590,9 +566,4 @@ module "project_membership" {
   project_owners       = var.project_owners
   project_contributors = var.project_contributors
 
-  depends_on = [
-    aws_datazone_user_profile.sso_users,
-    aws_datazone_user_profile.iam_users,
-    awscc_datazone_group_profile.sso_groups,
-  ]
 }
